@@ -62,6 +62,7 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
     trainer = battle.trainer_data
     trainer_pokemon = battle.wild_pokemon
     player = battle.player_pokemon
+    player_name = game_state.game_data.get("player_name", "Trainer")
 
     lines = [
         "",
@@ -72,7 +73,7 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
     ]
 
     for intro_line in trainer.get("intro_text", []):
-        lines.append(f"[yellow]{intro_line}[/yellow]")
+        lines.append(f"[yellow]{intro_line.replace('{player_name}', player_name)}[/yellow]")
 
     lines.append("")
     lines.append(f"[bold]{trainer['trainer_class']} {trainer['name']} wants to battle![/bold]")
