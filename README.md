@@ -2,11 +2,13 @@
 
 Python Pokemon game library with interactive terminal UI.
 
+> **Disclaimer:** This is an unofficial fan project and is not affiliated with, endorsed by, or connected to Nintendo, Game Freak, or The Pokémon Company. Pokémon and all related names are trademarks of Nintendo / Creatures Inc. / GAME FREAK inc. This project is made for educational and entertainment purposes only, with love for the franchise.
+
 ## Overview
 
 `pytemon` is a pure Python library that implements an interactive Pokemon game using the [Textual](https://textual.textualize.io/) TUI framework. It contains the full game engine — exploration, battles, items, gyms, evolution, and a rich terminal interface.
 
-The [rf-pytemon](../rf-pytemon/) sibling project wraps this library as a Robot Framework keyword library.
+The [robotframework-pokemon](https://github.com/MobyNL/robotframework-pokemon) sibling project wraps this library as a Robot Framework keyword library.
 
 ## Setup
 

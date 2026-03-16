@@ -1,8 +1,27 @@
 [tool.poetry]
 name = "pytemon"
 version = "0.1.0"
-description = "Python Pokemon game library with interactive terminal"
-authors = ["Your Name <you@example.com>"]
+description = "Unofficial fan project: interactive Pokémon-inspired game library for the terminal, built with Textual TUI"
+authors = ["Mark Moberts <markmoberts@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/MobyNL/pytemon"
+repository = "https://github.com/MobyNL/pytemon"
+keywords = ["pokemon", "game", "tui", "terminal", "textual", "interactive"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment :: Role-Playing",
+    "Topic :: Terminals",
+]
 packages = [{include = "pytemon"}]
 
 [tool.poetry.dependencies]
