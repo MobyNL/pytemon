@@ -1,0 +1,1351 @@
+/* Pokemon Terminal Game Styles */
+
+Screen {
+    layout: vertical;
+}
+
+#battle-screen {
+    height: 1fr;
+    margin: 1;
+}
+
+RichLog {
+    border: solid $primary;
+    width: 2fr;
+    height: 100%;
+    margin: 0;
+}
+
+Input {
+    height: 3;
+}
+
+#input-container {
+    height: 3;
+    layout: vertical;
+}
+
+#command-input {
+    margin: 0 1;
+}
+
+Footer {
+    height: 1;
+}
+
+#welcome {
+    background: $boost;
+    color: $text;
+    height: auto;
+    padding: 1;
+    text-align: center;
+    border: heavy $success;
+    margin: 1;
+}
+
+/* Main Menu Action Panel */
+#main-menu-actions {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+/* Shared row layout for button pairs */
+.button-row {
+    height: auto;
+    width: 100%;
+    margin-bottom: 1;
+}
+
+/* Main Menu Panel */
+#main-menu-row1, #main-menu-row2 {
+    height: auto;
+}
+
+.main-menu-button {
+    width: 1fr;
+    height: 3;
+    background: $primary 30%;
+    color: $text;
+    margin: 0 1;
+}
+
+.main-menu-button:hover {
+    background: $primary 50%;
+}
+
+#main-menu-title {
+    color: $warning;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+/* Battle Action Panel */
+#battle-actions {
+    height: 16;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#battle-actions-row1, #battle-actions-row2 {
+    height: auto;
+}
+
+/* Move Selection Panel */
+#move-selection {
+    height: 16;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#move-selection-row1, #move-selection-row2 {
+    height: auto;
+}
+
+/* Battle Loading Indicator */
+#battle-loading {
+    height: 16;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+    align: center middle;
+}
+
+#battle-loading LoadingIndicator {
+    height: 3;
+    color: $warning;
+}
+
+#battle-actions-title, #move-selection-title {
+    color: $warning;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+/* Battle Buttons */
+.battle-button {
+    width: 50%;
+    height: 3;
+}
+
+.battle-button-fight {
+    background: $error 20%;
+    color: $text;
+}
+
+.battle-button-fight:hover {
+    background: $error 40%;
+}
+
+.battle-button-switch {
+    background: $accent 20%;
+    color: $text;
+}
+
+.battle-button-switch:hover {
+    background: $accent 40%;
+}
+
+.battle-button-item {
+    background: $success 20%;
+    color: $text;
+}
+
+.battle-button-item:hover {
+    background: $success 40%;
+}
+
+.battle-button-run {
+    background: $warning 20%;
+    color: $text;
+}
+
+.battle-button-run:hover {
+    background: $warning 40%;
+}
+
+/* Pokemon Switch Panel */
+#pokemon-switch {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+}
+
+#pokemon-switch-title {
+    color: $accent;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.switch-slot-button {
+    width: 1fr;
+    height: 3;
+    background: $accent 15%;
+    color: $text;
+}
+
+.switch-slot-button:hover {
+    background: $accent 35%;
+}
+
+.switch-slot-button:disabled {
+    background: $panel;
+    color: $text-muted;
+    opacity: 0.4;
+}
+
+.switch-cancel-button {
+    width: 1fr;
+    height: 3;
+    margin-top: 1;
+    background: $panel;
+    border: tall grey;
+}
+
+.switch-cancel-button:hover {
+    background: $panel-lighten-1;
+}
+
+/* Faint Switch Panel */
+#faint-switch {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $error;
+    background: $panel;
+}
+
+#faint-switch-title {
+    color: $error;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.faint-run-button {
+    width: 1fr;
+    height: 3;
+    margin-top: 1;
+    background: $warning 20%;
+    color: $text;
+}
+
+.faint-run-button:hover {
+    background: $warning 40%;
+}
+
+/* Battle Bag Panel */
+#battle-bag {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $success;
+    background: $panel;
+}
+
+#battle-bag-title {
+    color: $success;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#battle-bag-row1, #battle-bag-row2 {
+    height: auto;
+}
+
+.bag-button {
+    width: 1fr;
+    height: 3;
+}
+
+.bag-button-catch {
+    background: $error 25%;
+    color: $text;
+}
+
+.bag-button-catch:hover {
+    background: $error 45%;
+}
+
+.bag-button-catch:disabled {
+    background: $panel;
+    color: $text-muted;
+    opacity: 0.4;
+}
+
+.bag-button-heal {
+    background: $success 25%;
+    color: $text;
+}
+
+.bag-button-heal:hover {
+    background: $success 45%;
+}
+
+.bag-button-heal:disabled {
+    background: $panel;
+    color: $text-muted;
+    opacity: 0.4;
+}
+
+.bag-button-status {
+    background: $accent 25%;
+    color: $text;
+}
+
+.bag-button-status:hover {
+    background: $accent 45%;
+}
+
+.bag-button-status:disabled {
+    background: $panel;
+    color: $text-muted;
+    opacity: 0.4;
+}
+
+.bag-button-cancel {
+    width: 1fr;
+    height: 3;
+    margin-top: 1;
+    background: $panel;
+    border: tall grey;
+}
+
+.bag-button-cancel:hover {
+    background: $panel-lighten-1;
+}
+
+/* Move Buttons */
+.move-button {
+    width: 1fr;
+    height: 3;
+}
+
+.move-button-normal {
+    background: grey 40%;
+    color: white;
+}
+
+.move-button-fire {
+    background: red 50%;
+    color: white;
+}
+
+.move-button-water {
+    background: blue 50%;
+    color: white;
+}
+
+.move-button-grass {
+    background: green 50%;
+    color: white;
+}
+
+.move-button-electric {
+    background: yellow 50%;
+    color: black;
+}
+
+.move-button:disabled {
+    background: #444;
+    color: #888;
+}
+
+.move-button-back {
+    background: $accent 30%;
+    color: white;
+    width: 1fr;
+    height: 3;
+}
+
+/* Location Selection Panel */
+#location-selection {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+}
+
+#location-select {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+#location-buttons {
+    width: 100%;
+    height: auto;
+}
+
+#location-selection-title {
+    color: $accent;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.location-button {
+    width: 1fr;
+    height: 3;
+    background: $accent 30%;
+    color: $text;
+    margin: 0 1;
+}
+
+.location-button:hover {
+    background: $accent 50%;
+}
+
+.location-go {
+    background: $accent 40%;
+}
+
+.location-go:hover {
+    background: $accent 60%;
+}
+
+/* Building Selection Panel */
+#building-selection {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $success;
+    background: $panel;
+}
+
+#building-select {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+#building-buttons {
+    width: 100%;
+    height: auto;
+}
+
+#building-selection-title {
+    color: $success;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.building-button {
+    width: 1fr;
+    height: 3;
+    background: $success 30%;
+    color: $text;
+    margin: 0 1;
+}
+
+.building-button:hover {
+    background: $success 50%;
+}
+
+.building-go {
+    background: $success 40%;
+}
+
+.building-go:hover {
+    background: $success 60%;
+}
+
+/* Starter Pokemon Selection Panel */
+#starter-selection {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#starter-selection-grid {
+    grid-size: 2 2;
+    grid-columns: 1fr 1fr;
+    grid-gutter: 1;
+    height: auto;
+    padding: 0;
+}
+
+#starter-selection-title {
+    color: $warning;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.starter-button {
+    width: 100%;
+    height: 3;
+}
+
+.starter-button-grass {
+    background: green 50%;
+    color: white;
+}
+
+.starter-button-grass:hover {
+    background: green 70%;
+}
+
+.starter-button-fire {
+    background: red 50%;
+    color: white;
+}
+
+.starter-button-fire:hover {
+    background: red 70%;
+}
+
+.starter-button-water {
+    background: blue 50%;
+    color: white;
+}
+
+.starter-button-water:hover {
+    background: blue 70%;
+}
+
+.starter-button-electric {
+    background: yellow 50%;
+    color: black;
+}
+
+.starter-button-electric:hover {
+    background: yellow 70%;
+}
+
+/* Name Selection Panel */
+#name-selection {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $success;
+    background: $panel;
+}
+
+#name-selection-title {
+    color: $success;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#name-selection-player-label, #name-selection-rival-label {
+    color: $text;
+    padding-top: 1;
+    padding-bottom: 1;
+}
+
+.name-input {
+    height: 3;
+    margin-bottom: 1;
+    border: solid $accent;
+}
+
+#name-selection-buttons {
+    height: auto;
+    margin-top: 1;
+}
+
+.name-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+.name-confirm {
+    background: $success 50%;
+    color: white;
+}
+
+.name-confirm:hover {
+    background: $success 70%;
+}
+
+.name-random {
+    background: $accent 50%;
+    color: white;
+}
+
+.name-random:hover {
+    background: $accent 70%;
+}
+
+/* Confirmation Panel (Yes/No/Cancel) */
+#confirmation-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#confirmation-title {
+    color: $warning;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#confirmation-buttons {
+    height: auto;
+    align: center middle;
+}
+
+.confirm-button {
+    width: auto;
+    min-width: 12;
+    height: 3;
+    margin: 0 1;
+}
+
+.confirm-yes {
+    background: $success 40%;
+    color: white;
+}
+
+.confirm-yes:hover {
+    background: $success 60%;
+}
+
+.confirm-no {
+    background: $error 40%;
+    color: white;
+}
+
+.confirm-no:hover {
+    background: $error 60%;
+}
+
+.confirm-cancel {
+    background: grey 40%;
+    color: white;
+}
+
+.confirm-cancel:hover {
+    background: grey 60%;
+}
+
+/* Save Option Panel (Overwrite vs New Save) */
+#save-option-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid cyan;
+    background: $panel;
+}
+
+#save-option-title {
+    color: cyan;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#save-option-buttons {
+    height: auto;
+    align: center middle;
+}
+
+.save-button {
+    width: auto;
+    min-width: 25;
+    height: 3;
+    margin: 0 1;
+}
+
+.save-overwrite {
+    background: $success 40%;
+    color: white;
+}
+
+.save-overwrite:hover {
+    background: $success 60%;
+}
+
+.save-new {
+    background: $primary 40%;
+    color: white;
+}
+
+.save-new:hover {
+    background: $primary 60%;
+}
+
+/* Load Game Panel (DataTable and Select) */
+#load-game-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+}
+
+#load-game-title {
+    color: $accent;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#saves-table {
+    height: auto;
+    max-height: 15;
+    margin-bottom: 1;
+    border: solid $primary;
+}
+
+#load-game-buttons {
+    height: auto;
+    align: center middle;
+}
+
+.load-button {
+    width: auto;
+    min-width: 15;
+    height: 3;
+    margin: 0 1;
+}
+
+.load-confirm {
+    background: $accent 40%;
+    color: white;
+}
+
+.load-confirm:hover {
+    background: $accent 60%;
+}
+
+.load-cancel {
+    background: grey 40%;
+    color: white;
+}
+
+.load-cancel:hover {
+    background: grey 60%;
+}
+
+/* Pokedex Navigation Panel */
+#pokedex-navigation {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $primary;
+    background: $panel;
+}
+
+#pokedex-nav-buttons {
+    height: auto;
+    width: 100%;
+}
+
+.pokedex-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 2;
+    text-align: center;
+}
+
+.pokedex-prev {
+    background: $primary 40%;
+    color: white;
+}
+
+.pokedex-prev:hover {
+    background: $primary 60%;
+}
+
+.pokedex-prev:disabled {
+    background: #444;
+    color: #888;
+}
+
+.pokedex-next {
+    background: $primary 40%;
+    color: white;
+}
+
+.pokedex-next:hover {
+    background: $primary 60%;
+}
+
+.pokedex-next:disabled {
+    background: #444;
+    color: #888;
+}
+
+.pokedex-first {
+    background: $primary 40%;
+    color: white;
+}
+
+.pokedex-first:hover {
+    background: $primary 60%;
+}
+
+.pokedex-first:disabled {
+    background: #444;
+    color: #888;
+}
+
+.pokedex-last {
+    background: $primary 40%;
+    color: white;
+}
+
+.pokedex-last:hover {
+    background: $primary 60%;
+}
+
+.pokedex-last:disabled {
+    background: #444;
+    color: #888;
+}
+
+.pokedex-close {
+    background: grey 40%;
+    color: white;
+}
+
+.pokedex-close:hover {
+    background: grey 60%;
+}
+
+/* ── Nurse Joy / Mom heal confirmation panel ── */
+#nurse-joy-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#nurse-joy-question {
+    text-align: center;
+    margin-bottom: 1;
+    color: $warning;
+    text-style: bold;
+}
+
+#nurse-joy-buttons {
+    height: auto;
+    width: 100%;
+}
+
+.nurse-joy-button {
+    width: 50%;
+    height: 3;
+}
+
+.nurse-joy-yes {
+    background: $success 60%;
+    color: white;
+}
+
+.nurse-joy-yes:hover {
+    background: $success 80%;
+}
+
+.nurse-joy-no {
+    background: $error 40%;
+    color: white;
+}
+
+.nurse-joy-no:hover {
+    background: $error 60%;
+}
+
+/* Pokemon Center lobby panel */
+#pokemon-center-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $success;
+    background: $panel;
+}
+
+#pokemon-center-title {
+    text-align: center;
+    margin-bottom: 1;
+    color: $success;
+    text-style: bold;
+}
+
+#pokemon-center-buttons {
+    height: auto;
+    width: 100%;
+}
+
+.pokemon-center-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+/* Quit destination panel */
+#quit-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#quit-panel-title {
+    text-align: center;
+    margin-bottom: 1;
+    color: $warning;
+    text-style: bold;
+}
+
+#quit-panel-buttons {
+    height: auto;
+    width: 100%;
+}
+
+.quit-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+.quit-button-close {
+    border: tall $error;
+}
+
+.quit-button-mainmenu {
+    border: tall $success;
+}
+
+.quit-button-cancel {
+    border: tall $primary;
+}
+
+/* Evolution confirmation panel */
+#evolution-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+}
+
+#evolution-title {
+    text-align: center;
+    margin-bottom: 1;
+    color: $warning;
+    text-style: bold;
+}
+
+#evolution-buttons {
+    height: auto;
+    width: 100%;
+}
+
+.evolution-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+.evolution-confirm {
+    border: tall $success;
+}
+
+.evolution-stop {
+    border: tall $error;
+}
+
+/* Pokemart shop panel */
+#pokemart-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+}
+
+#pokemart-title {
+    text-align: center;
+    margin-bottom: 1;
+    color: $accent;
+    text-style: bold;
+}
+
+#pokemart-money {
+    text-align: center;
+    margin-bottom: 1;
+    color: $success;
+    text-style: bold;
+}
+
+#pokemart-row1, #pokemart-row2, #pokemart-row3 {
+    height: auto;
+}
+
+#pokemart-shop-row {
+    height: 3;
+    margin-bottom: 1;
+}
+
+#shop-item-select {
+    width: 3fr;
+    height: 3;
+}
+
+#shop-qty-controls {
+    width: 2fr;
+    height: 3;
+    min-width: 20;
+}
+
+.shop-qty-button {
+    width: 5;
+    min-width: 5;
+    height: 3;
+    background: $primary 30%;
+    border: tall $primary 50%;
+}
+
+.shop-qty-button:hover {
+    background: $primary 50%;
+}
+
+#shop-qty-input {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+    text-align: center;
+}
+
+#shop-qty-input.shop-error {
+    border: tall $error;
+}
+
+.shop-buy-button {
+    width: 2fr;
+    height: 3;
+    background: $success 40%;
+    border: tall $success;
+    min-width: 12;
+}
+
+.shop-buy-button:hover {
+    background: $success 60%;
+}
+
+#pokemart-leave-row {
+    height: auto;
+}
+
+.shop-leave-button {
+    width: 1fr;
+    background: $error 35%;
+    border: tall $error;
+}
+
+.shop-leave-button:hover {
+    background: $error 55%;
+}
+/* ── Party Panel ──────────────────────────────────────────────────── */
+#party-panel {
+    height: 4fr;
+    min-height: 35;
+    margin: 0 1 1 1;
+    border: solid $success;
+    background: $panel;
+    layout: vertical;
+}
+
+#party-tabs {
+    height: 1fr;
+}
+
+#party-tabs TabPane {
+    height: 1fr;
+    padding: 0;
+}
+
+#party-tabs TabPane RichLog {
+    height: 1fr;
+    border: none;
+    margin: 0;
+    padding: 0 1;
+}
+
+#party-close-row {
+    height: auto;
+    padding: 0 1 1 1;
+}
+
+.party-close-button {
+    width: 100%;
+    height: 3;
+    background: $error 30%;
+    border: tall $error 50%;
+    color: $text;
+}
+
+.party-close-button:hover {
+    background: $error 55%;
+}
+
+/* ── Gym Lobby Panel ──────────────────────────────────────────────────── */
+#gym-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $warning;
+    background: $panel;
+    layout: vertical;
+}
+
+#gym-panel-title {
+    text-align: center;
+    text-style: bold;
+    color: $warning;
+    margin-bottom: 1;
+}
+
+#gym-panel-info {
+    margin: 0 0 1 1;
+}
+
+#gym-panel-buttons {
+    height: auto;
+    width: 100%;
+}
+
+.gym-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+.gym-button-trainer {
+    border: tall $warning;
+}
+
+.gym-button-trainer:hover {
+    background: $warning 30%;
+}
+
+.gym-button-leader {
+    border: tall $error;
+}
+
+.gym-button-leader:hover {
+    background: $error 30%;
+}
+
+.gym-button-leave {
+    border: tall $primary;
+}
+
+.gym-button-leave:hover {
+    background: $primary 25%;
+}
+
+/* ── Bill's PC Panels ─────────────────────────────────────────────── */
+#pc-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $primary;
+    background: $panel;
+    layout: vertical;
+}
+
+#pc-panel-title {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#pc-summary {
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#pc-box-buttons {
+    height: auto;
+    margin-bottom: 1;
+}
+
+#pc-action-buttons {
+    height: auto;
+}
+
+.pc-box-button {
+    width: 1fr;
+    height: 3;
+    background: $primary 20%;
+    color: $text;
+    margin: 0 1;
+    border: tall $primary 40%;
+}
+
+.pc-box-button:hover {
+    background: $primary 40%;
+}
+
+.pc-action-button {
+    width: 1fr;
+    height: 3;
+    background: $accent 20%;
+    color: $text;
+    margin: 0 1;
+    border: tall $accent 40%;
+}
+
+.pc-action-button:hover {
+    background: $accent 40%;
+}
+
+.pc-leave-button {
+    background: $error 20%;
+    border: tall $error 40%;
+}
+
+.pc-leave-button:hover {
+    background: $error 40%;
+}
+
+/* Deposit / Withdraw panels */
+#pc-deposit-panel,
+#pc-withdraw-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+    layout: vertical;
+}
+
+#pc-deposit-title,
+#pc-withdraw-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+}
+
+#pc-deposit-row1,
+#pc-deposit-row2,
+#pc-withdraw-row1,
+#pc-withdraw-row2 {
+    height: auto;
+    margin-bottom: 1;
+}
+
+.pc-slot-button {
+    width: 1fr;
+    height: 3;
+    background: $accent 15%;
+    color: $text;
+    margin: 0 1;
+    border: tall $accent 30%;
+}
+
+.pc-slot-button:hover {
+    background: $accent 35%;
+}
+
+.pc-slot-button:disabled {
+    background: $panel;
+    color: $text-muted;
+    opacity: 0.4;
+}
+
+.pc-back-button {
+    width: 100%;
+    height: 3;
+    margin-top: 1;
+    background: $panel;
+    border: tall grey;
+}
+
+.pc-back-button:hover {
+    background: $panel-lighten-1;
+}
+
+/* Battle HUD panels — sit inside #battle-screen alongside the RichLog */
+.hud-panel {
+    width: 1fr;
+    height: 100%;
+    padding: 1 1;
+    background: $surface;
+    border-left: solid $panel-lighten-1;
+}
+
+.hud-name {
+    text-style: bold;
+    height: 1;
+    margin-bottom: 1;
+}
+
+#hud-enemy-name {
+    color: $error-lighten-1;
+}
+
+#hud-player-name {
+    color: $success-lighten-1;
+}
+
+.hud-hp-bar {
+    height: 1;
+    margin-bottom: 0;
+    padding: 0;
+}
+
+/* Enemy HP bar — red */
+#hud-enemy-hp-bar Bar .bar--bar {
+    color: $error;
+}
+
+#hud-enemy-hp-bar Bar .bar--complete {
+    color: $error-lighten-1;
+}
+
+/* Player HP bar — green */
+#hud-player-hp-bar Bar .bar--bar {
+    color: $success;
+}
+
+#hud-player-hp-bar Bar .bar--complete {
+    color: $success-lighten-1;
+}
+
+.hud-hp-text {
+    height: 1;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+.hud-moves {
+    height: auto;
+    color: $text-muted;
+    text-style: dim;
+}
+
+.hud-last-move {
+    height: auto;
+    margin-top: 1;
+    color: $text;
+    text-style: italic;
+}
+
+.hud-stages {
+    height: auto;
+    color: $text-muted;
+}
+
+.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
