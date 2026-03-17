@@ -23,22 +23,22 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install robotframework robotframework-pythonlibcore textual rich \
-                      mypy ruff pytest pytest-cov
+          pip install poetry
+          poetry install
 
       - name: Format check (ruff format)
-        run: ruff format --check PokemonLibrary/ tests/
+        run: poetry run ruff format --check pytemon/ tests/
 
       - name: Lint tests (ruff check)
-        run: ruff check tests/
+        run: poetry run ruff check tests/
 
       - name: Lint source (ruff check — informational)
-        run: ruff check PokemonLibrary/
+        run: poetry run ruff check pytemon/
         continue-on-error: true
 
       - name: Type check (mypy — informational)
-        run: mypy PokemonLibrary/
+        run: poetry run mypy pytemon/
         continue-on-error: true
 
       - name: Run unit tests
-        run: pytest tests/ --tb=short -v --cov=PokemonLibrary --cov-report=term-missing
+        run: poetry run pytest tests/ --tb=short -v --cov=pytemon --cov-report=term-missing
