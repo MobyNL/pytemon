@@ -569,3 +569,198 @@ class TestRockTunnel:
     def test_rock_tunnel_can_explore(self):
         loc = get_location("Rock Tunnel")
         assert loc.can_explore() is True
+
+
+class TestRockTunnelPhase2:
+    """Tests for Rock Tunnel Phase 2 update — south exit to Lavender Town."""
+
+    def test_rock_tunnel_has_lavender_town_exit(self):
+        loc = get_location("Rock Tunnel")
+        assert "Lavender Town" in loc.exits
+
+    def test_rock_tunnel_lavender_town_exit_not_blocked(self):
+        loc = get_location("Rock Tunnel")
+        assert not loc.exits["Lavender Town"].get("blocked", False)
+
+    def test_rock_tunnel_lavender_town_exit_direction_south(self):
+        loc = get_location("Rock Tunnel")
+        assert loc.exits["Lavender Town"]["direction"] == "south"
+
+
+class TestLavenderTown:
+    """Tests for Lavender Town location."""
+
+    def test_lavender_town_exists(self):
+        loc = get_location("Lavender Town")
+        assert loc is not None
+
+    def test_lavender_town_is_town_type(self):
+        loc = get_location("Lavender Town")
+        assert loc.type == TYPE_TOWN
+
+    def test_lavender_town_cannot_explore(self):
+        loc = get_location("Lavender Town")
+        assert loc.can_explore() is False
+
+    def test_lavender_town_has_pokemon_center(self):
+        loc = get_location("Lavender Town")
+        assert any("Pokemon Center" in b for b in loc.buildings)
+
+    def test_lavender_town_has_pokemart(self):
+        loc = get_location("Lavender Town")
+        assert any("Pokemart" in b for b in loc.buildings)
+
+    def test_lavender_town_has_pokemon_tower(self):
+        loc = get_location("Lavender Town")
+        assert any("Pokemon Tower" in b for b in loc.buildings)
+
+    def test_lavender_town_has_rock_tunnel_exit(self):
+        loc = get_location("Lavender Town")
+        assert "Rock Tunnel" in loc.exits
+
+    def test_lavender_town_has_route_8_exit(self):
+        loc = get_location("Lavender Town")
+        assert "Route 8" in loc.exits
+
+    def test_lavender_town_has_route_12_exit(self):
+        loc = get_location("Lavender Town")
+        assert "Route 12" in loc.exits
+
+
+class TestRoute8:
+    """Tests for Route 8 (Saffron City ↔ Lavender Town)."""
+
+    def test_route_8_exists(self):
+        loc = get_location("Route 8")
+        assert loc is not None
+
+    def test_route_8_is_route_type(self):
+        loc = get_location("Route 8")
+        assert loc.type == TYPE_ROUTE
+
+    def test_route_8_can_explore(self):
+        loc = get_location("Route 8")
+        assert loc.can_explore() is True
+
+    def test_route_8_has_lavender_exit(self):
+        loc = get_location("Route 8")
+        assert "Lavender Town" in loc.exits
+
+    def test_route_8_saffron_exit_is_blocked(self):
+        loc = get_location("Route 8")
+        assert "Saffron City" in loc.exits
+        assert loc.exits["Saffron City"].get("blocked", False) is True
+
+    def test_route_8_has_wild_pokemon(self):
+        loc = get_location("Route 8")
+        assert len(loc.wild_pokemon) > 0
+        assert "GROWLITHE" in loc.wild_pokemon or "DROWZEE" in loc.wild_pokemon
+
+    def test_route_8_wild_level_range(self):
+        loc = get_location("Route 8")
+        low, high = loc.wild_level_range
+        assert low >= 15
+        assert high <= 30
+
+    def test_route_8_has_trainers(self):
+        loc = get_location("Route 8")
+        assert loc.trainers >= 2
+
+
+class TestRoute7:
+    """Tests for Route 7 (Celadon City ↔ Saffron City)."""
+
+    def test_route_7_exists(self):
+        loc = get_location("Route 7")
+        assert loc is not None
+
+    def test_route_7_is_route_type(self):
+        loc = get_location("Route 7")
+        assert loc.type == TYPE_ROUTE
+
+    def test_route_7_can_explore(self):
+        loc = get_location("Route 7")
+        assert loc.can_explore() is True
+
+    def test_route_7_celadon_exit_is_blocked(self):
+        loc = get_location("Route 7")
+        assert "Celadon City" in loc.exits
+        assert loc.exits["Celadon City"].get("blocked", False) is True
+
+    def test_route_7_saffron_exit_is_blocked(self):
+        loc = get_location("Route 7")
+        assert "Saffron City" in loc.exits
+        assert loc.exits["Saffron City"].get("blocked", False) is True
+
+    def test_route_7_has_wild_pokemon(self):
+        loc = get_location("Route 7")
+        assert len(loc.wild_pokemon) > 0
+
+    def test_route_7_has_trainers(self):
+        loc = get_location("Route 7")
+        assert loc.trainers >= 2
+
+
+class TestRoute12:
+    """Tests for Route 12 (south of Lavender Town, fishing route)."""
+
+    def test_route_12_exists(self):
+        loc = get_location("Route 12")
+        assert loc is not None
+
+    def test_route_12_is_route_type(self):
+        loc = get_location("Route 12")
+        assert loc.type == TYPE_ROUTE
+
+    def test_route_12_can_explore(self):
+        loc = get_location("Route 12")
+        assert loc.can_explore() is True
+
+    def test_route_12_has_lavender_exit(self):
+        loc = get_location("Route 12")
+        assert "Lavender Town" in loc.exits
+
+    def test_route_12_south_exit_is_blocked(self):
+        loc = get_location("Route 12")
+        assert "Route 13" in loc.exits
+        assert loc.exits["Route 13"].get("blocked", False) is True
+
+    def test_route_12_has_water_pokemon(self):
+        loc = get_location("Route 12")
+        water_types = {"TENTACOOL", "GOLDEEN", "MAGIKARP", "SEAKING"}
+        assert len(water_types.intersection(set(loc.wild_pokemon))) > 0
+
+    def test_route_12_has_trainers(self):
+        loc = get_location("Route 12")
+        assert loc.trainers >= 2
+
+
+class TestPokemonTower:
+    """Tests for Pokemon Tower dungeon location."""
+
+    def test_pokemon_tower_exists(self):
+        from pytemon.locations import TYPE_DUNGEON
+
+        loc = get_location("Pokemon Tower")
+        assert loc is not None
+        assert loc.type == TYPE_DUNGEON
+
+    def test_pokemon_tower_can_explore(self):
+        loc = get_location("Pokemon Tower")
+        assert loc.can_explore() is True
+
+    def test_pokemon_tower_has_lavender_exit(self):
+        loc = get_location("Pokemon Tower")
+        assert "Lavender Town" in loc.exits
+
+    def test_pokemon_tower_has_ghost_pokemon(self):
+        loc = get_location("Pokemon Tower")
+        assert "GASTLY" in loc.wild_pokemon or "HAUNTER" in loc.wild_pokemon
+
+    def test_pokemon_tower_has_cubone(self):
+        loc = get_location("Pokemon Tower")
+        assert "CUBONE" in loc.wild_pokemon
+
+    def test_pokemon_tower_has_trainers(self):
+        loc = get_location("Pokemon Tower")
+        assert loc.trainers >= 2
