@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  test:
+    name: Lint, Type-check & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install robotframework robotframework-pythonlibcore textual rich \
+                      mypy ruff pytest pytest-cov
+
+      - name: Format check (ruff format)
+        run: ruff format --check PokemonLibrary/ tests/
+
+      - name: Lint tests (ruff check)
+        run: ruff check tests/
+
+      - name: Lint source (ruff check — informational)
+        run: ruff check PokemonLibrary/
+        continue-on-error: true
+
+      - name: Type check (mypy — informational)
+        run: mypy PokemonLibrary/
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: pytest tests/ --tb=short -v --cov=PokemonLibrary --cov-report=term-missing
