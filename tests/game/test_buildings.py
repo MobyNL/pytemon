@@ -539,3 +539,123 @@ class TestEnterMuseumFossilScientist:
         gs.game_data["bag"] = {}
         enter_museum(gs, output)
         assert "already pass" in output.combined.lower() or "pass it" in output.combined.lower()
+
+
+# ===========================================================================
+# SS Anne
+# ===========================================================================
+
+
+class TestEnterSSAnne:
+    """Tests for enter_ss_anne."""
+
+    def test_ss_anne_no_ticket_blocked(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data["bag"] = {}
+        gs.game_data["items"] = {}
+        enter_ss_anne(gs, output)
+        assert "ticket" in output.combined.lower()
+
+    def test_ss_anne_with_ticket_awards_hm01_cut(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data["bag"] = {"S.S. Anne Ticket": 1}
+        gs.game_data["items"] = {}
+        enter_ss_anne(gs, output)
+        items = gs.game_data.get("items", {})
+        assert items.get("HM01 Cut", 0) >= 1
+
+    def test_ss_anne_sets_received_hm01_cut_flag(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data["bag"] = {"S.S. Anne Ticket": 1}
+        gs.game_data["items"] = {}
+        enter_ss_anne(gs, output)
+        assert gs.game_data["story_flags"].get("received_hm01_cut") is True
+
+    def test_ss_anne_second_visit_marks_departed(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data["bag"] = {"S.S. Anne Ticket": 1}
+        gs.game_data["items"] = {}
+        gs.game_data.setdefault("story_flags", {})["received_hm01_cut"] = True
+        enter_ss_anne(gs, output)
+        assert gs.game_data["story_flags"].get("ss_anne_departed") is True
+
+    def test_ss_anne_after_departure_shows_empty_dock(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data.setdefault("story_flags", {})["ss_anne_departed"] = True
+        enter_ss_anne(gs, output)
+        assert "departed" in output.combined.lower() or "sail" in output.combined.lower()
+
+    def test_ss_anne_shows_captain_dialogue(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data["bag"] = {"S.S. Anne Ticket": 1}
+        gs.game_data["items"] = {}
+        enter_ss_anne(gs, output)
+        assert "Captain" in output.combined
+
+    def test_ss_anne_ticket_in_items_also_works(self, gs, output):
+        from pytemon.buildings import enter_ss_anne
+
+        gs.game_data["bag"] = {}
+        gs.game_data["items"] = {"S.S. Anne Ticket": 1}
+        enter_ss_anne(gs, output)
+        items = gs.game_data.get("items", {})
+        assert items.get("HM01 Cut", 0) >= 1
+
+
+# ===========================================================================
+# Pokemon Tower
+# ===========================================================================
+
+
+class TestEnterPokemonTower:
+    """Tests for enter_pokemon_tower."""
+
+    def test_pokemon_tower_first_visit_shows_mr_fuji(self, gs, output):
+        from pytemon.buildings import enter_pokemon_tower
+
+        enter_pokemon_tower(gs, output)
+        assert "Mr. Fuji" in output.combined or "Fuji" in output.combined
+
+    def test_pokemon_tower_first_visit_sets_visited_flag(self, gs, output):
+        from pytemon.buildings import enter_pokemon_tower
+
+        enter_pokemon_tower(gs, output)
+        assert gs.game_data["story_flags"].get("pokemon_tower_visited") is True
+
+    def test_pokemon_tower_ghost_appeared_shows_marowak(self, gs, output):
+        from pytemon.buildings import enter_pokemon_tower
+
+        gs.game_data.setdefault("story_flags", {})["pokemon_tower_ghost_appeared"] = True
+        enter_pokemon_tower(gs, output)
+        assert "Marowak" in output.combined or "ghost" in output.combined.lower()
+
+    def test_pokemon_tower_after_rescue_gives_poke_flute(self, gs, output):
+        from pytemon.buildings import enter_pokemon_tower
+
+        gs.game_data.setdefault("story_flags", {})["pokemon_tower_mr_fuji_rescued"] = True
+        enter_pokemon_tower(gs, output)
+        items = gs.game_data.get("items", {})
+        assert items.get("Poke Flute", 0) >= 1
+
+    def test_pokemon_tower_poke_flute_flag_set(self, gs, output):
+        from pytemon.buildings import enter_pokemon_tower
+
+        gs.game_data.setdefault("story_flags", {})["pokemon_tower_mr_fuji_rescued"] = True
+        enter_pokemon_tower(gs, output)
+        assert gs.game_data["story_flags"].get("received_poke_flute") is True
+
+    def test_pokemon_tower_poke_flute_not_given_twice(self, gs, output):
+        from pytemon.buildings import enter_pokemon_tower
+
+        flags = gs.game_data.setdefault("story_flags", {})
+        flags["pokemon_tower_mr_fuji_rescued"] = True
+        flags["received_poke_flute"] = True
+        gs.game_data.setdefault("items", {})["Poke Flute"] = 1
+        enter_pokemon_tower(gs, output)
+        assert gs.game_data.get("items", {}).get("Poke Flute", 0) == 1

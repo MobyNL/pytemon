@@ -67,13 +67,6 @@ def move_to_location(
         if "Route 21" in surf_unlocked or game_state.cheat_mode:
             exit_data = {**exit_data, "blocked": False}
 
-    # Special check: Unblock S.S. Anne from Vermillion City if player has the ticket
-    if matching_exit == "S.S. Anne" and current.name == "Vermillion City":
-        bag = game_state.game_data.get("items", {})
-        story_flags = game_state.game_data.setdefault("story_flags", {})
-        if bag.get("S.S. Anne Ticket", 0) > 0 or story_flags.get("boarded_ss_anne"):
-            exit_data = {**exit_data, "blocked": False}
-
     if exit_data.get("blocked", False) and not game_state.cheat_mode:
         reason = exit_data.get("reason", "This path is blocked")
         output.write("")
@@ -127,10 +120,6 @@ def move_to_location(
     game_state.game_data["location"] = new_location.name
     # Reset explore counter for the destination — requirements apply fresh every visit
     game_state.game_data.setdefault("route_progress", {})[new_location.name] = 0
-
-    # Mark the S.S. Anne as boarded so re-entry is allowed even after using the ticket
-    if new_location.name == "S.S. Anne":
-        game_state.game_data.setdefault("story_flags", {})["boarded_ss_anne"] = True
 
     # Autosave silently on every location change
     autosave_path = game_state.autosave_on_location_change()
@@ -463,19 +452,7 @@ _GROUND_ITEMS: dict[str, list[str]] = {
     # ── Vermillion area ──────────────────────────────────────────────────────
     "Route 6": ["Super Potion"],
     "Route 11": ["Super Potion", "Super Potion"],
-    # ── S.S. Anne ────────────────────────────────────────────────────────────
-    "S.S. Anne": [
-        "Great Ball",
-        "Super Potion",
-        "Revive",
-        "Hyper Potion",
-        "X Speed",
-        "Rare Candy",
-        "Great Ball",
-        "X Attack",
-    ],
     # ── Lavender Town area ───────────────────────────────────────────────────
-    "Route 10 South": ["Hyper Potion", "Super Repel"],
     "Pokemon Tower": [
         "Escape Rope",
         "Awakening",
@@ -724,36 +701,6 @@ def explore_area(
                 output.write(f"[bold green]✓ Found a {_fossil}![/bold green]")
                 output.write(
                     "[dim]   (A scientist might be able to revive the Pokemon inside)[/dim]"
-                )
-                output.write("")
-        # ── S.S. Anne story: Captain encounter → HM Cut ───────────────────────
-        elif location.name == "S.S. Anne":
-            _ss_flags = game_state.game_data.setdefault("story_flags", {})
-            if not _ss_flags.get("received_hm_cut") and random.random() < 0.25:
-                _ss_flags["received_hm_cut"] = True
-                _items = game_state.game_data.setdefault("items", {})
-                _items["HM Cut"] = _items.get("HM Cut", 0) + 1
-                output.write("")
-                output.write(
-                    "[bold cyan]🚢 You find the captain's cabin and knock on the door...[/bold cyan]"
-                )
-                output.write("")
-                output.write(
-                    "[bold]Captain:[/bold] [cyan]Ohh... I feel terrible...[/cyan]"
-                )
-                output.write(
-                    "[cyan]   I've been seasick ever since we set sail.[/cyan]"
-                )
-                output.write(
-                    "[cyan]   You... you gave me a good rubdown?[/cyan]"
-                )
-                output.write(
-                    "[cyan]   I feel much better now! Here — take this as thanks![/cyan]"
-                )
-                output.write("")
-                output.write("[bold yellow]★ Received HM Cut! ★[/bold yellow]")
-                output.write(
-                    "[dim]   HM Cut lets you cut down small trees blocking your path.[/dim]"
                 )
                 output.write("")
         # ── Pokemon Tower: Ghost encounter & Mr. Fuji rescue ──────────────────

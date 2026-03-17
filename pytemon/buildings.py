@@ -190,7 +190,11 @@ def enter_building(
         enter_nugget_bridge(
             game_state, output, set_pending_command_callback, trigger_trainer_battle_callback
         )
-    elif "s.s. anne" in matching_building.lower() or "dock" in matching_building.lower():
+    elif "ss anne" in matching_building.lower() or "s.s. anne" in matching_building.lower():
+        enter_ss_anne(game_state, output)
+    elif "pokemon tower" in matching_building.lower():
+        enter_pokemon_tower(game_state, output)
+    elif "dock" in matching_building.lower():
         enter_ss_anne_dock(game_state, output)
     elif "mr. fuji" in matching_building.lower() or "fuji" in matching_building.lower():
         enter_mr_fujis_house(game_state, output)
@@ -270,6 +274,7 @@ def enter_pokemart(
         "Pewter City",
         "Cerulean City",
         "Vermillion City",
+        "Lavender Town",
         "Celadon City",
         "Fuchsia City",
         "Saffron City",
@@ -691,6 +696,177 @@ def enter_bills_house(game_state: "GameState", output: RichLog) -> None:
     output.write("   [dim]Type 'pc' at a Pokemon Center to open Bill's PC.[/dim]")
     output.write("")
     output.write("[dim]You leave Bill's House on Route 24[/dim]")
+    output.write("")
+
+
+def enter_ss_anne(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter the S.S. Anne docked at Vermillion City.
+
+    First visit with a valid S.S. Anne Ticket: tour the ship, receive HM01 Cut
+    from the Captain.  Repeat visits: the ship has departed.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    bag = game_state.game_data.setdefault("bag", {})
+    items = game_state.game_data.setdefault("items", {})
+
+    output.write("")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("[bold cyan]          🚢 S.S. ANNE DOCK 🚢              [/bold cyan]")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+
+    if story_flags.get("ss_anne_departed"):
+        output.write("[dim]The dock is empty — the S.S. Anne has already set sail.[/dim]")
+        output.write("[dim]You watch the faint outline of the ship disappear over the horizon.[/dim]")
+        output.write("")
+        return
+
+    # Check for ticket
+    has_ticket = bag.get("S.S. Anne Ticket", 0) > 0 or items.get("S.S. Anne Ticket", 0) > 0
+    if not has_ticket:
+        output.write("[bold]Guard:[/bold] [yellow]Hey! You can't board without an S.S. Anne Ticket![/yellow]")
+        output.write("[yellow]   Talk to Bill on Route 24 — he might be able to help.[/yellow]")
+        output.write("")
+        output.write("[dim]The guard blocks your path to the gangplank.[/dim]")
+        output.write("")
+        return
+
+    if story_flags.get("received_hm01_cut"):
+        # Already visited — ship departs
+        output.write("[bold]Guard:[/bold] [yellow]The Captain thanks you for visiting![/yellow]")
+        output.write("[yellow]   The S.S. Anne is preparing to depart now.[/yellow]")
+        output.write("")
+        output.write("[dim]The crew cast off the moorings and the great ship slowly pulls away.[/dim]")
+        story_flags["ss_anne_departed"] = True
+        output.write("[dim]The S.S. Anne has departed from Vermillion City.[/dim]")
+        output.write("")
+        return
+
+    # First visit with ticket
+    output.write("[bold]Guard:[/bold] [yellow]Welcome aboard the S.S. Anne![/yellow]")
+    output.write("[yellow]   Present your ticket — step right this way![/yellow]")
+    output.write("")
+    output.write(
+        "[dim]You step onto the luxurious ocean liner. The polished decks gleam,[/dim]"
+    )
+    output.write("[dim]and trainers from all over the world have gathered here.[/dim]")
+    output.write("")
+    output.write("[cyan]After exploring the cabins and battling a few trainers...[/cyan]")
+    output.write("")
+    output.write("[bold]Sailor:[/bold] [yellow]The Captain's cabin is at the bow of the ship![/yellow]")
+    output.write("[yellow]   He's been a bit seasick, but he loves meeting trainers.[/yellow]")
+    output.write("")
+    output.write("[italic]You find the Captain slumped over his charts...[/italic]")
+    output.write("")
+    output.write("[bold]Captain:[/bold] [green]Ugh... I'm not feeling well.[/green]")
+    output.write("[green]   But you remind me of a trainer from my youth![/green]")
+    output.write("[green]   Take this HM — you've earned it just by making the trip![/green]")
+    output.write("")
+
+    # Award HM01 Cut
+    items["HM01 Cut"] = items.get("HM01 Cut", 0) + 1
+    story_flags["received_hm01_cut"] = True
+
+    output.write("[bold yellow]★ Received HM01 Cut! ★[/bold yellow]")
+    output.write("")
+    output.write(
+        "[bold]Captain:[/bold] [green]Cut can be used to clear small trees blocking your path.[/green]"
+    )
+    output.write("[green]   You'll need a Pokemon that can learn it,[/green]")
+    output.write("[green]   and the [bold]Cascade Badge[/bold] to use it outside of battle.[/green]")
+    output.write("")
+    output.write("[dim]You bid the Captain farewell and make your way back to the dock.[/dim]")
+    output.write("")
+
+
+def enter_pokemon_tower(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter the Pokemon Tower in Lavender Town.
+
+    A seven-story tower where Pokemon are laid to rest. Ghost-type Pokemon and
+    Channeler trainers roam the upper floors. Mr. Fuji can be found at the top.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    output.write("")
+    output.write("[bold purple]═══════════════════════════════════════════[/bold purple]")
+    output.write("[bold purple]          👻 POKEMON TOWER 👻              [/bold purple]")
+    output.write("[bold purple]═══════════════════════════════════════════[/bold purple]")
+    output.write("")
+    output.write("[dim]An eerie chill passes over you as you push open the heavy doors.[/dim]")
+    output.write(
+        "[dim]The air inside smells of incense and old stone. Flowers line the walls[/dim]"
+    )
+    output.write("[dim]beside small placards bearing the names of beloved Pokemon.[/dim]")
+    output.write("")
+
+    if story_flags.get("pokemon_tower_mr_fuji_rescued"):
+        output.write("[bold]Mr. Fuji:[/bold] [cyan]Ah, my young friend! Thank you again.[/cyan]")
+        output.write(
+            "[cyan]   The spirits of this tower have grown calmer since you helped.[/cyan]"
+        )
+        output.write(
+            "[cyan]   Please, take this — a small token of my gratitude.[/cyan]"
+        )
+        output.write("")
+        items = game_state.game_data.setdefault("items", {})
+        if not story_flags.get("received_poke_flute"):
+            items["Poke Flute"] = items.get("Poke Flute", 0) + 1
+            story_flags["received_poke_flute"] = True
+            output.write("[bold yellow]★ Received the Poke Flute! ★[/bold yellow]")
+            output.write(
+                "[dim]   Use the Poke Flute to wake sleeping Pokemon — including Snorlax![/dim]"
+            )
+            output.write("")
+        else:
+            output.write("[cyan]   You've already received everything I can give.[/cyan]")
+            output.write("[cyan]   Safe travels on your journey.[/cyan]")
+            output.write("")
+        return
+
+    if story_flags.get("pokemon_tower_ghost_appeared"):
+        output.write("[bold]Mr. Fuji:[/bold] [cyan]The ghost on the third floor...[/cyan]")
+        output.write("[cyan]   It is a Marowak — the mother of a Cubone who lives here.[/cyan]")
+        output.write("[cyan]   She cannot rest until those who wronged her are punished.[/cyan]")
+        output.write("")
+        output.write(
+            "[dim]You feel a presence on the upper floors — something is waiting for you.[/dim]"
+        )
+        output.write("[dim]Type 'explore' to climb deeper into the tower.[/dim]")
+        output.write("")
+        return
+
+    # First visit
+    output.write("[bold]Mr. Fuji:[/bold] [cyan]Welcome to the Pokemon Tower.[/cyan]")
+    output.write("[cyan]   This is a place of rest for Pokemon who have passed on.[/cyan]")
+    output.write("[cyan]   Trainers come here to pay their respects.[/cyan]")
+    output.write("")
+    output.write(
+        "[bold]Mr. Fuji:[/bold] [cyan]But something is wrong...[/cyan]"
+    )
+    output.write(
+        "[cyan]   A spirit on the upper floors has grown restless.[/cyan]"
+    )
+    output.write(
+        "[cyan]   It fills the trainers here with sorrow and unease.[/cyan]"
+    )
+    output.write("[cyan]   I pray someone brave will help calm it.[/cyan]")
+    output.write("")
+    output.write(
+        "[dim]Channelers wander the upper floors, their eyes glazed over with grief.[/dim]"
+    )
+    output.write("[dim]Type 'explore' to climb the tower and face what awaits.[/dim]")
+
+    story_flags["pokemon_tower_visited"] = True
     output.write("")
 
 

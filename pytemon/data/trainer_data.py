@@ -101,8 +101,8 @@ TRAINER_CLASSES = {
     },
     "Sailor": {
         "sprite": "⚓",
-        "prize_money_multiplier": 20,
-        "description": "Seafaring trainers aboard the S.S. Anne",
+        "prize_money_multiplier": 25,
+        "description": "Seafarers who train Water and Normal-type Pokemon",
     },
     "Jr. Trainer♂": {
         "sprite": "👦",
@@ -114,10 +114,25 @@ TRAINER_CLASSES = {
         "prize_money_multiplier": 18,
         "description": "Young female trainers showing off on the S.S. Anne",
     },
+    "Fisherman": {
+        "sprite": "🎣",
+        "prize_money_multiplier": 20,
+        "description": "Anglers who specialise in Water-type Pokemon",
+    },
     "Channeler": {
         "sprite": "👻",
+        "prize_money_multiplier": 30,
+        "description": "Spiritual trainers who communicate with Ghost-type Pokemon",
+    },
+    "Biker": {
+        "sprite": "🏍️",
         "prize_money_multiplier": 20,
-        "description": "Spiritualists who commune with the ghosts of Pokemon Tower",
+        "description": "Motorcycle-riding trainers with Poison-type Pokemon",
+    },
+    "Gambler": {
+        "sprite": "🎲",
+        "prize_money_multiplier": 35,
+        "description": "High-rollers who rely on luck and Psychic Pokemon",
     },
     "Team Rocket": {
         "sprite": "🚀",
@@ -858,6 +873,257 @@ TRAINERS: Dict[str, Trainer] = {
         victory_text=["[yellow]Leech Life in the darkness — spooky![/yellow]"],
     ),
     # ═════════════════════════════════════════════════════════════
+    # VERMILLION CITY GYM TRAINERS
+    # ═════════════════════════════════════════════════════════════
+    "gym_trainer_vermillion_sailor_1": Trainer(
+        id="gym_trainer_vermillion_sailor_1",
+        name="Dirk",
+        trainer_class="Sailor",
+        location="Vermillion City",
+        pokemon=[
+            TrainerPokemon(species="TENTACOOL", level=20),
+            TrainerPokemon(species="PIKACHU", level=20),
+        ],
+        prize_money=500,
+        intro_text=[
+            "⚓ [bold]Sailor Dirk:[/bold] [yellow]You think you can challenge Lt. Surge?[/yellow]",
+            "[yellow]   You'll have to get past me first, landlubber![/yellow]",
+        ],
+        defeat_text=["[yellow]Man overboard! I've been defeated![/yellow]"],
+        victory_text=["[yellow]Shiver me timbers — you weren't ready for this![/yellow]"],
+    ),
+    "gym_trainer_vermillion_sailor_2": Trainer(
+        id="gym_trainer_vermillion_sailor_2",
+        name="Huey",
+        trainer_class="Sailor",
+        location="Vermillion City",
+        pokemon=[
+            TrainerPokemon(species="VOLTORB", level=19),
+            TrainerPokemon(species="VOLTORB", level=19),
+            TrainerPokemon(species="PIKACHU", level=21),
+        ],
+        prize_money=525,
+        intro_text=[
+            "⚓ [bold]Sailor Huey:[/bold] [yellow]Electric Pokemon saved the Lieutenant during the war![/yellow]",
+            "[yellow]   Show some respect and battle me![/yellow]",
+        ],
+        defeat_text=["[yellow]The circuits are blown... I've been beaten![/yellow]"],
+        victory_text=["[yellow]Static shock! You never saw it coming![/yellow]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # ROUTE 7 TRAINERS (Celadon ↔ Saffron)
+    # ═════════════════════════════════════════════════════════════
+    "lass_ali_r7": Trainer(
+        id="lass_ali_r7",
+        name="Ali",
+        trainer_class="Lass",
+        location="Route 7",
+        pokemon=[
+            TrainerPokemon("PIDGEY", 23),
+            TrainerPokemon("PIDGEOTTO", 22),
+        ],
+        prize_money=330,
+        intro_text=[
+            "👧 [bold]Lass Ali:[/bold] [yellow]This path is my territory![/yellow]",
+            "[yellow]   Try getting past my birds![/yellow]",
+        ],
+        defeat_text=["[yellow]My Pidgey family lost to you...[/yellow]"],
+        victory_text=["[yellow]Wing Attack! You couldn't dodge it![/yellow]"],
+    ),
+    "youngster_mike_r7": Trainer(
+        id="youngster_mike_r7",
+        name="Mike",
+        trainer_class="Youngster",
+        location="Route 7",
+        pokemon=[
+            TrainerPokemon("DROWZEE", 22),
+            TrainerPokemon("SLOWPOKE", 22),
+        ],
+        prize_money=330,
+        intro_text=[
+            "👦 [bold]Youngster Mike:[/bold] [yellow]My Drowzee will put you to sleep before you can fight![/yellow]",
+        ],
+        defeat_text=["[yellow]I couldn't even make you drowsy...[/yellow]"],
+        victory_text=["[yellow]Hypnosis! You're out cold![/yellow]"],
+    ),
+    "gambler_ricky": Trainer(
+        id="gambler_ricky",
+        name="Ricky",
+        trainer_class="Gambler",
+        location="Route 7",
+        pokemon=[
+            TrainerPokemon("SLOWPOKE", 25),
+            TrainerPokemon("DROWZEE", 24),
+        ],
+        prize_money=875,
+        intro_text=[
+            "🎲 [bold]Gambler Ricky:[/bold] [magenta]I'll bet on my Psychic Pokemon to win![/magenta]",
+            "[magenta]   Care to test your luck?[/magenta]",
+        ],
+        defeat_text=["[magenta]I wagered everything on this battle... and lost![/magenta]"],
+        victory_text=["[magenta]The odds were in my favour! Better luck next time![/magenta]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # ROUTE 8 TRAINERS (Saffron ↔ Lavender)
+    # ═════════════════════════════════════════════════════════════
+    "biker_rudy": Trainer(
+        id="biker_rudy",
+        name="Rudy",
+        trainer_class="Biker",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("KOFFING", 24),
+            TrainerPokemon("KOFFING", 24),
+        ],
+        prize_money=480,
+        intro_text=[
+            "🏍️ [bold]Biker Rudy:[/bold] [purple]Rev it up! Koffing will gas you out![/purple]",
+        ],
+        defeat_text=["[purple]The exhaust fumes weren't enough![/purple]"],
+        victory_text=["[purple]Smog cloud incoming — breathe it in![/purple]"],
+    ),
+    "biker_alex": Trainer(
+        id="biker_alex",
+        name="Alex",
+        trainer_class="Biker",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("GRIMER", 23),
+            TrainerPokemon("MUK", 25),
+        ],
+        prize_money=500,
+        intro_text=[
+            "🏍️ [bold]Biker Alex:[/bold] [purple]You're blocking the road, kid — battle me![/purple]",
+        ],
+        defeat_text=["[purple]You smashed right through my Poison-types...[/purple]"],
+        victory_text=["[purple]Sludge Bomb! Get covered in gunk![/purple]"],
+    ),
+    "lass_tina_r8": Trainer(
+        id="lass_tina_r8",
+        name="Tina",
+        trainer_class="Lass",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("MEOWTH", 24),
+            TrainerPokemon("PERSIAN", 25),
+        ],
+        prize_money=375,
+        intro_text=[
+            "👧 [bold]Lass Tina:[/bold] [yellow]Persian is the most elegant Pokemon around![/yellow]",
+            "[yellow]   Don't you dare insult it by losing easily![/yellow]",
+        ],
+        defeat_text=["[yellow]How dare you scratch up my Persian![/yellow]"],
+        victory_text=["[yellow]Slash! All finesse, no effort![/yellow]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # ROUTE 12 TRAINERS (South of Lavender Town, Fishing spot)
+    # ═════════════════════════════════════════════════════════════
+    "fisherman_wade": Trainer(
+        id="fisherman_wade",
+        name="Wade",
+        trainer_class="Fisherman",
+        location="Route 12",
+        pokemon=[
+            TrainerPokemon("MAGIKARP", 20),
+            TrainerPokemon("MAGIKARP", 20),
+            TrainerPokemon("MAGIKARP", 20),
+            TrainerPokemon("MAGIKARP", 20),
+        ],
+        prize_money=400,
+        intro_text=[
+            "🎣 [bold]Fisherman Wade:[/bold] [blue]Grr! You interrupted my fishing![/blue]",
+            "[blue]   I'll make you pay for that![/blue]",
+        ],
+        defeat_text=["[blue]My Magikarp... they just flapped around uselessly...[/blue]"],
+        victory_text=["[blue]Splash! Splash! The most fearsome attack![/blue]"],
+    ),
+    "fisherman_henry": Trainer(
+        id="fisherman_henry",
+        name="Henry",
+        trainer_class="Fisherman",
+        location="Route 12",
+        pokemon=[
+            TrainerPokemon("GOLDEEN", 22),
+            TrainerPokemon("SEAKING", 23),
+        ],
+        prize_money=460,
+        intro_text=[
+            "🎣 [bold]Fisherman Henry:[/bold] [blue]The waters here are full of strong Pokemon![/blue]",
+            "[blue]   My fish will shred you with Horn Drill![/blue]",
+        ],
+        defeat_text=["[blue]The current swept away my strength...[/blue]"],
+        victory_text=["[blue]Horn Drill! One hit KO! You're done![/blue]"],
+    ),
+    "fisherman_dale": Trainer(
+        id="fisherman_dale",
+        name="Dale",
+        trainer_class="Fisherman",
+        location="Route 12",
+        pokemon=[
+            TrainerPokemon("TENTACOOL", 22),
+            TrainerPokemon("TENTACRUEL", 24),
+        ],
+        prize_money=480,
+        intro_text=[
+            "🎣 [bold]Fisherman Dale:[/bold] [blue]Tentacruel — that's a Pokemon that means business![/blue]",
+        ],
+        defeat_text=["[blue]The jellyfish got tangled up...[/blue]"],
+        victory_text=["[blue]Wrap and Poison — a deadly combo from the deep![/blue]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # POKEMON TOWER TRAINERS (Lavender Town)
+    # ═════════════════════════════════════════════════════════════
+    "channeler_jody": Trainer(
+        id="channeler_jody",
+        name="Jody",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("GASTLY", 22),
+        ],
+        prize_money=660,
+        intro_text=[
+            "👻 [bold]Channeler Jody:[/bold] [dim white]The spirits... they cry out![/dim white]",
+            "[dim white]   They will not let you pass![/dim white]",
+        ],
+        defeat_text=["[dim white]The spirits have abandoned me...[/dim white]"],
+        victory_text=["[dim white]Lick! A ghostly touch that chills the soul![/dim white]"],
+    ),
+    "channeler_ruth": Trainer(
+        id="channeler_ruth",
+        name="Ruth",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("GASTLY", 23),
+            TrainerPokemon("HAUNTER", 22),
+        ],
+        prize_money=690,
+        intro_text=[
+            "👻 [bold]Channeler Ruth:[/bold] [dim white]I hear the voices of the departed...[/dim white]",
+            "[dim white]   They say: do not disturb this tower![/dim white]",
+        ],
+        defeat_text=["[dim white]The spirits grow silent around me...[/dim white]"],
+        victory_text=["[dim white]Night Shade! The darkness swallows you whole![/dim white]"],
+    ),
+    "channeler_karina": Trainer(
+        id="channeler_karina",
+        name="Karina",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("HAUNTER", 24),
+            TrainerPokemon("HAUNTER", 24),
+        ],
+        prize_money=720,
+        intro_text=[
+            "👻 [bold]Channeler Karina:[/bold] [dim white]Leave now... while you still can.[/dim white]",
+            "[dim white]   The spirits of this tower will curse you![/dim white]",
+        ],
+        defeat_text=["[dim white]My Haunters... fading back into the shadows...[/dim white]"],
+        victory_text=["[dim white]Confuse Ray — your mind shatters in the darkness![/dim white]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
     # CERULEAN CITY GYM TRAINERS
     # ═════════════════════════════════════════════════════════════
     "gym_trainer_cerulean_swimmer": Trainer(
@@ -1001,6 +1267,7 @@ TRAINERS: Dict[str, Trainer] = {
         pokemon=[
             TrainerPokemon(species="VOLTORB", level=21),
             TrainerPokemon(species="PIKACHU", level=18),
+            TrainerPokemon(species="ELECTRODE", level=23),
             TrainerPokemon(species="RAICHU", level=24),
         ],
         prize_money=2400,
