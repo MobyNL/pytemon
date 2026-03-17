@@ -425,6 +425,11 @@ LOCATIONS: Dict[str, Location] = {
         exits={
             "Route 6": {"direction": "north", "blocked": False},
             "Route 11": {"direction": "east", "blocked": False},
+            "S.S. Anne": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "The S.S. Anne is docked here — show your S.S. Anne Ticket to board",
+            },
         },
         buildings=["Pokemon Center", "Pokemart", "Gym", "S.S. Anne Dock"],
     ),
@@ -563,7 +568,7 @@ LOCATIONS: Dict[str, Location] = {
         },
         wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE"],
         wild_level_range=(19, 25),
-        trainers=3,
+        trainers=4,
         trainer_encounter_rate=0.35,
         wild_encounter_rate=0.45,
     ),
@@ -592,6 +597,49 @@ LOCATIONS: Dict[str, Location] = {
         trainers=3,
         trainer_encounter_rate=0.30,
         wild_encounter_rate=0.45,
+    ),
+    # ── Celadon City ──────────────────────────────────────────────────────────
+    "Celadon City": Location(
+        name="Celadon City",
+        location_type=TYPE_TOWN,
+        description=(
+            "A sprawling, lush city famous for its enormous Department Store and its "
+            "fragrant Gym. Beneath the neon lights of the Game Corner, however, "
+            "Team Rocket operates a hidden hideout — and they're not hiding very well."
+        ),
+        exits={
+            "Route 7": {"direction": "east", "blocked": False},
+            "Team Rocket's Hideout": {
+                "direction": "underground",
+                "blocked": False,
+            },
+        },
+        buildings=[
+            "Pokemon Center",
+            "Pokemart",
+            "Gym",
+            "Game Corner",
+            "Celadon Department Store",
+        ],
+    ),
+    # ── Team Rocket's Hideout ─────────────────────────────────────────────────
+    "Team Rocket's Hideout": Location(
+        name="Team Rocket's Hideout",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A labyrinthine underground base hidden beneath Celadon's Game Corner. "
+            "Team Rocket Grunts patrol every corridor, and spinning floor tiles make "
+            "navigation treacherous. Giovanni, the Rocket boss, waits at the bottom "
+            "— defeat him and you'll recover the Silph Scope."
+        ),
+        exits={
+            "Celadon City": {"direction": "up", "blocked": False},
+        },
+        wild_pokemon=["RATTATA", "EKANS", "KOFFING", "DROWZEE"],
+        wild_level_range=(25, 33),
+        trainers=10,
+        trainer_encounter_rate=0.50,
+        wild_encounter_rate=0.35,
     ),
     "Route 12": Location(
         name="Route 12",

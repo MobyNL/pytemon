@@ -104,6 +104,16 @@ TRAINER_CLASSES = {
         "prize_money_multiplier": 25,
         "description": "Seafarers who train Water and Normal-type Pokemon",
     },
+    "Jr. Trainer♂": {
+        "sprite": "👦",
+        "prize_money_multiplier": 18,
+        "description": "Young male trainers showing off on the S.S. Anne",
+    },
+    "Jr. Trainer♀": {
+        "sprite": "👧",
+        "prize_money_multiplier": 18,
+        "description": "Young female trainers showing off on the S.S. Anne",
+    },
     "Fisherman": {
         "sprite": "🎣",
         "prize_money_multiplier": 20,
@@ -123,6 +133,11 @@ TRAINER_CLASSES = {
         "sprite": "🎲",
         "prize_money_multiplier": 35,
         "description": "High-rollers who rely on luck and Psychic Pokemon",
+    },
+    "Team Rocket": {
+        "sprite": "🚀",
+        "prize_money_multiplier": 25,
+        "description": "Criminals who exploit Pokemon for profit",
     },
 }
 
@@ -1448,6 +1463,565 @@ TRAINERS: Dict[str, Trainer] = {
         badge_reward="Earth Badge",
         badge_id="earth_badge",
         preferred_types=["Ground"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # S.S. ANNE TRAINERS
+    # ═════════════════════════════════════════════════════════════
+    "sailor_jeff": Trainer(
+        id="sailor_jeff",
+        name="Jeff",
+        trainer_class="Sailor",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("TENTACOOL", 22),
+            TrainerPokemon("SHELLDER", 23),
+        ],
+        prize_money=460,
+        intro_text=[
+            "⚓ [bold]Sailor Jeff:[/bold] [blue]Ahoy! This is a luxury liner, not a playground![/blue]",
+            "[blue]   Prove yourself or walk the plank![/blue]",
+        ],
+        defeat_text=["[blue]You fight like a real sailor![/blue]"],
+        victory_text=["[blue]I've crossed every sea — you won't get past me![/blue]"],
+    ),
+    "sailor_ron": Trainer(
+        id="sailor_ron",
+        name="Ron",
+        trainer_class="Sailor",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("MACHOP", 22),
+            TrainerPokemon("TENTACOOL", 21),
+        ],
+        prize_money=440,
+        intro_text=[
+            "⚓ [bold]Sailor Ron:[/bold] [blue]I guard this corridor![/blue]",
+            "[blue]   No one gets past without a fight![/blue]",
+        ],
+        defeat_text=["[blue]Knocked overboard by your skill...[/blue]"],
+        victory_text=["[blue]Machop muscles win every time![/blue]"],
+    ),
+    "sailor_huey": Trainer(
+        id="sailor_huey",
+        name="Huey",
+        trainer_class="Sailor",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("SHELLDER", 24),
+            TrainerPokemon("MACHOP", 23),
+            TrainerPokemon("TENTACOOL", 22),
+        ],
+        prize_money=480,
+        intro_text=[
+            "⚓ [bold]Sailor Huey:[/bold] [blue]The captain's cabin is off limits![/blue]",
+            "[blue]   I'll keep you busy down here![/blue]",
+        ],
+        defeat_text=["[blue]The captain will hear of this...[/blue]"],
+        victory_text=["[blue]Tri-team combo — unbeatable![/blue]"],
+    ),
+    "jr_trainer_m_jack": Trainer(
+        id="jr_trainer_m_jack",
+        name="Jack",
+        trainer_class="Jr. Trainer♂",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("EKANS", 23),
+            TrainerPokemon("SANDSHREW", 23),
+        ],
+        prize_money=414,
+        intro_text=[
+            "👦 [bold]Jr. Trainer Jack:[/bold] [yellow]I came on this cruise to battle![/yellow]",
+            "[yellow]   Let's go![/yellow]",
+        ],
+        defeat_text=["[yellow]This trip is getting expensive...[/yellow]"],
+        victory_text=["[yellow]I'm going pro after this voyage![/yellow]"],
+    ),
+    "jr_trainer_f_gail": Trainer(
+        id="jr_trainer_f_gail",
+        name="Gail",
+        trainer_class="Jr. Trainer♀",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("RATTATA", 22),
+            TrainerPokemon("NIDORAN♀", 23),
+            TrainerPokemon("PIDGEY", 22),
+        ],
+        prize_money=414,
+        intro_text=[
+            "👧 [bold]Jr. Trainer Gail:[/bold] [yellow]I love ocean battles![/yellow]",
+            "[yellow]   The rolling waves inspire me![/yellow]",
+        ],
+        defeat_text=["[yellow]The sea doesn't care about my losses...[/yellow]"],
+        victory_text=["[yellow]Seasickness won't slow me down![/yellow]"],
+    ),
+    "jr_trainer_m_ryan": Trainer(
+        id="jr_trainer_m_ryan",
+        name="Ryan",
+        trainer_class="Jr. Trainer♂",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("SPEAROW", 24),
+            TrainerPokemon("MACHOP", 23),
+        ],
+        prize_money=432,
+        intro_text=[
+            "👦 [bold]Jr. Trainer Ryan:[/bold] [yellow]The captain said to keep order on deck![/yellow]",
+            "[yellow]   That means stopping you![/yellow]",
+        ],
+        defeat_text=["[yellow]So much for keeping order...[/yellow]"],
+        victory_text=["[yellow]Deck cleared![/yellow]"],
+    ),
+    "jr_trainer_f_fiona": Trainer(
+        id="jr_trainer_f_fiona",
+        name="Fiona",
+        trainer_class="Jr. Trainer♀",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("JIGGLYPUFF", 24),
+            TrainerPokemon("MEOWTH", 24),
+        ],
+        prize_money=432,
+        intro_text=[
+            "👧 [bold]Jr. Trainer Fiona:[/bold] [yellow]This ship has the best training rooms![/yellow]",
+            "[yellow]   I've been here all voyage![/yellow]",
+        ],
+        defeat_text=["[yellow]Maybe I need more sea air...[/yellow]"],
+        victory_text=["[yellow]Jigglypuff's Sing lulled you right to sleep![/yellow]"],
+    ),
+    "sailor_dale_ss": Trainer(
+        id="sailor_dale_ss",
+        name="Dale",
+        trainer_class="Sailor",
+        location="S.S. Anne",
+        pokemon=[
+            TrainerPokemon("POLIWAG", 25),
+            TrainerPokemon("TENTACRUEL", 24),
+        ],
+        prize_money=500,
+        intro_text=[
+            "⚓ [bold]Sailor Dale:[/bold] [blue]This is the last corridor before the captain![/blue]",
+            "[blue]   You'll have to go through me![/blue]",
+        ],
+        defeat_text=["[blue]The captain's on his own now...[/blue]"],
+        victory_text=["[blue]Tendrils and tentacles — nowhere to run![/blue]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # ROUTE 10 SOUTH TRAINERS
+    # ═════════════════════════════════════════════════════════════
+    "hiker_cole": Trainer(
+        id="hiker_cole",
+        name="Cole",
+        trainer_class="Hiker",
+        location="Route 10 South",
+        pokemon=[
+            TrainerPokemon("GEODUDE", 23),
+            TrainerPokemon("GRAVELER", 22),
+        ],
+        prize_money=460,
+        intro_text=[
+            "🥾 [bold]Hiker Cole:[/bold] [orange3]Just climbed down from Rock Tunnel![/orange3]",
+            "[orange3]   Need a good battle to cool off![/orange3]",
+        ],
+        defeat_text=["[orange3]You handle the downhill better than me...[/orange3]"],
+        victory_text=["[orange3]Gravel and grit — unmatched![/orange3]"],
+    ),
+    "youngster_ned": Trainer(
+        id="youngster_ned",
+        name="Ned",
+        trainer_class="Youngster",
+        location="Route 10 South",
+        pokemon=[
+            TrainerPokemon("VOLTORB", 22),
+            TrainerPokemon("DROWZEE", 23),
+        ],
+        prize_money=345,
+        intro_text=[
+            "👦 [bold]Youngster Ned:[/bold] [yellow]I can hear Lavender Town from here![/yellow]",
+            "[yellow]   Creepy... but first, battle me![/yellow]",
+        ],
+        defeat_text=["[yellow]Now I'm scared of YOU too...[/yellow]"],
+        victory_text=["[yellow]Hypnosis from Drowzee — sweet dreams![/yellow]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # POKEMON TOWER TRAINERS (Channelers)
+    # ═════════════════════════════════════════════════════════════
+    "channeler_hope": Trainer(
+        id="channeler_hope",
+        name="Hope",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("GASTLY", 24),
+        ],
+        prize_money=480,
+        intro_text=[
+            "👻 [bold]Channeler Hope:[/bold] [magenta]The spirits speak to me...[/magenta]",
+            "[magenta]   They want you to leave![/magenta]",
+        ],
+        defeat_text=["[magenta]The spirits... have abandoned me...[/magenta]"],
+        victory_text=["[magenta]The dead shall rise and overwhelm you![/magenta]"],
+    ),
+    "channeler_laurel": Trainer(
+        id="channeler_laurel",
+        name="Laurel",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("GASTLY", 25),
+            TrainerPokemon("GASTLY", 24),
+        ],
+        prize_money=500,
+        intro_text=[
+            "👻 [bold]Channeler Laurel:[/bold] [magenta]This tower is sacred ground![/magenta]",
+            "[magenta]   Intruders will be cursed![/magenta]",
+        ],
+        defeat_text=["[magenta]My curse backfired...[/magenta]"],
+        victory_text=["[magenta]Lick! Paralysis grips you![/magenta]"],
+    ),
+    "channeler_ruth": Trainer(
+        id="channeler_ruth",
+        name="Ruth",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("HAUNTER", 26),
+        ],
+        prize_money=520,
+        intro_text=[
+            "👻 [bold]Channeler Ruth:[/bold] [magenta]You have disturbed the resting place![/magenta]",
+            "[magenta]   My Haunter will drag you to the shadow world![/magenta]",
+        ],
+        defeat_text=["[magenta]It faded... like a dream...[/magenta]"],
+        victory_text=["[magenta]Shadow ball engulfs you in darkness![/magenta]"],
+    ),
+    "channeler_patricia": Trainer(
+        id="channeler_patricia",
+        name="Patricia",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("GASTLY", 26),
+            TrainerPokemon("HAUNTER", 25),
+        ],
+        prize_money=520,
+        intro_text=[
+            "👻 [bold]Channeler Patricia:[/bold] [magenta]The souls here cry out in agony![/magenta]",
+            "[magenta]   I will be their voice of vengeance![/magenta]",
+        ],
+        defeat_text=["[magenta]Their cries... unanswered...[/magenta]"],
+        victory_text=["[magenta]Confuse Ray! You can't tell up from down![/magenta]"],
+    ),
+    "channeler_jody": Trainer(
+        id="channeler_jody",
+        name="Jody",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("HAUNTER", 27),
+            TrainerPokemon("GASTLY", 26),
+        ],
+        prize_money=540,
+        intro_text=[
+            "👻 [bold]Channeler Jody:[/bold] [magenta]Turn back now, or you will never leave![/magenta]",
+        ],
+        defeat_text=["[magenta]Perhaps the spirits chose you after all...[/magenta]"],
+        victory_text=["[magenta]Mean Look! You cannot flee![/magenta]"],
+    ),
+    "channeler_astrid": Trainer(
+        id="channeler_astrid",
+        name="Astrid",
+        trainer_class="Channeler",
+        location="Pokemon Tower",
+        pokemon=[
+            TrainerPokemon("HAUNTER", 28),
+            TrainerPokemon("HAUNTER", 27),
+        ],
+        prize_money=560,
+        intro_text=[
+            "👻 [bold]Channeler Astrid:[/bold] [magenta]The top floor is forbidden![/magenta]",
+            "[magenta]   Mr. Fuji is ours now![/magenta]",
+        ],
+        defeat_text=["[magenta]You've broken the circle...[/magenta]"],
+        victory_text=["[magenta]Nightmare! Your dreams are not your own![/magenta]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # ROUTE 8 TRAINERS
+    # ═════════════════════════════════════════════════════════════
+    "jr_trainer_m_miguel": Trainer(
+        id="jr_trainer_m_miguel",
+        name="Miguel",
+        trainer_class="Jr. Trainer♂",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("GROWLITHE", 25),
+            TrainerPokemon("SPEAROW", 24),
+        ],
+        prize_money=450,
+        intro_text=[
+            "👦 [bold]Jr. Trainer Miguel:[/bold] [yellow]Route 8 is my training ground![/yellow]",
+            "[yellow]   I've been here for weeks![/yellow]",
+        ],
+        defeat_text=["[yellow]Back to the drawing board...[/yellow]"],
+        victory_text=["[yellow]Growlithe's Ember will scorch you![/yellow]"],
+    ),
+    "jr_trainer_f_coleen": Trainer(
+        id="jr_trainer_f_coleen",
+        name="Coleen",
+        trainer_class="Jr. Trainer♀",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("VULPIX", 25),
+            TrainerPokemon("MEOWTH", 24),
+        ],
+        prize_money=450,
+        intro_text=[
+            "👧 [bold]Jr. Trainer Coleen:[/bold] [yellow]Vulpix is the cutest AND strongest![/yellow]",
+        ],
+        defeat_text=["[yellow]My Vulpix's tails drooped...[/yellow]"],
+        victory_text=["[yellow]Flamethrower! Too hot to handle![/yellow]"],
+    ),
+    "youngster_tim_r8": Trainer(
+        id="youngster_tim_r8",
+        name="Tim",
+        trainer_class="Youngster",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("DROWZEE", 25),
+            TrainerPokemon("MEOWTH", 26),
+        ],
+        prize_money=390,
+        intro_text=[
+            "👦 [bold]Youngster Tim:[/bold] [yellow]I was headed to Lavender Town but...[/yellow]",
+            "[yellow]   That place is too creepy! Battle me instead![/yellow]",
+        ],
+        defeat_text=["[yellow]Now I'm scared of YOU too...[/yellow]"],
+        victory_text=["[yellow]Hypnosis had you snoozing![/yellow]"],
+    ),
+    "lass_vera": Trainer(
+        id="lass_vera",
+        name="Vera",
+        trainer_class="Lass",
+        location="Route 8",
+        pokemon=[
+            TrainerPokemon("NIDORAN♀", 25),
+            TrainerPokemon("VULPIX", 24),
+            TrainerPokemon("MEOWTH", 25),
+        ],
+        prize_money=375,
+        intro_text=[
+            "👧 [bold]Lass Vera:[/bold] [yellow]Heading to the Game Corner?[/yellow]",
+            "[yellow]   Beat me and I'll give you a tip![/yellow]",
+        ],
+        defeat_text=["[yellow]Here's the tip: avoid slots![/yellow]"],
+        victory_text=["[yellow]I'll keep my tip to myself![/yellow]"],
+    ),
+    # ═════════════════════════════════════════════════════════════
+    # TEAM ROCKET'S HIDEOUT TRAINERS
+    # ═════════════════════════════════════════════════════════════
+    "rocket_grunt_1": Trainer(
+        id="rocket_grunt_1",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("EKANS", 27),
+            TrainerPokemon("RATTATA", 26),
+        ],
+        prize_money=540,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]Prepare for trouble![/red]",
+            "[red]   Hand over your Pokemon and your wallet![/red]",
+        ],
+        defeat_text=["[red]Team Rocket is blasting off again...[/red]"],
+        victory_text=["[red]Your Pokemon are ours now![/red]"],
+    ),
+    "rocket_grunt_2": Trainer(
+        id="rocket_grunt_2",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("KOFFING", 27),
+            TrainerPokemon("DROWZEE", 26),
+        ],
+        prize_money=540,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]This floor is restricted![/red]",
+            "[red]   Intruders will be eliminated![/red]",
+        ],
+        defeat_text=["[red]The boss won't be happy...[/red]"],
+        victory_text=["[red]Smog everywhere! You can't breathe![/red]"],
+    ),
+    "rocket_grunt_3": Trainer(
+        id="rocket_grunt_3",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("RATTATA", 27),
+            TrainerPokemon("ZUBAT", 27),
+            TrainerPokemon("EKANS", 26),
+        ],
+        prize_money=540,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]You've made it this far?[/red]",
+            "[red]   Impressive. But your journey ends HERE![/red]",
+        ],
+        defeat_text=["[red]How did a kid beat me?![/red]"],
+        victory_text=["[red]Three-on-one! You can't win![/red]"],
+    ),
+    "rocket_grunt_4": Trainer(
+        id="rocket_grunt_4",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("KOFFING", 28),
+            TrainerPokemon("MUK", 27),
+        ],
+        prize_money=560,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]The Lift Key? You'll never find it![/red]",
+            "[red]   I'll make sure of that![/red]",
+        ],
+        defeat_text=["[red]Check B2F... not that it'll help you...[/red]"],
+        victory_text=["[red]Sludge coats everything — you're stuck![/red]"],
+    ),
+    "rocket_grunt_5": Trainer(
+        id="rocket_grunt_5",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("DROWZEE", 29),
+            TrainerPokemon("KOFFING", 28),
+        ],
+        prize_money=580,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]The boss is below — you're not getting through![/red]",
+        ],
+        defeat_text=["[red]I told the boss this would happen...[/red]"],
+        victory_text=["[red]Hypnosis! Sleep until we're done![/red]"],
+    ),
+    "rocket_grunt_6": Trainer(
+        id="rocket_grunt_6",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("RATICATE", 29),
+            TrainerPokemon("ZUBAT", 28),
+            TrainerPokemon("KOFFING", 28),
+        ],
+        prize_money=580,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]One step closer to your doom![/red]",
+            "[red]   The spinner tiles will break your spirit![/red]",
+        ],
+        defeat_text=["[red]The spinning tiles betrayed me too...[/red]"],
+        victory_text=["[red]Hyper Fang from Raticate! No escaping that![/red]"],
+    ),
+    "rocket_grunt_7": Trainer(
+        id="rocket_grunt_7",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("KOFFING", 30),
+            TrainerPokemon("EKANS", 29),
+        ],
+        prize_money=600,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]Giovanni's personal guard![/red]",
+            "[red]   You'll have to kill me to pass![/red]",
+        ],
+        defeat_text=["[red]Giovanni... forgive me...[/red]"],
+        victory_text=["[red]Giovanni will destroy you personally![/red]"],
+    ),
+    "rocket_grunt_8": Trainer(
+        id="rocket_grunt_8",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("MUK", 30),
+            TrainerPokemon("KOFFING", 30),
+        ],
+        prize_money=620,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]Last line of defence![/red]",
+            "[red]   If you beat me, Giovanni WILL be waiting![/red]",
+        ],
+        defeat_text=["[red]The boss... is all that remains...[/red]"],
+        victory_text=["[red]Toxic! You'll be poisoned before you reach the boss![/red]"],
+    ),
+    "rocket_grunt_9": Trainer(
+        id="rocket_grunt_9",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("RATTATA", 29),
+            TrainerPokemon("RATICATE", 30),
+            TrainerPokemon("ZUBAT", 30),
+        ],
+        prize_money=600,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]You managed the spinner tiles?[/red]",
+            "[red]   That was just the warm-up![/red]",
+        ],
+        defeat_text=["[red]You navigate this maze better than I do...[/red]"],
+        victory_text=["[red]Swarm of Zubat! You can't see anything![/red]"],
+    ),
+    "rocket_grunt_10": Trainer(
+        id="rocket_grunt_10",
+        name="Grunt",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon("DROWZEE", 30),
+            TrainerPokemon("MUK", 29),
+        ],
+        prize_money=600,
+        intro_text=[
+            "🚀 [bold]Team Rocket Grunt:[/bold] [red]The Silph Scope belongs to Team Rocket![/red]",
+            "[red]   Only the boss can let you have it![/red]",
+        ],
+        defeat_text=["[red]Take it up with the boss then...[/red]"],
+        victory_text=["[red]The Silph Scope amplifies our power — not yours![/red]"],
+    ),
+    # ===== Team Rocket's Hideout - Giovanni (Boss) =====
+    "giovanni_rocket_hideout": Trainer(
+        id="giovanni_rocket_hideout",
+        name="Giovanni",
+        trainer_class="Team Rocket",
+        location="Team Rocket's Hideout",
+        pokemon=[
+            TrainerPokemon(species="ONIX", level=25),
+            TrainerPokemon(species="RHYHORN", level=24),
+            TrainerPokemon(species="KANGASKHAN", level=29),
+        ],
+        prize_money=2900,
+        intro_text=[
+            "🚀 [bold]Giovanni:[/bold] [red]So, you have made it this far![/red]",
+            "[red]   Impressive for such a young trainer.[/red]",
+            "[red]   But here is where your journey ends![/red]",
+            "[red]   I am Giovanni, the Boss of Team Rocket![/red]",
+            "[red]   My Pokemon are trained to perfection![/red]",
+            "",
+            "[bold yellow]⚔️  BOSS BATTLE START! ⚔️[/bold yellow]",
+        ],
+        defeat_text=[
+            "[red]Unbelievable...[/red]",
+            "[red]   A child has defeated me.[/red]",
+            "[red]   ...I shall retreat for now.[/red]",
+            "[red]   Here — take the Silph Scope![/red]",
+            "[red]   It's useless to us if we cannot hold this base.[/red]",
+        ],
+        victory_text=[
+            "[red]As I expected.[/red]",
+            "[red]   Grow stronger and challenge me again.[/red]",
+        ],
     ),
 }
 
