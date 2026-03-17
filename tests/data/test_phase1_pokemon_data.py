@@ -4,8 +4,7 @@ Phase 1 Pokemon data tests.
 Covers:
 - Full SpeciesData for Machop/Machoke/Machamp
 - Full SpeciesData for Gastly/Haunter/Gengar
-- Link Cable evolution for trade-evolvers
-- Link Cable item in ITEM_DATA
+- Level-based evolution for formerly-trade-only evolvers
 """
 
 from pytemon.data.pokemon_data import (
@@ -13,10 +12,8 @@ from pytemon.data.pokemon_data import (
     GHOST,
     POISON,
     POKEMON,
-    ItemEvolution,
     LevelEvolution,
 )
-from pytemon.items import ITEM_DATA
 
 # ---------------------------------------------------------------------------
 # Machop family
@@ -62,13 +59,13 @@ class TestMachopFamily:
         assert m.name == "MACHOKE"
         assert m.types == [FIGHTING]
 
-    def test_machoke_evolves_via_link_cable(self):
-        """Machoke should evolve to Machamp via Link Cable (not level-up)."""
+    def test_machoke_evolves_to_machamp_by_level(self):
+        """Machoke should evolve to Machamp by levelling up (no trade required)."""
         m = POKEMON[67]
         assert m.evolution is not None
-        assert isinstance(m.evolution, ItemEvolution)
-        assert m.evolution.item.upper() == "LINK CABLE"
+        assert isinstance(m.evolution, LevelEvolution)
         assert m.evolution.into_species == "MACHAMP"
+        assert m.evolution.level > 0
 
     def test_machamp_has_full_data(self):
         """Machamp (#68) should have real SpeciesData."""
@@ -115,13 +112,13 @@ class TestGastlyFamily:
         assert h.name == "HAUNTER"
         assert GHOST in h.types
 
-    def test_haunter_evolves_via_link_cable(self):
-        """Haunter should evolve to Gengar via Link Cable (trade-evolver)."""
+    def test_haunter_evolves_to_gengar_by_level(self):
+        """Haunter should evolve to Gengar by levelling up (no trade required)."""
         h = POKEMON[93]
         assert h.evolution is not None
-        assert isinstance(h.evolution, ItemEvolution)
-        assert h.evolution.item.upper() == "LINK CABLE"
+        assert isinstance(h.evolution, LevelEvolution)
         assert h.evolution.into_species == "GENGAR"
+        assert h.evolution.level > 0
 
     def test_gengar_has_full_data(self):
         """Gengar (#94) should have real SpeciesData."""
@@ -133,111 +130,25 @@ class TestGastlyFamily:
 
 
 # ---------------------------------------------------------------------------
-# Graveler -> Golem (Link Cable)
+# Trade-evolvers restored to level-based evolution
 # ---------------------------------------------------------------------------
 
 
-class TestGravelerLinkCable:
-    """Graveler should evolve via Link Cable, not by level."""
+class TestTradeEvolversUseLevel:
+    """Graveler and Kadabra should use level-based evolutions (no trade)."""
 
-    def test_graveler_evolves_via_link_cable(self):
-        """Graveler (#75) should evolve to Golem via Link Cable."""
+    def test_graveler_evolves_to_golem_by_level(self):
+        """Graveler (#75) should evolve to Golem via level-up."""
         g = POKEMON[75]
         assert g.evolution is not None
-        assert isinstance(g.evolution, ItemEvolution)
-        assert g.evolution.item.upper() == "LINK CABLE"
+        assert isinstance(g.evolution, LevelEvolution)
         assert g.evolution.into_species == "GOLEM"
+        assert g.evolution.level > 0
 
-
-# ---------------------------------------------------------------------------
-# Link Cable item
-# ---------------------------------------------------------------------------
-
-
-class TestLinkCableItem:
-    """Tests for the Link Cable item."""
-
-    def test_link_cable_in_item_data(self):
-        """Link Cable should be in ITEM_DATA."""
-        assert "Link Cable" in ITEM_DATA
-
-    def test_link_cable_is_stone_category(self):
-        """Link Cable should have category 'stone' for evolution use."""
-        from pytemon.items import CAT_STONE
-
-        item = ITEM_DATA["Link Cable"]
-        assert item.cat == CAT_STONE
-
-    def test_link_cable_has_description(self):
-        """Link Cable should have a non-empty description."""
-        item = ITEM_DATA["Link Cable"]
-        assert len(item.desc) > 0
-
-    def test_link_cable_use_on_machoke(self):
-        """Using Link Cable on Machoke should trigger evolution."""
-        from pytemon.data.pokemon_data import StatsData
-        from pytemon.evolution import get_stone_evolution
-        from pytemon.models import PartyPokemon
-
-        machoke = PartyPokemon(
-            name="MACHOKE",
-            number=67,
-            level=30,
-            types=["Fighting"],
-            hp=80,
-            max_hp=80,
-            stats=StatsData(hp=80, attack=100, defense=70, special=50, speed=45),
-            moves=[],
-            catch_rate=90,
-            base_exp=146,
-            experience=0,
-            next_level_exp=1000,
-        )
-        target = get_stone_evolution(machoke, "Link Cable")
-        assert target == "MACHAMP"
-
-    def test_link_cable_use_on_haunter(self):
-        """Using Link Cable on Haunter should trigger evolution."""
-        from pytemon.data.pokemon_data import StatsData
-        from pytemon.evolution import get_stone_evolution
-        from pytemon.models import PartyPokemon
-
-        haunter = PartyPokemon(
-            name="HAUNTER",
-            number=93,
-            level=28,
-            types=["Ghost", "Poison"],
-            hp=45,
-            max_hp=45,
-            stats=StatsData(hp=45, attack=50, defense=45, special=115, speed=95),
-            moves=[],
-            catch_rate=90,
-            base_exp=126,
-            experience=0,
-            next_level_exp=1000,
-        )
-        target = get_stone_evolution(haunter, "Link Cable")
-        assert target == "GENGAR"
-
-    def test_link_cable_no_effect_on_pikachu(self):
-        """Using Link Cable on Pikachu (non-trade-evolver) should return None."""
-        from pytemon.data.pokemon_data import StatsData
-        from pytemon.evolution import get_stone_evolution
-        from pytemon.models import PartyPokemon
-
-        pikachu = PartyPokemon(
-            name="PIKACHU",
-            number=25,
-            level=10,
-            types=["Electric"],
-            hp=35,
-            max_hp=35,
-            stats=StatsData(hp=35, attack=55, defense=30, special=50, speed=90),
-            moves=[],
-            catch_rate=190,
-            base_exp=82,
-            experience=0,
-            next_level_exp=1000,
-        )
-        target = get_stone_evolution(pikachu, "Link Cable")
-        assert target is None
+    def test_kadabra_evolves_to_alakazam_by_level(self):
+        """Kadabra (#64) should evolve to Alakazam via level-up."""
+        k = POKEMON[64]
+        assert k.evolution is not None
+        assert isinstance(k.evolution, LevelEvolution)
+        assert k.evolution.into_species == "ALAKAZAM"
+        assert k.evolution.level > 0

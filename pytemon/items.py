@@ -110,11 +110,6 @@ ITEM_DATA: dict[str, ItemData] = {
     ),
     "Leaf Stone": ItemData(desc="Evolves certain Grass-type Pokemon", emoji="🍃", cat=CAT_STONE),
     "Moon Stone": ItemData(desc="Evolves certain Pokemon at night", emoji="🌙", cat=CAT_STONE),
-    "Link Cable": ItemData(
-        desc="Evolves trade-evolution Pokemon (Machoke, Haunter, Graveler, Kadabra)",
-        emoji="🔗",
-        cat=CAT_STONE,
-    ),
     # ── Field / misc ───────────────────────────────────────────────────────
     "Repel": ItemData(
         desc="Reduces wild encounters for 10 explores", emoji="🪢", cat=CAT_REPEL, steps=10

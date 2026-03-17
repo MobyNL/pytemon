@@ -1289,7 +1289,7 @@ POKEMON: dict[int, SpeciesData] = {
             44: ["SEISMIC TOSS"],
             52: ["SUBMISSION"],
         },
-        evolution=ItemEvolution(item="LINK CABLE", into_species="MACHAMP"),
+        evolution=LevelEvolution(level=40, into_species="MACHAMP"),
     ),
     68: SpeciesData(
         name="MACHAMP",
@@ -1334,7 +1334,7 @@ POKEMON: dict[int, SpeciesData] = {
             29: ["HYPNOSIS"],
             38: ["DREAM EATER"],
         },
-        evolution=ItemEvolution(item="LINK CABLE", into_species="GENGAR"),
+        evolution=LevelEvolution(level=36, into_species="GENGAR"),
     ),
     94: SpeciesData(
         name="GENGAR",
@@ -1452,9 +1452,6 @@ _ITEM_EVOLUTIONS = {
     44: ItemEvolution(item="LEAF STONE", into_species="VILEPLUME"),
     61: ItemEvolution(item="WATER STONE", into_species="POLIWRATH"),
     70: ItemEvolution(item="LEAF STONE", into_species="VICTREEBEL"),
-    # Trade-evolvers: use Link Cable item instead of trading
-    64: ItemEvolution(item="LINK CABLE", into_species="ALAKAZAM"),
-    75: ItemEvolution(item="LINK CABLE", into_species="GOLEM"),
     90: ItemEvolution(item="WATER STONE", into_species="CLOYSTER"),
     102: ItemEvolution(item="LEAF STONE", into_species="EXEGGUTOR"),
     120: ItemEvolution(item="WATER STONE", into_species="STARMIE"),
