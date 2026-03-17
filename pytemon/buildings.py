@@ -190,6 +190,14 @@ def enter_building(
         enter_nugget_bridge(
             game_state, output, set_pending_command_callback, trigger_trainer_battle_callback
         )
+    elif "s.s. anne" in matching_building.lower() or "dock" in matching_building.lower():
+        enter_ss_anne_dock(game_state, output)
+    elif "mr. fuji" in matching_building.lower() or "fuji" in matching_building.lower():
+        enter_mr_fujis_house(game_state, output)
+    elif "game corner" in matching_building.lower():
+        enter_game_corner(game_state, output)
+    elif "department store" in matching_building.lower():
+        enter_department_store(game_state, output)
     else:
         output.write("")
         output.write(f"[yellow]You entered {matching_building}[/yellow]")
@@ -1359,4 +1367,211 @@ def choose_starter_pokemon(
     output.write("[cyan]   Be sure to visit the Pokemon Center if your Pokemon get hurt![/cyan]")
     output.write("")
     output.write("[dim]You leave the laboratory with your new partner![/dim]")
+    output.write("")
+
+
+def enter_ss_anne_dock(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter the S.S. Anne Dock building in Vermillion City.
+
+    Checks for the S.S. Anne Ticket and provides instructions on boarding the ship.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    output.write("")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("[bold cyan]           ⚓ S.S. ANNE DOCK ⚓            [/bold cyan]")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+
+    bag = game_state.game_data.get("items", {})
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    has_ticket = bag.get("S.S. Anne Ticket", 0) > 0
+    already_boarded = story_flags.get("boarded_ss_anne", False)
+
+    output.write(
+        "[bold]Dock Worker:[/bold] [cyan]Welcome to the Vermillion Harbour S.S. Anne Dock![/cyan]"
+    )
+    output.write("")
+
+    if has_ticket or already_boarded:
+        output.write("[cyan]   I can see you have a ticket — the ship is ready to board![/cyan]")
+        output.write(
+            "[cyan]   Head around to the gangplank and use 'Move to S.S. Anne'.[/cyan]"
+        )
+        output.write("")
+        output.write(
+            "[dim]   The S.S. Anne is filled with trainers from around the world.[/dim]"
+        )
+        output.write(
+            "[dim]   The captain's cabin is somewhere aboard — he may have a reward for you.[/dim]"
+        )
+    else:
+        output.write(
+            "[cyan]   Sorry, I can't let you through without an S.S. Anne Ticket.[/cyan]"
+        )
+        output.write("[cyan]   Have you spoken to Bill north of Cerulean City?[/cyan]")
+        output.write("")
+        output.write("[dim]   Bill hands out tickets to trainers he trusts.[/dim]")
+        output.write(
+            "[dim]   Visit Bill's House on Route 24 to obtain an S.S. Anne Ticket.[/dim]"
+        )
+
+    output.write("")
+
+
+def enter_mr_fujis_house(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter Mr. Fuji's House in Lavender Town.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    output.write("")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("[bold cyan]        🏠 MR. FUJI'S HOUSE 🏠            [/bold cyan]")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    rescued = story_flags.get("rescued_mr_fuji", False)
+
+    if rescued:
+        bag = game_state.game_data.setdefault("items", {})
+        output.write(
+            "[bold]Mr. Fuji:[/bold] [cyan]Ah, my young rescuer! Welcome back.[/cyan]"
+        )
+        output.write("[cyan]   I hope the Poke Flute serves you well on your journey.[/cyan]")
+        output.write(
+            "[cyan]   The Pokemon laid to rest in the tower deserve peace.[/cyan]"
+        )
+        output.write("[cyan]   Thank you for driving out Team Rocket.[/cyan]")
+        if not bag.get("Poke Flute"):
+            # Give flute again if somehow lost
+            bag["Poke Flute"] = 1
+            output.write("")
+            output.write("[bold yellow]★ Received Poke Flute! ★[/bold yellow]")
+    else:
+        output.write("[bold]Old Woman:[/bold] [cyan]Mr. Fuji isn't here...[/cyan]")
+        output.write(
+            "[cyan]   He went up to Pokemon Tower as always, but he hasn't returned.[/cyan]"
+        )
+        output.write("[cyan]   We're all very worried.[/cyan]")
+        output.write("")
+        output.write("[dim]   The Pokemon Tower looms just east of town.[/dim]")
+        output.write(
+            "[dim]   If you're headed there, please see if Mr. Fuji is all right.[/dim]"
+        )
+
+    output.write("")
+
+
+def enter_game_corner(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter the Game Corner in Celadon City.
+
+    Provides flavour text and hints about Team Rocket's hidden base.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    output.write("")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("[bold cyan]         🎰 CELADON GAME CORNER 🎰        [/bold cyan]")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    hideout_cleared = story_flags.get("defeated_giovanni_hideout", False)
+
+    output.write(
+        "[bold]Attendant:[/bold] [yellow]Welcome to the Celadon Game Corner![/yellow]"
+    )
+    output.write("[yellow]   Try your luck on the slot machines![/yellow]")
+    output.write("")
+
+    if hideout_cleared:
+        output.write(
+            "[dim]   The suspicious poster on the back wall has been removed.[/dim]"
+        )
+        output.write(
+            "[dim]   Team Rocket's presence here seems to have faded.[/dim]"
+        )
+    else:
+        output.write("[dim]   The machines chime and flash all around you.[/dim]")
+        output.write(
+            "[dim]   A suspicious-looking poster adorns the back wall...[/dim]"
+        )
+        output.write(
+            "[dim]   Something feels off about this place — "
+            "those men in black uniforms are everywhere.[/dim]"
+        )
+        output.write("")
+        output.write(
+            "[yellow]💡 Tip:[/yellow] [dim]Team Rocket's Hideout is accessible from Celadon City.[/dim]"
+        )
+        output.write(
+            "[dim]   Use 'Move to Team Rocket's Hideout' to investigate.[/dim]"
+        )
+
+    output.write("")
+
+
+def enter_department_store(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter the Celadon Department Store.
+
+    Offers a wide selection of items for sale.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    output.write("")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("[bold cyan]     🏬 CELADON DEPARTMENT STORE 🏬        [/bold cyan]")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+    output.write(
+        "[bold]Clerk:[/bold] [yellow]Welcome to the Celadon Department Store![/yellow]"
+    )
+    output.write("[yellow]   We have six floors of Pokemon goods![/yellow]")
+    output.write("")
+    output.write("[bold green]Available items (selection):[/bold green]")
+
+    money = game_state.game_data.get("money", 0)
+    output.write(f"   [bold]Your money:[/bold] [cyan]₽{money}[/cyan]")
+    output.write("")
+
+    dept_items = [
+        ("🔴", "Pokeball", 200),
+        ("🔵", "Great Ball", 600),
+        ("⚫", "Ultra Ball", 1200),
+        ("💊", "Hyper Potion", 1200),
+        ("✨", "Full Restore", 3000),
+        ("💫", "Revive", 1500),
+        ("🌟", "Full Heal", 600),
+        ("🍬", "Rare Candy", 4800),
+        ("🔥", "Fire Stone", 2100),
+        ("💧", "Water Stone", 2100),
+        ("⚡", "Thunder Stone", 2100),
+        ("🍃", "Leaf Stone", 2100),
+        ("🌙", "Moon Stone", 2100),
+        ("❤️", "HP Up", 9800),
+        ("💪", "Protein", 9800),
+    ]
+    for emoji, name, price in dept_items:
+        output.write(f"   {emoji} [green]{name}[/green] - ₽{price}")
+
+    output.write("")
+    output.write(
+        "[dim]   This is a display only — use the Pokemart for purchases.[/dim]"
+    )
+    output.write(
+        "[dim]   Tip: The Pokemart in Celadon stocks the full advanced catalogue.[/dim]"
+    )
     output.write("")

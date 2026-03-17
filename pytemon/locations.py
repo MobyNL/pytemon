@@ -425,6 +425,11 @@ LOCATIONS: Dict[str, Location] = {
         exits={
             "Route 6": {"direction": "north", "blocked": False},
             "Route 11": {"direction": "east", "blocked": False},
+            "S.S. Anne": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "The S.S. Anne is docked here — show your S.S. Anne Ticket to board",
+            },
         },
         buildings=["Pokemon Center", "Pokemart", "Gym", "S.S. Anne Dock"],
     ),
@@ -517,12 +522,148 @@ LOCATIONS: Dict[str, Location] = {
         ),
         exits={
             "Route 10": {"direction": "north", "blocked": False, "min_explores": 10},
+            "Route 10 South": {"direction": "south", "blocked": False, "min_explores": 10},
         },
         wild_pokemon=["ZUBAT", "GEODUDE", "MACHOP", "ONIX", "GRAVELER"],
         wild_level_range=(15, 23),
         trainers=5,
         trainer_encounter_rate=0.30,
         wild_encounter_rate=0.65,
+    ),
+    # ── S.S. Anne ─────────────────────────────────────────────────────────────
+    "S.S. Anne": Location(
+        name="S.S. Anne",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A massive luxury ocean liner docked in Vermillion Harbour. Trainers from "
+            "around the world are aboard, eager to battle. Somewhere in the captain's "
+            "cabin, HM Cut awaits a trainer worthy of his thanks."
+        ),
+        exits={
+            "Vermillion City": {"direction": "south", "blocked": False},
+        },
+        wild_pokemon=[],
+        wild_level_range=(1, 1),
+        trainers=8,
+        trainer_encounter_rate=0.55,
+        wild_encounter_rate=0.0,
+    ),
+    # ── Route 10 South ────────────────────────────────────────────────────────
+    "Route 10 South": Location(
+        name="Route 10 South",
+        location_type=TYPE_ROUTE,
+        description=(
+            "The southern stretch of Route 10, descending from Rock Tunnel's exit "
+            "toward the eerie town of Lavender. The air grows heavy with the scent "
+            "of incense drifting up from the tower ahead."
+        ),
+        exits={
+            "Rock Tunnel": {"direction": "north", "blocked": False, "min_explores": 5},
+            "Lavender Town": {"direction": "south", "blocked": False, "min_explores": 5},
+        },
+        wild_pokemon=["VOLTORB", "MAGNEMITE", "DROWZEE"],
+        wild_level_range=(20, 26),
+        trainers=2,
+        trainer_encounter_rate=0.25,
+        wild_encounter_rate=0.45,
+    ),
+    # ── Lavender Town ─────────────────────────────────────────────────────────
+    "Lavender Town": Location(
+        name="Lavender Town",
+        location_type=TYPE_TOWN,
+        description=(
+            "A small, solemn town nestled between mountains. The air hums with an "
+            "unsettling melody, and the towering Pokemon Tower looms over every "
+            "rooftop. People here speak in hushed tones about the souls within."
+        ),
+        exits={
+            "Route 10 South": {"direction": "north", "blocked": False},
+            "Route 8": {"direction": "west", "blocked": False},
+            "Pokemon Tower": {"direction": "up", "blocked": False},
+        },
+        buildings=["Pokemon Center", "Mr. Fuji's House"],
+    ),
+    # ── Pokemon Tower ─────────────────────────────────────────────────────────
+    "Pokemon Tower": Location(
+        name="Pokemon Tower",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A seven-storey haunted tower where Pokemon are laid to rest. Marowak's "
+            "spirit wanders the upper floors, and without the Silph Scope the ghosts "
+            "that stir here cannot be identified or battled. Mr. Fuji is rumoured to "
+            "be imprisoned somewhere near the top."
+        ),
+        exits={
+            "Lavender Town": {"direction": "south", "blocked": False},
+        },
+        wild_pokemon=["GASTLY", "HAUNTER", "CUBONE"],
+        wild_level_range=(22, 30),
+        trainers=6,
+        trainer_encounter_rate=0.35,
+        wild_encounter_rate=0.60,
+    ),
+    # ── Route 8 ───────────────────────────────────────────────────────────────
+    "Route 8": Location(
+        name="Route 8",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A broad road that cuts westward from Lavender Town toward Celadon City. "
+            "Gamblers heading for the Game Corner mix with trainers looking to prove "
+            "themselves in the tall grass. A gatehouse in the middle leads "
+            "to the Underground Path."
+        ),
+        exits={
+            "Lavender Town": {"direction": "east", "blocked": False, "min_explores": 6},
+            "Celadon City": {"direction": "west", "blocked": False, "min_explores": 6},
+        },
+        wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE"],
+        wild_level_range=(20, 25),
+        trainers=4,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.45,
+    ),
+    # ── Celadon City ──────────────────────────────────────────────────────────
+    "Celadon City": Location(
+        name="Celadon City",
+        location_type=TYPE_TOWN,
+        description=(
+            "A sprawling, lush city famous for its enormous Department Store and its "
+            "fragrant Gym. Beneath the neon lights of the Game Corner, however, "
+            "Team Rocket operates a hidden hideout — and they're not hiding very well."
+        ),
+        exits={
+            "Route 8": {"direction": "east", "blocked": False},
+            "Team Rocket's Hideout": {
+                "direction": "underground",
+                "blocked": False,
+            },
+        },
+        buildings=[
+            "Pokemon Center",
+            "Pokemart",
+            "Gym",
+            "Game Corner",
+            "Celadon Department Store",
+        ],
+    ),
+    # ── Team Rocket's Hideout ─────────────────────────────────────────────────
+    "Team Rocket's Hideout": Location(
+        name="Team Rocket's Hideout",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A labyrinthine underground base hidden beneath Celadon's Game Corner. "
+            "Team Rocket Grunts patrol every corridor, and spinning floor tiles make "
+            "navigation treacherous. Giovanni, the Rocket boss, waits at the bottom "
+            "— defeat him and you'll recover the Silph Scope."
+        ),
+        exits={
+            "Celadon City": {"direction": "up", "blocked": False},
+        },
+        wild_pokemon=["RATTATA", "EKANS", "KOFFING", "DROWZEE"],
+        wild_level_range=(25, 33),
+        trainers=10,
+        trainer_encounter_rate=0.50,
+        wild_encounter_rate=0.35,
     ),
 }
 

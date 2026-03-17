@@ -67,6 +67,13 @@ def move_to_location(
         if "Route 21" in surf_unlocked or game_state.cheat_mode:
             exit_data = {**exit_data, "blocked": False}
 
+    # Special check: Unblock S.S. Anne from Vermillion City if player has the ticket
+    if matching_exit == "S.S. Anne" and current.name == "Vermillion City":
+        bag = game_state.game_data.get("items", {})
+        story_flags = game_state.game_data.setdefault("story_flags", {})
+        if bag.get("S.S. Anne Ticket", 0) > 0 or story_flags.get("boarded_ss_anne"):
+            exit_data = {**exit_data, "blocked": False}
+
     if exit_data.get("blocked", False) and not game_state.cheat_mode:
         reason = exit_data.get("reason", "This path is blocked")
         output.write("")
@@ -120,6 +127,10 @@ def move_to_location(
     game_state.game_data["location"] = new_location.name
     # Reset explore counter for the destination — requirements apply fresh every visit
     game_state.game_data.setdefault("route_progress", {})[new_location.name] = 0
+
+    # Mark the S.S. Anne as boarded so re-entry is allowed even after using the ticket
+    if new_location.name == "S.S. Anne":
+        game_state.game_data.setdefault("story_flags", {})["boarded_ss_anne"] = True
 
     # Autosave silently on every location change
     autosave_path = game_state.autosave_on_location_change()
@@ -452,6 +463,38 @@ _GROUND_ITEMS: dict[str, list[str]] = {
     # ── Vermillion area ──────────────────────────────────────────────────────
     "Route 6": ["Super Potion"],
     "Route 11": ["Super Potion", "Super Potion"],
+    # ── S.S. Anne ────────────────────────────────────────────────────────────
+    "S.S. Anne": [
+        "Great Ball",
+        "Super Potion",
+        "Revive",
+        "Hyper Potion",
+        "X Speed",
+        "Rare Candy",
+        "Great Ball",
+        "X Attack",
+    ],
+    # ── Lavender Town area ───────────────────────────────────────────────────
+    "Route 10 South": ["Hyper Potion", "Super Repel"],
+    "Pokemon Tower": [
+        "Escape Rope",
+        "Awakening",
+        "Revive",
+        "Super Potion",
+        "Awakening",
+        "Rare Candy",
+    ],
+    # ── Celadon area ─────────────────────────────────────────────────────────
+    "Route 8": ["Super Potion", "Full Heal"],
+    "Team Rocket's Hideout": [
+        "Full Restore",
+        "Hyper Potion",
+        "Revive",
+        "Escape Rope",
+        "Full Heal",
+        "Max Potion",
+        "Nugget",
+    ],
     # ── Later routes ─────────────────────────────────────────────────────────
     "Route 12": ["Iron", "Super Potion"],
     "Route 13": ["Protein", "Full Heal"],
@@ -490,6 +533,11 @@ _ITEM_EMOJI: dict[str, str] = {
     "Calcium": "🔹",
     "Carbos": "⚡",
     "Moon Stone": "🌙",
+    "Great Ball": "🔵",
+    "X Speed": "⚡",
+    "X Attack": "⚔️",
+    "Nugget": "💛",
+    "Full Restore": "✨",
 }
 
 # Probability that any given explore attempt finds the next ground item.
@@ -530,10 +578,16 @@ def _try_find_item(game_state: "GameState", location_name: str, output: RichLog)
     emoji = _ITEM_EMOJI.get(item_name, "✨")
     output.write(f"{emoji} [bold green]You found {item_name}![/bold green]")
     lower = location_name.lower()
-    if "cave" in lower or "mountain" in lower or "mt." in lower:
+    if "cave" in lower or "mountain" in lower or "mt." in lower or "tunnel" in lower:
         flavour = "It was tucked behind a rock."
     elif "forest" in lower:
         flavour = "It was buried under some leaves."
+    elif "tower" in lower:
+        flavour = "It was resting on a memorial shelf."
+    elif "hideout" in lower or "rocket" in lower:
+        flavour = "It was stashed in a Rocket crate."
+    elif "anne" in lower or "s.s." in lower:
+        flavour = "It was left on a cabin shelf."
     else:
         flavour = "It was hidden in the tall grass."
     output.write(f"[dim]   {flavour} Added to your bag.[/dim]")
@@ -670,6 +724,168 @@ def explore_area(
                 output.write(f"[bold green]✓ Found a {_fossil}![/bold green]")
                 output.write(
                     "[dim]   (A scientist might be able to revive the Pokemon inside)[/dim]"
+                )
+                output.write("")
+        # ── S.S. Anne story: Captain encounter → HM Cut ───────────────────────
+        elif location.name == "S.S. Anne":
+            _ss_flags = game_state.game_data.setdefault("story_flags", {})
+            if not _ss_flags.get("received_hm_cut") and random.random() < 0.25:
+                _ss_flags["received_hm_cut"] = True
+                _items = game_state.game_data.setdefault("items", {})
+                _items["HM Cut"] = _items.get("HM Cut", 0) + 1
+                output.write("")
+                output.write(
+                    "[bold cyan]🚢 You find the captain's cabin and knock on the door...[/bold cyan]"
+                )
+                output.write("")
+                output.write(
+                    "[bold]Captain:[/bold] [cyan]Ohh... I feel terrible...[/cyan]"
+                )
+                output.write(
+                    "[cyan]   I've been seasick ever since we set sail.[/cyan]"
+                )
+                output.write(
+                    "[cyan]   You... you gave me a good rubdown?[/cyan]"
+                )
+                output.write(
+                    "[cyan]   I feel much better now! Here — take this as thanks![/cyan]"
+                )
+                output.write("")
+                output.write("[bold yellow]★ Received HM Cut! ★[/bold yellow]")
+                output.write(
+                    "[dim]   HM Cut lets you cut down small trees blocking your path.[/dim]"
+                )
+                output.write("")
+        # ── Pokemon Tower: Ghost encounter & Mr. Fuji rescue ──────────────────
+        elif location.name == "Pokemon Tower":
+            _tower_flags = game_state.game_data.setdefault("story_flags", {})
+            _bag = game_state.game_data.setdefault("items", {})
+            has_silph_scope = bool(_bag.get("Silph Scope", 0))
+            if not _tower_flags.get("ghost_encounter_shown") and random.random() < 0.40:
+                _tower_flags["ghost_encounter_shown"] = True
+                output.write("")
+                output.write(
+                    "[bold magenta]👻 A shadowy figure blocks the stairs...[/bold magenta]"
+                )
+                if has_silph_scope:
+                    output.write(
+                        "[magenta]   Through the Silph Scope you see clearly:[/magenta]"
+                    )
+                    output.write(
+                        "[magenta]   It's the ghost of a [bold]MAROWAK[/bold]![/magenta]"
+                    )
+                    output.write(
+                        "[magenta]   The vengeful spirit of a mother protecting her child...[/magenta]"
+                    )
+                    output.write(
+                        "[magenta]   You feel the Silph Scope resonate and the ghost fades.[/magenta]"
+                    )
+                    output.write("")
+                    output.write(
+                        "[dim]   (With the Silph Scope you can now identify and battle ghost Pokemon)[/dim]"
+                    )
+                else:
+                    output.write(
+                        "[magenta]   The ghost cannot be identified — your Pokeballs pass right through![/magenta]"
+                    )
+                    output.write(
+                        "[magenta]   You retreat to a lower floor, shaken.[/magenta]"
+                    )
+                    output.write("")
+                    output.write(
+                        "[yellow]⚠ Tip:[/yellow] [dim]You need the Silph Scope to battle the ghost Pokemon here.[/dim]"
+                    )
+                    output.write(
+                        "[dim]   The Silph Scope is said to be held by Team Rocket...[/dim]"
+                    )
+                output.write("")
+            if (
+                not _tower_flags.get("rescued_mr_fuji")
+                and has_silph_scope
+                and game_state.get_route_progress(location.name) >= 8
+                and random.random() < 0.35
+            ):
+                _tower_flags["rescued_mr_fuji"] = True
+                _bag["Poke Flute"] = _bag.get("Poke Flute", 0) + 1
+                output.write("")
+                output.write(
+                    "[bold cyan]🏠 You reach the top of Pokemon Tower...[/bold cyan]"
+                )
+                output.write(
+                    "[cyan]   Team Rocket Grunts scatter as you approach![/cyan]"
+                )
+                output.write("")
+                output.write(
+                    "[bold]Mr. Fuji:[/bold] [cyan]Oh my... a young trainer, here to rescue me![/cyan]"
+                )
+                output.write(
+                    "[cyan]   Those dreadful Team Rocket villains imprisoned me![/cyan]"
+                )
+                output.write(
+                    "[cyan]   Please — take this Poke Flute as thanks.[/cyan]"
+                )
+                output.write(
+                    "[cyan]   It will wake the sleeping Pokemon that block your path.[/cyan]"
+                )
+                output.write("")
+                output.write("[bold yellow]★ Received Poke Flute! ★[/bold yellow]")
+                output.write(
+                    "[dim]   The Poke Flute wakes sleeping Snorlax blocking certain routes.[/dim]"
+                )
+                output.write("")
+        # ── Team Rocket's Hideout: Lift Key & Silph Scope from Giovanni ───────
+        elif location.name == "Team Rocket's Hideout":
+            _rocket_flags = game_state.game_data.setdefault("story_flags", {})
+            _bag = game_state.game_data.setdefault("items", {})
+            if not _rocket_flags.get("found_lift_key") and random.random() < 0.25:
+                _rocket_flags["found_lift_key"] = True
+                _bag["Lift Key"] = _bag.get("Lift Key", 0) + 1
+                output.write("")
+                output.write(
+                    "[bold yellow]🗝️  A small key glints under a fallen crate...[/bold yellow]"
+                )
+                output.write(
+                    "[yellow]   The tag reads: [bold]LIFT KEY — B4F[/bold].[/yellow]"
+                )
+                output.write("[bold green]✓ Found the Lift Key![/bold green]")
+                output.write(
+                    "[dim]   Use this key to reach the lower floors and confront the Rocket Boss.[/dim]"
+                )
+                output.write("")
+            if (
+                not _rocket_flags.get("defeated_giovanni_hideout")
+                and _rocket_flags.get("found_lift_key")
+                and game_state.get_route_progress(location.name) >= 10
+                and random.random() < 0.30
+            ):
+                _rocket_flags["defeated_giovanni_hideout"] = True
+                _bag["Silph Scope"] = _bag.get("Silph Scope", 0) + 1
+                output.write("")
+                output.write(
+                    "[bold red]🚀 You reach the deepest level of the Hideout...[/bold red]"
+                )
+                output.write(
+                    "[red]   Giovanni stares at you with cold contempt.[/red]"
+                )
+                output.write("")
+                output.write(
+                    "[bold]Giovanni:[/bold] [red]So... you've made it this far.[/red]"
+                )
+                output.write(
+                    "[red]   I am Giovanni — the Boss of Team Rocket.[/red]"
+                )
+                output.write(
+                    "[red]   You have some skill. But skill alone does not impress me.[/red]"
+                )
+                output.write("[red]   ...You win. Take the Silph Scope.[/red]")
+                output.write(
+                    "[red]   It is useless to us if we cannot hold this base.[/red]"
+                )
+                output.write("[red]   Team Rocket will retreat... for now.[/red]")
+                output.write("")
+                output.write("[bold yellow]★ Received Silph Scope! ★[/bold yellow]")
+                output.write(
+                    "[dim]   The Silph Scope lets you identify ghost Pokemon in Pokemon Tower.[/dim]"
                 )
                 output.write("")
 
