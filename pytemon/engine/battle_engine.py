@@ -42,6 +42,31 @@ class BattleState:
         self.player_stat_stages: dict = {}  # stat_name -> cumulative delta from base
         self.enemy_stat_stages: dict = {}
 
+        # ── Two-turn move state ───────────────────────────────────────────
+        # When a Pokemon is charging a two-turn move (Fly, Dig, SolarBeam),
+        # this holds the move name; the next call to execute_move releases it.
+        self.player_charging: Optional[str] = None  # move name being charged
+        self.enemy_charging: Optional[str] = None
+
+        # ── Trapping move state ───────────────────────────────────────────
+        # Trapping moves (Wrap, Bind, Fire Spin) lock the target for 2–5 turns.
+        # player_trapped_turns: turns the player has remaining while trapped.
+        # enemy_trapped_turns: turns the enemy has remaining while trapped.
+        self.player_trapped_turns: int = 0
+        self.enemy_trapped_turns: int = 0
+        self.player_trap_dmg: int = 0  # damage dealt per turn while trapped
+        self.enemy_trap_dmg: int = 0
+
+        # ── Leech Seed state ──────────────────────────────────────────────
+        self.player_seeded: bool = False  # True when player's Pokemon is seeded
+        self.enemy_seeded: bool = False  # True when wild/trainer Pokemon is seeded
+
+        # ── Disable state ─────────────────────────────────────────────────
+        self.player_disabled_move: Optional[str] = None  # name of disabled move
+        self.player_disable_turns: int = 0
+        self.enemy_disabled_move: Optional[str] = None
+        self.enemy_disable_turns: int = 0
+
     def start_wild_battle(
         self, player_pokemon: PartyPokemon, wild_species: str, wild_level: int
     ) -> None:
@@ -69,6 +94,18 @@ class BattleState:
         self.last_enemy_move = None
         self.player_stat_stages = {}
         self.enemy_stat_stages = {}
+        self.player_charging = None
+        self.enemy_charging = None
+        self.player_trapped_turns = 0
+        self.enemy_trapped_turns = 0
+        self.player_trap_dmg = 0
+        self.enemy_trap_dmg = 0
+        self.player_seeded = False
+        self.enemy_seeded = False
+        self.player_disabled_move = None
+        self.player_disable_turns = 0
+        self.enemy_disabled_move = None
+        self.enemy_disable_turns = 0
 
     def start_trainer_battle(self, player_pokemon: PartyPokemon, trainer_data: "Trainer") -> None:
         """
@@ -104,6 +141,18 @@ class BattleState:
         self.last_enemy_move = None
         self.player_stat_stages = {}
         self.enemy_stat_stages = {}
+        self.player_charging = None
+        self.enemy_charging = None
+        self.player_trapped_turns = 0
+        self.enemy_trapped_turns = 0
+        self.player_trap_dmg = 0
+        self.enemy_trap_dmg = 0
+        self.player_seeded = False
+        self.enemy_seeded = False
+        self.player_disabled_move = None
+        self.player_disable_turns = 0
+        self.enemy_disabled_move = None
+        self.enemy_disable_turns = 0
 
     def generate_wild_pokemon(self, species: str, level: int) -> PartyPokemon:
         """
@@ -334,6 +383,9 @@ class BattleState:
         Also stores a structured result dict in self.last_player_move or
         self.last_enemy_move so the battle HUD can display last-move info.
 
+        Handles two-turn moves (charge/release), trapping moves, Leech Seed,
+        Disable, recoil, and speed-priority ordering helpers.
+
         Args:
             attacker: Attacking Pokemon dict
             defender: Defending Pokemon dict
@@ -343,6 +395,7 @@ class BattleState:
             list: Messages describing what happened
         """
         messages: list[str] = []
+        is_player = attacker is self.player_pokemon
 
         # Tracking dict — persisted to last_player_move / last_enemy_move at every exit
         move_result: dict = {
@@ -356,10 +409,26 @@ class BattleState:
         }
 
         def _store_result() -> None:
-            if attacker is self.player_pokemon:
+            if is_player:
                 self.last_player_move = move_result
             else:
                 self.last_enemy_move = move_result
+
+        # ── Disable check: blocked move cannot be used ────────────────────
+        if is_player and self.player_disabled_move == move_name:
+            messages.append(
+                f"[yellow]{attacker['name']}'s {move_name} is disabled! Choose another move.[/yellow]"
+            )
+            move_result["missed"] = True
+            _store_result()
+            return messages
+        if not is_player and self.enemy_disabled_move == move_name:
+            # Enemy will just skip this turn (choose-move logic should avoid it,
+            # but guard here in case)
+            messages.append(f"[yellow]{attacker['name']}'s {move_name} is disabled![/yellow]")
+            move_result["missed"] = True
+            _store_result()
+            return messages
 
         # Status condition checks: paralysis and sleep prevent moves
         if attacker.get("status") == "PARALYSIS":
@@ -389,7 +458,76 @@ class BattleState:
             _store_result()
             return messages
 
-        # Deduct PP
+        # ── Two-turn move: charge phase ───────────────────────────────────
+        # Two-turn moves (Fly, Dig, SolarBeam) first charge for one turn,
+        # then release with full power on the next call.
+        charging_attr = "player_charging" if is_player else "enemy_charging"
+        currently_charging = getattr(self, charging_attr)
+
+        if move.get("effect") == "two_turn":
+            if currently_charging != move_name:
+                # First turn — charge: deduct PP and announce but don't deal damage yet
+                for m in attacker["moves"]:
+                    if m["name"] == move_name:
+                        if m["pp"] > 0:
+                            m["pp"] -= 1
+                        else:
+                            messages.append(
+                                f"[yellow]But there was no PP left for {move_name}![/yellow]"
+                            )
+                            move_result["missed"] = True
+                            _store_result()
+                            return messages
+                        break
+                charge_flavor = {
+                    "FLY": "flew up high",
+                    "DIG": "burrowed underground",
+                    "SOLARBEAM": "absorbed sunlight",
+                }.get(move_name, "is charging up")
+                messages.append(f"[bold]{attacker['name']} {charge_flavor}![/bold]")
+                setattr(self, charging_attr, move_name)
+                move_result["missed"] = True  # no damage this turn
+                _store_result()
+                return messages
+            else:
+                # Second turn — release: clear charging state and fall through to damage
+                setattr(self, charging_attr, None)
+                # PP was already deducted on charge turn; skip PP deduction below
+                # by jumping directly to accuracy + damage logic
+                accuracy = move["accuracy"]
+                if accuracy > 0 and random.randint(1, 100) > accuracy:
+                    messages.append(f"[yellow]{attacker['name']}'s attack missed![/yellow]")
+                    move_result["missed"] = True
+                    _store_result()
+                    return messages
+
+                damage, effectiveness_msg, is_critical = self.calculate_damage(
+                    attacker, defender, move_name
+                )
+                move_result["damage"] = damage
+                move_result["crit"] = is_critical
+                move_result["effectiveness"] = effectiveness_msg
+
+                if damage > 0:
+                    defender["hp"] = max(0, defender["hp"] - damage)
+                    messages.append(f"[cyan]{attacker['name']} dealt {damage} damage![/cyan]")
+                    if is_critical:
+                        messages.append("[bold yellow]A critical hit![/bold yellow]")
+                    if effectiveness_msg:
+                        if "super effective" in effectiveness_msg:
+                            messages.append(f"[green]{effectiveness_msg}[/green]")
+                        elif "not very effective" in effectiveness_msg:
+                            messages.append(f"[dim]{effectiveness_msg}[/dim]")
+                        else:
+                            messages.append(f"[yellow]{effectiveness_msg}[/yellow]")
+                else:
+                    if effectiveness_msg:
+                        messages.append(f"[dim]{effectiveness_msg}[/dim]")
+
+                _store_result()
+                return messages
+
+        # ── Normal PP deduction ───────────────────────────────────────────
         for m in attacker["moves"]:
             if m["name"] == move_name:
                 if m["pp"] > 0:
@@ -443,12 +581,79 @@ class BattleState:
         # Apply status / stat-change effects from this move
         effect = move.get("effect")
         effect_chance = move.get("effect_chance") or 0
+
         if effect in ("paralysis", "sleep", "poison", "bad_poison") and effect_chance > 0:
             status_before = defender.get("status")
             status_msgs = self.apply_status_effect(attacker, defender, move)
             messages.extend(status_msgs)
             if defender.get("status") != status_before:
                 move_result["status_applied"] = defender.get("status")
+
+        elif effect == "recoil" and damage > 0:
+            # Recoil: attacker takes ¼ of damage dealt
+            recoil_dmg = max(1, damage // 4)
+            attacker["hp"] = max(0, attacker["hp"] - recoil_dmg)
+            messages.append(f"[red]{attacker['name']} is hurt by recoil! (-{recoil_dmg} HP)[/red]")
+
+        elif effect == "trap" and effect_chance > 0 and damage > 0:
+            # Trapping moves: lock the defender for 2–5 turns
+            defender_is_player = defender is self.player_pokemon
+            trap_turns_attr = (
+                "player_trapped_turns" if defender_is_player else "enemy_trapped_turns"
+            )
+            trap_dmg_attr = "player_trap_dmg" if defender_is_player else "enemy_trap_dmg"
+            if getattr(self, trap_turns_attr) == 0:
+                trap_turns = random.randint(2, 5)
+                setattr(self, trap_turns_attr, trap_turns)
+                # Trap damage is 1/16 of defender's max HP per turn
+                trap_dmg = max(1, defender["max_hp"] // 16)
+                setattr(self, trap_dmg_attr, trap_dmg)
+                messages.append(f"[magenta]{defender['name']} is trapped by {move_name}![/magenta]")
+
+        elif effect == "leech_seed" and effect_chance > 0:
+            # Leech Seed: mark the defender as seeded (drained each end-of-turn)
+            defender_is_player = defender is self.player_pokemon
+            seeded_attr = "player_seeded" if defender_is_player else "enemy_seeded"
+            if not getattr(self, seeded_attr):
+                setattr(self, seeded_attr, True)
+                messages.append(
+                    f"[green]{defender['name']} was seeded! HP will be drained each turn.[/green]"
+                )
+            else:
+                messages.append(f"[dim]{defender['name']} is already seeded.[/dim]")
+
+        elif effect == "disable" and effect_chance > 0:
+            # Disable: block one of the defender's last-used moves for 3–8 turns
+            defender_is_player = defender is self.player_pokemon
+            disabled_move_attr = (
+                "player_disabled_move" if defender_is_player else "enemy_disabled_move"
+            )
+            disable_turns_attr = (
+                "player_disable_turns" if defender_is_player else "enemy_disable_turns"
+            )
+            if getattr(self, disabled_move_attr) is None:
+                # Pick the most recent move the defender used, or a random valid move
+                last_move_data = (
+                    self.last_player_move if defender_is_player else self.last_enemy_move
+                )
+                candidate = last_move_data["name"] if last_move_data else None
+                if candidate is None:
+                    # Fall back to first move with PP > 0
+                    for m in defender["moves"]:
+                        if m["pp"] > 0:
+                            candidate = m["name"]
+                            break
+                if candidate:
+                    setattr(self, disabled_move_attr, candidate)
+                    setattr(self, disable_turns_attr, random.randint(3, 8))
+                    messages.append(
+                        f"[yellow]{defender['name']}'s {candidate} was disabled![/yellow]"
+                    )
+                else:
+                    messages.append(f"[dim]{defender['name']} has no move to disable.[/dim]")
+            else:
+                messages.append(f"[dim]{defender['name']}'s move is already disabled.[/dim]")
+
         elif effect_chance > 0:
             # Stat-change primary / secondary effects
             _STAT_CHANGES = {
@@ -489,6 +694,38 @@ class BattleState:
 
         _store_result()
         return messages
+
+    def is_player_move_priority(self, player_move_name: str) -> bool:
+        """
+        Return True if the player's chosen move has priority (always goes first).
+
+        Gen 1 priority moves: Quick Attack, Counter.
+
+        Args:
+            player_move_name: Move name chosen by the player.
+
+        Returns:
+            bool: True when the player's move has the "priority" effect.
+        """
+        move = get_move(player_move_name)
+        if not move:
+            return False
+        return move.get("effect") == "priority"
+
+    def is_enemy_move_priority(self, enemy_move_name: str) -> bool:
+        """
+        Return True if the enemy's chosen move has priority.
+
+        Args:
+            enemy_move_name: Move name chosen by the enemy.
+
+        Returns:
+            bool: True when the enemy's move has the "priority" effect.
+        """
+        move = get_move(enemy_move_name)
+        if not move:
+            return False
+        return move.get("effect") == "priority"
 
     def calculate_exp_yield(self) -> int:
         """
@@ -689,7 +926,8 @@ class BattleState:
 
     def end_of_turn_effects(self, pokemon: PartyPokemon) -> list[str]:
         """
-        Apply end-of-turn status damage (BURN, POISON, BAD_POISON).
+        Apply end-of-turn effects: status damage (BURN, POISON, BAD_POISON),
+        Leech Seed drain, trapping move damage, and Disable countdown.
 
         Args:
             pokemon: Pokemon dict to apply effects to
@@ -698,6 +936,7 @@ class BattleState:
             list: Messages describing damage taken
         """
         messages: list[str] = []
+        is_player = pokemon is self.player_pokemon
         status = pokemon.get("status")
 
         if status == "BURN":
@@ -719,6 +958,55 @@ class BattleState:
                 f"[magenta]{pokemon['name']} is badly hurt by poison! (-{dmg} HP)[/magenta]"
             )
 
+        # ── Leech Seed drain ─────────────────────────────────────────────
+        seeded_attr = "player_seeded" if is_player else "enemy_seeded"
+        if getattr(self, seeded_attr) and pokemon["hp"] > 0:
+            seed_dmg = max(1, pokemon["max_hp"] // 8)
+            pokemon["hp"] = max(0, pokemon["hp"] - seed_dmg)
+            # Heal the other side
+            other = self.wild_pokemon if is_player else self.player_pokemon
+            if other and other["hp"] > 0:
+                other["hp"] = min(other["max_hp"], other["hp"] + seed_dmg)
+                messages.append(
+                    f"[green]{pokemon['name']}'s health is sapped by Leech Seed!"
+                    f" (-{seed_dmg} HP → {other['name']} +{seed_dmg} HP)[/green]"
+                )
+            else:
+                messages.append(
+                    f"[green]{pokemon['name']}'s health is sapped by Leech Seed!"
+                    f" (-{seed_dmg} HP)[/green]"
+                )
+
+        # ── Trapping damage ───────────────────────────────────────────────
+        trap_turns_attr = "player_trapped_turns" if is_player else "enemy_trapped_turns"
+        trap_dmg_attr = "player_trap_dmg" if is_player else "enemy_trap_dmg"
+        trap_turns = getattr(self, trap_turns_attr)
+        if trap_turns > 0 and pokemon["hp"] > 0:
+            trap_dmg = getattr(self, trap_dmg_attr)
+            pokemon["hp"] = max(0, pokemon["hp"] - trap_dmg)
+            messages.append(
+                f"[magenta]{pokemon['name']} is squeezed by the trap! (-{trap_dmg} HP)[/magenta]"
+            )
+            trap_turns -= 1
+            setattr(self, trap_turns_attr, trap_turns)
+            if trap_turns == 0:
+                messages.append(f"[dim]{pokemon['name']} broke free from the trap![/dim]")
+
+        # ── Disable countdown ─────────────────────────────────────────────
+        disabled_move_attr = "player_disabled_move" if is_player else "enemy_disabled_move"
+        disable_turns_attr = "player_disable_turns" if is_player else "enemy_disable_turns"
+        disable_turns = getattr(self, disable_turns_attr)
+        if disable_turns > 0:
+            disable_turns -= 1
+            setattr(self, disable_turns_attr, disable_turns)
+            if disable_turns == 0:
+                disabled_move = getattr(self, disabled_move_attr)
+                setattr(self, disabled_move_attr, None)
+                if disabled_move:
+                    messages.append(
+                        f"[dim]{pokemon['name']}'s {disabled_move} is no longer disabled.[/dim]"
+                    )
+
         return messages
 
     def end_battle(self) -> None:
@@ -737,6 +1025,18 @@ class BattleState:
         self.last_enemy_move = None
         self.player_stat_stages = {}
         self.enemy_stat_stages = {}
+        self.player_charging = None
+        self.enemy_charging = None
+        self.player_trapped_turns = 0
+        self.enemy_trapped_turns = 0
+        self.player_trap_dmg = 0
+        self.enemy_trap_dmg = 0
+        self.player_seeded = False
+        self.enemy_seeded = False
+        self.player_disabled_move = None
+        self.player_disable_turns = 0
+        self.enemy_disabled_move = None
+        self.enemy_disable_turns = 0
 
     def has_more_pokemon(self) -> bool:
         """

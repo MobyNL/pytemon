@@ -269,7 +269,9 @@ class BattleMixin:
         player = battle.player_pokemon
         lines: list[str] = []
 
-        available = [m for m in wild["moves"] if m["pp"] > 0]
+        available = [
+            m for m in wild["moves"] if m["pp"] > 0 and m["name"] != battle.enemy_disabled_move
+        ]
         if not available:
             opponent_name = (
                 f"{battle.trainer_data['name']}'s {wild['name']}"
@@ -297,8 +299,36 @@ class BattleMixin:
         lines.extend(battle.execute_move(wild, player, move["name"]))
         return lines
 
+    def _pick_enemy_move(self) -> Optional[str]:
+        """
+        Choose the enemy's next move name without executing it.
+
+        Used to check for priority moves before committing to turn order.
+
+        Returns:
+            Move name string, or None if no moves available.
+        """
+        battle = self.game_state.battle_state
+        wild = battle.wild_pokemon
+        if not wild:
+            return None
+        available = [
+            m for m in wild["moves"] if m["pp"] > 0 and m["name"] != battle.enemy_disabled_move
+        ]
+        if not available:
+            return None
+        if battle.is_trainer_battle:
+            move = battle.choose_trainer_move() or random.choice(available)
+        else:
+            move = random.choice(available)
+        return move["name"]
+
     def execute_player_move(self, command: str, output: RichLog) -> None:
-        """Execute the player's chosen move and then run the opponent's turn."""
+        """Execute the player's chosen move and then run the opponent's turn.
+
+        Handles speed-priority moves: if the enemy's upcoming move has the
+        ``priority`` effect and the player's does not, the enemy attacks first.
+        """
         battle = self.game_state.battle_state
         player = battle.player_pokemon
 
@@ -307,7 +337,15 @@ class BattleMixin:
             self.pending_command = "battle"
             return
 
-        move = self.parse_move_choice(command, player)
+        # ── If the player is charging a two-turn move, the move name was stored
+        # in battle.player_charging; retrieve it so the release turn executes.
+        if battle.player_charging:
+            move_name = battle.player_charging
+            # Fake a MoveSlot lookup so parse_move_choice isn't needed
+            move = next((m for m in player["moves"] if m["name"] == move_name), None)
+        else:
+            move = self.parse_move_choice(command, player)
+
         if not move:
             output.write("[red]❌ Unknown move. Type the name, number, or 'Back'.[/red]")
             output.write("")
@@ -315,18 +353,87 @@ class BattleMixin:
             self.pending_command = "select_move"
             return
 
-        if move["pp"] <= 0:
+        if not battle.player_charging and move["pp"] <= 0:
             output.write(f"[red]❌ {move['name']} has no PP left! Choose another move.[/red]")
             output.write("")
             self.show_move_selection(output)
             self.pending_command = "select_move"
             return
 
-        # ── Player's turn — execute move (side-effects) then animate ────────
+        move_name = move["name"]
+
+        # ── Determine turn order based on speed-priority ─────────────────
+        # If the player uses a non-priority move and the enemy uses a priority
+        # move, the enemy strikes first this turn.
+        player_has_priority = battle.is_player_move_priority(move_name)
+        enemy_move_name = self._pick_enemy_move()
+        enemy_has_priority = (
+            battle.is_enemy_move_priority(enemy_move_name) if enemy_move_name else False
+        )
+        enemy_goes_first = enemy_has_priority and not player_has_priority
+
+        if enemy_goes_first:
+            # Enemy attacks first, then player
+            wild = battle.wild_pokemon
+            opponent_name = (
+                f"{battle.trainer_data['name']}'s {wild['name']}"
+                if battle.is_trainer_battle
+                else f"Wild {wild['name']}"
+            )
+            enemy_lines = [
+                "",
+                f"[bold yellow]{opponent_name} moved first with {enemy_move_name}![/bold yellow]",
+                f"[yellow]{opponent_name} used {enemy_move_name}![/yellow]",
+                *battle.execute_move(wild, player, enemy_move_name),
+            ]
+            if enemy_move_name:
+                battle.enemy_moves_seen.add(enemy_move_name)
+
+            player_lines = [
+                "",
+                f"[bold]{player['name']} used {move_name}![/bold]",
+                *battle.execute_move(player, battle.wild_pokemon, move_name),
+            ]
+            wild_fainted_after_player = battle.wild_pokemon["hp"] <= 0
+
+            def _after_priority_player_attack() -> None:
+                if wild_fainted_after_player:
+                    self.handle_battle_victory(output)
+                    return
+                current_battle = self.game_state.battle_state
+                if current_battle:
+                    for msg in current_battle.end_of_turn_effects(current_battle.wild_pokemon):
+                        output.write(msg)
+                    if current_battle.wild_pokemon["hp"] <= 0:
+                        self.handle_battle_victory(output)
+                        return
+                    for msg in current_battle.end_of_turn_effects(player):
+                        output.write(msg)
+                    if player["hp"] <= 0:
+                        self.handle_pokemon_fainted(output)
+                        return
+                self.hide_battle_loading()
+                self.show_battle_options(output)
+                self.pending_command = "battle"
+
+            def _after_priority_enemy_attack() -> None:
+                if player["hp"] <= 0:
+                    self.handle_pokemon_fainted(output)
+                    return
+                self.text_animator.write_fast(
+                    output, player_lines, on_complete=_after_priority_player_attack
+                )
+
+            self.text_animator.write_fast(
+                output, enemy_lines, on_complete=_after_priority_enemy_attack
+            )
+            return
+
+        # ── Normal order: player attacks first ───────────────────────────
         player_lines = [
             "",
-            f"[bold]{player['name']} used {move['name']}![/bold]",
-            *battle.execute_move(player, battle.wild_pokemon, move["name"]),
+            f"[bold]{player['name']} used {move_name}![/bold]",
+            *battle.execute_move(player, battle.wild_pokemon, move_name),
         ]
         wild_fainted = battle.wild_pokemon["hp"] <= 0
 

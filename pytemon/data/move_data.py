@@ -334,8 +334,8 @@ MOVES: dict[str, MoveData] = {
         power=100,
         accuracy=100,
         pp=10,
-        effect=None,
-        effect_chance=None,
+        effect="two_turn",
+        effect_chance=100,
     ),
     "DISABLE": MoveData(
         name="DISABLE",
@@ -534,8 +534,8 @@ MOVES: dict[str, MoveData] = {
         power=70,
         accuracy=95,
         pp=15,
-        effect=None,
-        effect_chance=None,
+        effect="two_turn",
+        effect_chance=100,
     ),
     "FOCUS ENERGY": MoveData(
         name="FOCUS ENERGY",
@@ -1324,8 +1324,8 @@ MOVES: dict[str, MoveData] = {
         power=120,
         accuracy=100,
         pp=10,
-        effect=None,
-        effect_chance=None,
+        effect="two_turn",
+        effect_chance=100,
     ),
     "SONIC BOOM": MoveData(
         name="SONIC BOOM",

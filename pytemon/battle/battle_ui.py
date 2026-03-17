@@ -191,13 +191,25 @@ def show_move_selection(game_state: "GameState", output: RichLog) -> None:
 
     for i, move in enumerate(player["moves"], 1):
         move_data = get_move(move["name"])
+        is_disabled = battle.player_disabled_move == move["name"]
         if move_data:
             move_type = move_data.get("type", "Normal")
             color = MOVE_TYPE_COLORS.get(move_type, "white")
             pp_text = f"PP: {move['pp']}/{move.get('max_pp', move['pp'])}"
-            output.write(f"  • [{color}]{move['name']}[/{color}]  {pp_text}")
+            if is_disabled:
+                output.write(
+                    f"  • [dim strike]{move['name']}[/dim strike]"
+                    f"  {pp_text}  [yellow](DISABLED)[/yellow]"
+                )
+            else:
+                output.write(f"  • [{color}]{move['name']}[/{color}]  {pp_text}")
         else:
-            output.write(f"  • {move['name']}")
+            if is_disabled:
+                output.write(
+                    f"  • [dim strike]{move['name']}[/dim strike]  [yellow](DISABLED)[/yellow]"
+                )
+            else:
+                output.write(f"  • {move['name']}")
 
     output.write("")
     output.write("[dim]Type the move name or 'Back' to go back[/dim]")

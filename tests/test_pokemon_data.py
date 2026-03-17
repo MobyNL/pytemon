@@ -502,11 +502,11 @@ class TestPhase4Evolutions:
         assert kadabra.types == [PSYCHIC]
 
     def test_kadabra_evolution(self):
-        """Kadabra evolves to Alakazam at level 38."""
+        """Kadabra evolves to Alakazam via Link Cable (trade-evolver converted to item)."""
         kadabra = POKEMON[64]
         assert kadabra.evolution is not None
-        assert isinstance(kadabra.evolution, LevelEvolution)
-        assert kadabra.evolution.level == 38
+        assert isinstance(kadabra.evolution, ItemEvolution)
+        assert kadabra.evolution.item.upper() == "LINK CABLE"
         assert kadabra.evolution.into_species == "ALAKAZAM"
 
     def test_alakazam_exists_and_not_stub(self):
