@@ -609,6 +609,7 @@ LOCATIONS: Dict[str, Location] = {
         ),
         exits={
             "Route 7": {"direction": "east", "blocked": False},
+            "Route 16": {"direction": "west", "blocked": False},
             "Team Rocket's Hideout": {
                 "direction": "underground",
                 "blocked": False,
@@ -684,6 +685,219 @@ LOCATIONS: Dict[str, Location] = {
         trainers=3,
         trainer_encounter_rate=0.25,
         wild_encounter_rate=0.55,
+    ),
+    # ── Routes 13-15 (South Coast) ────────────────────────────────────────────
+    "Route 13": Location(
+        name="Route 13",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A windswept coastal path south of Lavender Town. Birdkeepers and Fishermen "
+            "patrol the clifftops, and the salty sea breeze carries the cry of Farfetch'd."
+        ),
+        exits={
+            "Route 12": {
+                "direction": "north",
+                "blocked": True,
+                "reason": "A sleeping Snorlax blocks the path north — you'll need the Poke Flute to wake it",
+            },
+            "Route 14": {"direction": "west", "blocked": False, "min_explores": 6},
+        },
+        wild_pokemon=["PIDGEY", "PIDGEOTTO", "FARFETCH'D", "DITTO", "VENONAT"],
+        wild_level_range=(22, 30),
+        trainers=4,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.40,
+    ),
+    "Route 14": Location(
+        name="Route 14",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A tangled path of tall grass and narrow walkways. Birdkeepers challenge any "
+            "trainer who passes, and the Weepinbell lurking here are deceptively fast."
+        ),
+        exits={
+            "Route 13": {"direction": "east", "blocked": False, "min_explores": 6},
+            "Route 15": {"direction": "west", "blocked": False, "min_explores": 6},
+        },
+        wild_pokemon=["PIDGEOTTO", "WEEPINBELL", "GLOOM", "VENONAT", "DITTO"],
+        wild_level_range=(25, 32),
+        trainers=4,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.40,
+    ),
+    "Route 15": Location(
+        name="Route 15",
+        location_type=TYPE_ROUTE,
+        description=(
+            "The final stretch of the south coast leading into Fuchsia City. "
+            "A Pokemaniac watches the tall grass from the side of the road, and the "
+            "distant Safari Zone gates are already visible to the west."
+        ),
+        exits={
+            "Route 14": {"direction": "east", "blocked": False, "min_explores": 6},
+            "Fuchsia City": {"direction": "west", "blocked": False, "min_explores": 5},
+        },
+        wild_pokemon=["PIDGEOTTO", "GLOOM", "WEEPINBELL", "VENONAT", "DITTO"],
+        wild_level_range=(25, 33),
+        trainers=4,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.40,
+    ),
+    # ── Routes 16-18 (Cycling Road) ───────────────────────────────────────────
+    "Route 16": Location(
+        name="Route 16",
+        location_type=TYPE_ROUTE,
+        description=(
+            "The start of the famous Cycling Road leading west out of Celadon City. "
+            "The gate attendant waves you through, and the road ahead drops sharply downhill. "
+            "Snorlax is said to nap beside the northern grass."
+        ),
+        exits={
+            "Celadon City": {"direction": "east", "blocked": False},
+            "Route 17": {"direction": "south", "blocked": False, "min_explores": 5},
+        },
+        wild_pokemon=["DODUO", "RATTATA", "SPEAROW"],
+        wild_level_range=(20, 28),
+        trainers=2,
+        trainer_encounter_rate=0.25,
+        wild_encounter_rate=0.35,
+    ),
+    "Route 17": Location(
+        name="Route 17",
+        location_type=TYPE_ROUTE,
+        description=(
+            "The long, steep downhill stretch of Cycling Road. Bikers race past at full "
+            "speed, and the tall grass on either side hides surprisingly strong Pokemon. "
+            "Once you start going, it's hard to stop."
+        ),
+        exits={
+            "Route 16": {"direction": "north", "blocked": False, "min_explores": 7},
+            "Route 18": {"direction": "south", "blocked": False, "min_explores": 7},
+        },
+        wild_pokemon=["DODUO", "RATTATA", "FEAROW", "DITTO"],
+        wild_level_range=(22, 30),
+        trainers=5,
+        trainer_encounter_rate=0.35,
+        wild_encounter_rate=0.40,
+    ),
+    "Route 18": Location(
+        name="Route 18",
+        location_type=TYPE_ROUTE,
+        description=(
+            "The flat end of Cycling Road, where the downhill rush levels out into open "
+            "grassland east of Fuchsia City. The gate marks the end of the famous road."
+        ),
+        exits={
+            "Route 17": {"direction": "north", "blocked": False, "min_explores": 5},
+            "Fuchsia City": {"direction": "east", "blocked": False, "min_explores": 4},
+        },
+        wild_pokemon=["DODUO", "FEAROW", "RATTATA"],
+        wild_level_range=(23, 30),
+        trainers=2,
+        trainer_encounter_rate=0.25,
+        wild_encounter_rate=0.35,
+    ),
+    # ── Fuchsia City ──────────────────────────────────────────────────────────
+    "Fuchsia City": Location(
+        name="Fuchsia City",
+        location_type=TYPE_TOWN,
+        description=(
+            "A quiet city famous for its Safari Zone and its ninja-themed Gym. "
+            "Koga, the Gym Leader, is a master of Poison-type tactics and invisible traps. "
+            "The Safari Zone to the north lets you catch rare Pokemon that can't be found elsewhere."
+        ),
+        exits={
+            "Route 15": {"direction": "east", "blocked": False},
+            "Route 18": {"direction": "west", "blocked": False},
+            "Safari Zone": {"direction": "north", "blocked": False},
+            "Route 19": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "You need HM Surf to cross the water — defeat Koga and teach Surf to a Pokemon",
+            },
+        },
+        buildings=["Pokemon Center", "Pokemart", "Gym", "Safari Zone"],
+    ),
+    # ── Safari Zone ───────────────────────────────────────────────────────────
+    "Safari Zone": Location(
+        name="Safari Zone",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A vast nature reserve where rare Pokemon roam freely. You're given Safari Balls "
+            "and must use Bait or Rocks to improve your catch odds — no battling allowed here! "
+            "Scyther, Kangaskhan, and Tauros have all been spotted roaming the tall grass."
+        ),
+        exits={
+            "Fuchsia City": {"direction": "south", "blocked": False},
+        },
+        wild_pokemon=[
+            "NIDORAN♀",
+            "NIDORAN♂",
+            "PARAS",
+            "VENONAT",
+            "SCYTHER",
+            "KANGASKHAN",
+            "TAUROS",
+            "CHANSEY",
+            "PINSIR",
+            "EXEGGCUTE",
+        ],
+        wild_level_range=(22, 35),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.60,
+    ),
+    # ── Routes 19-20 (Sea Routes to Cinnabar) ─────────────────────────────────
+    "Route 19": Location(
+        name="Route 19",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A wide open sea route south of Fuchsia City. Swimmers and Divers compete to "
+            "cross the rough waters, and Tentacool swarms make every step treacherous."
+        ),
+        exits={
+            "Fuchsia City": {
+                "direction": "north",
+                "blocked": True,
+                "reason": "You need HM Surf to cross the water",
+            },
+            "Route 20": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "You need HM Surf to cross the water",
+            },
+        },
+        wild_pokemon=["TENTACOOL", "TENTACRUEL", "HORSEA", "GOLDEEN"],
+        wild_level_range=(25, 35),
+        trainers=4,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.65,
+    ),
+    "Route 20": Location(
+        name="Route 20",
+        location_type=TYPE_ROUTE,
+        description=(
+            "The sea route curving around the south coast toward Cinnabar Island. "
+            "Sea Swimmers patrol the choppy waters, and the volcanic silhouette of "
+            "Cinnabar Island grows larger on the western horizon."
+        ),
+        exits={
+            "Route 19": {
+                "direction": "east",
+                "blocked": True,
+                "reason": "You need HM Surf to cross the water",
+            },
+            "Cinnabar Island": {
+                "direction": "west",
+                "blocked": True,
+                "reason": "Cinnabar Island awaits — you'll need HM Surf to reach it",
+            },
+        },
+        wild_pokemon=["TENTACOOL", "TENTACRUEL", "HORSEA", "SEADRA", "GOLDEEN"],
+        wild_level_range=(28, 38),
+        trainers=4,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.65,
     ),
 }
 

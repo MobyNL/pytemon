@@ -109,22 +109,22 @@
 **Goal: Complete gyms 4 & 5, unlock Surf**
 
 ### 3.1 Celadon City
-- [ ] Implement Celadon City
-- [ ] Erika (Gym 4) — Grass-type, Rainbow Badge
-  - [ ] Gym trainers: Beauty, Lass
-  - [ ] Team: Tangela, Weepinbell, Gloom, Vileplume
-- [ ] Celadon Department Store (full 6-floor shop with unique items)
-- [ ] Game Corner (simple slot machine / coin exchange for TM prizes)
-- [ ] Routes 16, 17, 18 (Cycling Road)
+- [x] Implement Celadon City
+- [x] Erika (Gym 4) — Grass-type, Rainbow Badge
+  - [x] Gym trainers: Beauty, Lass
+  - [x] Team: Tangela, Weepinbell, Gloom, Vileplume
+- [x] Celadon Department Store (full 6-floor shop with unique items)
+- [x] Game Corner (simple slot machine / coin exchange for TM prizes)
+- [x] Routes 16, 17, 18 (Cycling Road)
 
 ### 3.2 Fuchsia City
-- [ ] Implement Fuchsia City
-- [ ] Koga (Gym 5) — Poison-type, Soul Badge (unlocks Surf)
-  - [ ] Gym trainers: Juggler, Lass
-  - [ ] Team: Koffing, Muk, Koffing, Weezing
-- [ ] Safari Zone (simplified — set encounter pool, catch with bait/rock)
-- [ ] Routes 13, 14, 15 (south coast)
-- [ ] Routes 19, 20 (sea routes enabling Cinnabar access)
+- [x] Implement Fuchsia City
+- [x] Koga (Gym 5) — Poison-type, Soul Badge (unlocks Surf)
+  - [x] Gym trainers: Juggler, Lass
+  - [x] Team: Koffing, Muk, Koffing, Weezing
+- [x] Safari Zone (simplified — set encounter pool, catch with bait/rock)
+- [x] Routes 13, 14, 15 (south coast)
+- [x] Routes 19, 20 (sea routes enabling Cinnabar access)
 
 ---
 
