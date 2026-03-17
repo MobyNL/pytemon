@@ -24,31 +24,46 @@
 
 ---
 
-## Phase 1 — Solid Foundation (2–3 weeks)
+## Phase 1 — Solid Foundation (2–3 weeks) ✅ Completed
 **Goal: Stabilise and polish what exists before expanding**
 
 ### 1.1 Battle System Polish
-- [ ] Fix two-turn moves (Fly, Dig, Solar Beam — charge turn skips player input)
-- [ ] Fix trapping moves (Wrap, Bind, Fire Spin — should lock opponent for 2–5 turns)
-- [ ] Fix Leech Seed (drain HP each turn, not just on apply)
-- [ ] Fix speed-priority moves (Quick Attack should always go first)
-- [ ] Validate stat stage resets correctly between battles
-- [ ] Fix recoil damage calculation (should be ¼ damage dealt, not flat)
-- [ ] Implement Disable (block one move for 3–8 turns)
+- [x] Fix two-turn moves (Fly, Dig, Solar Beam — charge turn skips player input)
+- [x] Fix trapping moves (Wrap, Bind, Fire Spin — should lock opponent for 2–5 turns)
+- [x] Fix Leech Seed (drain HP each turn, not just on apply)
+- [x] Fix speed-priority moves (Quick Attack should always go first)
+- [x] Validate stat stage resets correctly between battles
+- [x] Fix recoil damage calculation (should be ¼ damage dealt, not flat)
+- [x] Implement Disable (block one move for 3–8 turns)
 
 ### 1.2 Pokemon Data Upgrade
-- [ ] Fill in full stats + learnsets for the 80 stub-only species (priority: those on implemented routes)
-- [ ] Add evolution data for all Gen 1 trade-evolvers (Graveler→Golem, Haunter→Gengar, Machoke→Machamp, Kadabra→Alakazam) — since we can't trade, convert to item-based (Link Cable item)
-- [ ] Add happiness-based hints (Eevee evolution flavour text)
+- [x] Fill in full stats + learnsets for the 80 stub-only species (priority: those on implemented routes)
+- [x] Add evolution data for all Gen 1 trade-evolvers (Graveler→Golem, Haunter→Gengar, Machoke→Machamp, Kadabra→Alakazam) — since we can't trade, convert to item-based (Link Cable item)
+- [x] Add happiness-based hints (Eevee evolution flavour text)
 
 ### 1.3 Item UI
-- [ ] Add in-field item use menu (use evolution stones from bag without being in battle)
-- [ ] Add Repel countdown display (show remaining steps)
+- [x] Add in-field item use menu (use evolution stones from bag without being in battle)
+- [x] Add Repel countdown display (show remaining steps)
 
 ### 1.4 Bug Fixes & QA
-- [ ] Verify all 19 current locations have correct wild Pokemon tables
-- [ ] Verify all current trainer teams are balanced vs. player progression point
-- [ ] Ensure badge-gated exits are consistent across all implemented routes
+- [x] Verify all 19 current locations have correct wild Pokemon tables
+- [x] Verify all current trainer teams are balanced vs. player progression point
+- [x] Ensure badge-gated exits are consistent across all implemented routes
+
+### 1.5 Core Dungeon System (Reusable for all story dungeons)
+**Goal: One shared dungeon framework used by caves, ships, towers, hideouts, and buildings with floors**
+
+- [x] Add a `DungeonDefinition` data model (dungeon id, floors, entrances/exits, completion flags)
+- [x] Add floor graph support (named floors/rooms, directional links, ladders/warps, one-way tiles)
+- [x] Add dungeon encounter tables per floor (species, level ranges, encounter weights)
+- [x] Add trainer + NPC placement per floor with one-time defeat persistence
+- [x] Add item pickup nodes with one-time story/item flags (e.g. `got_mt_moon_fossil`)
+- [x] Add gated interactions (keys, switches, badge checks, story flags)
+- [x] Add dungeon status command output (`where`, current floor, explored rooms, nearby exits)
+- [x] Add dungeon escape rules (`Escape Rope`, blackout handling, optional restart checkpoint)
+- [x] Add dungeon event hooks (boss trigger, rival event, item reward cutscene)
+- [x] Add save/load compatibility for all dungeon progress fields
+- [x] Add test utilities for scripted dungeon traversal (path, event, and gate assertions)
 
 ---
 
@@ -58,11 +73,11 @@
 ### 2.1 Lt. Surge & Vermillion City
 - [ ] Complete Lt. Surge trainer team (Voltorb, Pikachu, Raichu, Electrode)
 - [ ] Add Vermillion City gym trainers (Sailors, etc.)
-- [ ] Implement SS Anne building (optional, award HM01 Cut)
+- [ ] Implement SS Anne as a structured mini-dungeon (decks/rooms + captain event, award HM01 Cut)
 - [ ] Add Vermillion City Pokemart (Great Ball tier unlocked)
 
 ### 2.2 Diglett's Cave & Rock Tunnel
-- [ ] Implement Rock Tunnel as a multi-room cave (darkness mechanic with HM05 Flash)
+- [ ] Implement Rock Tunnel as a multi-floor dungeon (darkness mechanic with HM05 Flash)
 - [ ] Add Rock Tunnel trainers (Hikers, Picnickers)
 - [ ] Add Diglett's Cave wild Pokemon (Diglett, Dugtrio)
 
@@ -78,6 +93,15 @@
 - [ ] Implement Lavender Town (Pokémon Tower story arc)
 - [ ] Add Mr. Fuji / ghost storyline (narrative-only, no silph co. required)
 - [ ] Add Pokémon Tower as a multi-floor dungeon
+
+### 2.5 Dungeon Rollout (First Wave)
+**Goal: Use the shared dungeon system for all early/midgame set-piece areas**
+
+- [ ] Mt. Moon: 3 floors, fossils choice event, Team Rocket trainer pockets, ladder shortcuts
+- [ ] SS Anne: multi-room ship layout, optional trainer rooms, captain cutscene + HM01 reward
+- [ ] Rock Tunnel: dark-room navigation, Flash interaction, trainer gauntlet route
+- [ ] Pokémon Tower: ghost encounter gating, Silph Scope reveal flow, Mr. Fuji rescue trigger
+- [ ] Team Rocket Hideout (Celadon): basement floors, switch/warp tile puzzle, Giovanni boss room
 
 ---
 
@@ -126,6 +150,11 @@
 - [ ] Giovanni (Gym 8) — Ground-type, Earth Badge (requires 7 badges)
   - [ ] Team: Rhyhorn, Dugtrio, Nidoqueen, Nidoking, Rhydon
 - [ ] Victory Road (cave with strong trainers)
+
+### 4.4 Dungeon Rollout (Late Game)
+- [ ] Silph Co.: office-building dungeon with floor warps + keycard-gated rooms
+- [ ] Pokémon Mansion: switch-locked doors, journal lore nodes, Secret Key progression
+- [ ] Victory Road: strength/boulder gates + high-level trainer checkpoints
 
 ---
 
