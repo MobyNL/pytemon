@@ -517,12 +517,125 @@ LOCATIONS: Dict[str, Location] = {
         ),
         exits={
             "Route 10": {"direction": "north", "blocked": False, "min_explores": 10},
+            "Lavender Town": {"direction": "south", "blocked": False, "min_explores": 10},
         },
         wild_pokemon=["ZUBAT", "GEODUDE", "MACHOP", "ONIX", "GRAVELER"],
         wild_level_range=(15, 23),
         trainers=5,
         trainer_encounter_rate=0.30,
         wild_encounter_rate=0.65,
+    ),
+    "Lavender Town": Location(
+        name="Lavender Town",
+        location_type=TYPE_TOWN,
+        description=(
+            "A quiet, eerie town overshadowed by the looming Pokemon Tower. "
+            "A haunting melody drifts through the streets, and townspeople speak in hushed tones "
+            "about the ghost that wanders the tower's upper floors. Mr. Fuji tends to the "
+            "memorial here — a gentle soul amid the sorrow."
+        ),
+        exits={
+            "Rock Tunnel": {"direction": "north", "blocked": False},
+            "Route 8": {"direction": "west", "blocked": False},
+            "Route 12": {"direction": "south", "blocked": False},
+        },
+        buildings=["Pokemon Center", "Pokemart", "Pokemon Tower"],
+    ),
+    "Route 8": Location(
+        name="Route 8",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A winding road that runs between Saffron City and Lavender Town. "
+            "Bikers tear up the asphalt, and the grass rustles with Growlithe and Vulpix "
+            "on the western side. The spires of Pokemon Tower are visible to the east."
+        ),
+        exits={
+            "Lavender Town": {
+                "direction": "east",
+                "blocked": False,
+                "min_explores": 7,
+            },
+            "Saffron City": {
+                "direction": "west",
+                "blocked": True,
+                "reason": "Saffron City's gates are sealed — the Silph Co. employees won't let anyone in",
+            },
+        },
+        wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE"],
+        wild_level_range=(19, 25),
+        trainers=3,
+        trainer_encounter_rate=0.35,
+        wild_encounter_rate=0.45,
+    ),
+    "Route 7": Location(
+        name="Route 7",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A short but lively route stretching between Celadon City and Saffron City. "
+            "Gamblers and trainers heading to the city compete in the grassy median, "
+            "and Slowpoke lumber through the tall grass at the route's heart."
+        ),
+        exits={
+            "Celadon City": {
+                "direction": "west",
+                "blocked": True,
+                "reason": "Celadon City is still ahead — you'll need to find another way in",
+            },
+            "Saffron City": {
+                "direction": "east",
+                "blocked": True,
+                "reason": "Saffron City's gates are sealed — the Silph Co. employees won't let anyone in",
+            },
+        },
+        wild_pokemon=["PIDGEY", "DROWZEE", "SLOWPOKE", "MEOWTH"],
+        wild_level_range=(22, 28),
+        trainers=3,
+        trainer_encounter_rate=0.30,
+        wild_encounter_rate=0.45,
+    ),
+    "Route 12": Location(
+        name="Route 12",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A long north-south coastal route ideal for fishing. Fishermen line the piers, "
+            "and the sound of waves crashing accompanies every step. Snorlax is said to "
+            "block the southern portion of this route, but the north is wide open."
+        ),
+        exits={
+            "Lavender Town": {
+                "direction": "north",
+                "blocked": False,
+                "min_explores": 5,
+            },
+            "Route 13": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "A sleeping Snorlax blocks the path south — you'll need the Poke Flute to wake it",
+            },
+        },
+        wild_pokemon=["TENTACOOL", "GOLDEEN", "MAGIKARP", "TANGELA"],
+        wild_level_range=(20, 28),
+        trainers=3,
+        trainer_encounter_rate=0.25,
+        wild_encounter_rate=0.50,
+    ),
+    "Pokemon Tower": Location(
+        name="Pokemon Tower",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A seven-story tower in Lavender Town where beloved Pokemon are laid to rest. "
+            "The upper floors are thick with the spiritual energy of Ghost-type Pokemon, "
+            "and a sorrowful Marowak wanders the third floor. Mr. Fuji tends to the memorial "
+            "on the ground floor, though something troubles him deeply."
+        ),
+        exits={
+            "Lavender Town": {"direction": "down", "blocked": False},
+        },
+        wild_pokemon=["GASTLY", "HAUNTER", "CUBONE"],
+        wild_level_range=(20, 28),
+        trainers=3,
+        trainer_encounter_rate=0.25,
+        wild_encounter_rate=0.55,
     ),
 }
 
