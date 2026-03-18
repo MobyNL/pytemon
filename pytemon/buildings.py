@@ -202,6 +202,8 @@ def enter_building(
         enter_game_corner(game_state, output)
     elif "department store" in matching_building.lower():
         enter_department_store(game_state, output)
+    elif "safari zone" in matching_building.lower() or "safari" in matching_building.lower():
+        enter_safari_zone(game_state, output)
     else:
         output.write("")
         output.write(f"[yellow]You entered {matching_building}[/yellow]")
@@ -722,14 +724,18 @@ def enter_ss_anne(game_state: "GameState", output: RichLog) -> None:
 
     if story_flags.get("ss_anne_departed"):
         output.write("[dim]The dock is empty — the S.S. Anne has already set sail.[/dim]")
-        output.write("[dim]You watch the faint outline of the ship disappear over the horizon.[/dim]")
+        output.write(
+            "[dim]You watch the faint outline of the ship disappear over the horizon.[/dim]"
+        )
         output.write("")
         return
 
     # Check for ticket
     has_ticket = bag.get("S.S. Anne Ticket", 0) > 0 or items.get("S.S. Anne Ticket", 0) > 0
     if not has_ticket:
-        output.write("[bold]Guard:[/bold] [yellow]Hey! You can't board without an S.S. Anne Ticket![/yellow]")
+        output.write(
+            "[bold]Guard:[/bold] [yellow]Hey! You can't board without an S.S. Anne Ticket![/yellow]"
+        )
         output.write("[yellow]   Talk to Bill on Route 24 — he might be able to help.[/yellow]")
         output.write("")
         output.write("[dim]The guard blocks your path to the gangplank.[/dim]")
@@ -741,7 +747,9 @@ def enter_ss_anne(game_state: "GameState", output: RichLog) -> None:
         output.write("[bold]Guard:[/bold] [yellow]The Captain thanks you for visiting![/yellow]")
         output.write("[yellow]   The S.S. Anne is preparing to depart now.[/yellow]")
         output.write("")
-        output.write("[dim]The crew cast off the moorings and the great ship slowly pulls away.[/dim]")
+        output.write(
+            "[dim]The crew cast off the moorings and the great ship slowly pulls away.[/dim]"
+        )
         story_flags["ss_anne_departed"] = True
         output.write("[dim]The S.S. Anne has departed from Vermillion City.[/dim]")
         output.write("")
@@ -751,14 +759,14 @@ def enter_ss_anne(game_state: "GameState", output: RichLog) -> None:
     output.write("[bold]Guard:[/bold] [yellow]Welcome aboard the S.S. Anne![/yellow]")
     output.write("[yellow]   Present your ticket — step right this way![/yellow]")
     output.write("")
-    output.write(
-        "[dim]You step onto the luxurious ocean liner. The polished decks gleam,[/dim]"
-    )
+    output.write("[dim]You step onto the luxurious ocean liner. The polished decks gleam,[/dim]")
     output.write("[dim]and trainers from all over the world have gathered here.[/dim]")
     output.write("")
     output.write("[cyan]After exploring the cabins and battling a few trainers...[/cyan]")
     output.write("")
-    output.write("[bold]Sailor:[/bold] [yellow]The Captain's cabin is at the bow of the ship![/yellow]")
+    output.write(
+        "[bold]Sailor:[/bold] [yellow]The Captain's cabin is at the bow of the ship![/yellow]"
+    )
     output.write("[yellow]   He's been a bit seasick, but he loves meeting trainers.[/yellow]")
     output.write("")
     output.write("[italic]You find the Captain slumped over his charts...[/italic]")
@@ -778,7 +786,9 @@ def enter_ss_anne(game_state: "GameState", output: RichLog) -> None:
         "[bold]Captain:[/bold] [green]Cut can be used to clear small trees blocking your path.[/green]"
     )
     output.write("[green]   You'll need a Pokemon that can learn it,[/green]")
-    output.write("[green]   and the [bold]Cascade Badge[/bold] to use it outside of battle.[/green]")
+    output.write(
+        "[green]   and the [bold]Cascade Badge[/bold] to use it outside of battle.[/green]"
+    )
     output.write("")
     output.write("[dim]You bid the Captain farewell and make your way back to the dock.[/dim]")
     output.write("")
@@ -814,9 +824,7 @@ def enter_pokemon_tower(game_state: "GameState", output: RichLog) -> None:
         output.write(
             "[cyan]   The spirits of this tower have grown calmer since you helped.[/cyan]"
         )
-        output.write(
-            "[cyan]   Please, take this — a small token of my gratitude.[/cyan]"
-        )
+        output.write("[cyan]   Please, take this — a small token of my gratitude.[/cyan]")
         output.write("")
         items = game_state.game_data.setdefault("items", {})
         if not story_flags.get("received_poke_flute"):
@@ -850,15 +858,9 @@ def enter_pokemon_tower(game_state: "GameState", output: RichLog) -> None:
     output.write("[cyan]   This is a place of rest for Pokemon who have passed on.[/cyan]")
     output.write("[cyan]   Trainers come here to pay their respects.[/cyan]")
     output.write("")
-    output.write(
-        "[bold]Mr. Fuji:[/bold] [cyan]But something is wrong...[/cyan]"
-    )
-    output.write(
-        "[cyan]   A spirit on the upper floors has grown restless.[/cyan]"
-    )
-    output.write(
-        "[cyan]   It fills the trainers here with sorrow and unease.[/cyan]"
-    )
+    output.write("[bold]Mr. Fuji:[/bold] [cyan]But something is wrong...[/cyan]")
+    output.write("[cyan]   A spirit on the upper floors has grown restless.[/cyan]")
+    output.write("[cyan]   It fills the trainers here with sorrow and unease.[/cyan]")
     output.write("[cyan]   I pray someone brave will help calm it.[/cyan]")
     output.write("")
     output.write(
@@ -1574,26 +1576,18 @@ def enter_ss_anne_dock(game_state: "GameState", output: RichLog) -> None:
 
     if has_ticket or already_boarded:
         output.write("[cyan]   I can see you have a ticket — the ship is ready to board![/cyan]")
-        output.write(
-            "[cyan]   Head around to the gangplank and use 'Move to S.S. Anne'.[/cyan]"
-        )
+        output.write("[cyan]   Head around to the gangplank and use 'Move to S.S. Anne'.[/cyan]")
         output.write("")
-        output.write(
-            "[dim]   The S.S. Anne is filled with trainers from around the world.[/dim]"
-        )
+        output.write("[dim]   The S.S. Anne is filled with trainers from around the world.[/dim]")
         output.write(
             "[dim]   The captain's cabin is somewhere aboard — he may have a reward for you.[/dim]"
         )
     else:
-        output.write(
-            "[cyan]   Sorry, I can't let you through without an S.S. Anne Ticket.[/cyan]"
-        )
+        output.write("[cyan]   Sorry, I can't let you through without an S.S. Anne Ticket.[/cyan]")
         output.write("[cyan]   Have you spoken to Bill north of Cerulean City?[/cyan]")
         output.write("")
         output.write("[dim]   Bill hands out tickets to trainers he trusts.[/dim]")
-        output.write(
-            "[dim]   Visit Bill's House on Route 24 to obtain an S.S. Anne Ticket.[/dim]"
-        )
+        output.write("[dim]   Visit Bill's House on Route 24 to obtain an S.S. Anne Ticket.[/dim]")
 
     output.write("")
 
@@ -1617,13 +1611,9 @@ def enter_mr_fujis_house(game_state: "GameState", output: RichLog) -> None:
 
     if rescued:
         bag = game_state.game_data.setdefault("items", {})
-        output.write(
-            "[bold]Mr. Fuji:[/bold] [cyan]Ah, my young rescuer! Welcome back.[/cyan]"
-        )
+        output.write("[bold]Mr. Fuji:[/bold] [cyan]Ah, my young rescuer! Welcome back.[/cyan]")
         output.write("[cyan]   I hope the Poke Flute serves you well on your journey.[/cyan]")
-        output.write(
-            "[cyan]   The Pokemon laid to rest in the tower deserve peace.[/cyan]"
-        )
+        output.write("[cyan]   The Pokemon laid to rest in the tower deserve peace.[/cyan]")
         output.write("[cyan]   Thank you for driving out Team Rocket.[/cyan]")
         if not bag.get("Poke Flute"):
             # Give flute again if somehow lost
@@ -1638,9 +1628,7 @@ def enter_mr_fujis_house(game_state: "GameState", output: RichLog) -> None:
         output.write("[cyan]   We're all very worried.[/cyan]")
         output.write("")
         output.write("[dim]   The Pokemon Tower looms just east of town.[/dim]")
-        output.write(
-            "[dim]   If you're headed there, please see if Mr. Fuji is all right.[/dim]"
-        )
+        output.write("[dim]   If you're headed there, please see if Mr. Fuji is all right.[/dim]")
 
     output.write("")
 
@@ -1664,24 +1652,16 @@ def enter_game_corner(game_state: "GameState", output: RichLog) -> None:
     story_flags = game_state.game_data.setdefault("story_flags", {})
     hideout_cleared = story_flags.get("defeated_giovanni_hideout", False)
 
-    output.write(
-        "[bold]Attendant:[/bold] [yellow]Welcome to the Celadon Game Corner![/yellow]"
-    )
+    output.write("[bold]Attendant:[/bold] [yellow]Welcome to the Celadon Game Corner![/yellow]")
     output.write("[yellow]   Try your luck on the slot machines![/yellow]")
     output.write("")
 
     if hideout_cleared:
-        output.write(
-            "[dim]   The suspicious poster on the back wall has been removed.[/dim]"
-        )
-        output.write(
-            "[dim]   Team Rocket's presence here seems to have faded.[/dim]"
-        )
+        output.write("[dim]   The suspicious poster on the back wall has been removed.[/dim]")
+        output.write("[dim]   Team Rocket's presence here seems to have faded.[/dim]")
     else:
         output.write("[dim]   The machines chime and flash all around you.[/dim]")
-        output.write(
-            "[dim]   A suspicious-looking poster adorns the back wall...[/dim]"
-        )
+        output.write("[dim]   A suspicious-looking poster adorns the back wall...[/dim]")
         output.write(
             "[dim]   Something feels off about this place — "
             "those men in black uniforms are everywhere.[/dim]"
@@ -1690,9 +1670,7 @@ def enter_game_corner(game_state: "GameState", output: RichLog) -> None:
         output.write(
             "[yellow]💡 Tip:[/yellow] [dim]Team Rocket's Hideout is accessible from Celadon City.[/dim]"
         )
-        output.write(
-            "[dim]   Use 'Move to Team Rocket's Hideout' to investigate.[/dim]"
-        )
+        output.write("[dim]   Use 'Move to Team Rocket's Hideout' to investigate.[/dim]")
 
     output.write("")
 
@@ -1712,9 +1690,7 @@ def enter_department_store(game_state: "GameState", output: RichLog) -> None:
     output.write("[bold cyan]     🏬 CELADON DEPARTMENT STORE 🏬        [/bold cyan]")
     output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
     output.write("")
-    output.write(
-        "[bold]Clerk:[/bold] [yellow]Welcome to the Celadon Department Store![/yellow]"
-    )
+    output.write("[bold]Clerk:[/bold] [yellow]Welcome to the Celadon Department Store![/yellow]")
     output.write("[yellow]   We have six floors of Pokemon goods![/yellow]")
     output.write("")
     output.write("[bold green]Available items (selection):[/bold green]")
@@ -1744,10 +1720,76 @@ def enter_department_store(game_state: "GameState", output: RichLog) -> None:
         output.write(f"   {emoji} [green]{name}[/green] - ₽{price}")
 
     output.write("")
+    output.write("[dim]   This is a display only — use the Pokemart for purchases.[/dim]")
+    output.write("[dim]   Tip: The Pokemart in Celadon stocks the full advanced catalogue.[/dim]")
+    output.write("")
+
+
+def enter_safari_zone(game_state: "GameState", output: RichLog) -> None:
+    """
+    Enter the Safari Zone in Fuchsia City.
+
+    Players receive 30 Safari Balls and must catch Pokemon using Bait or Rocks
+    instead of battling. Explores inside the Safari Zone trigger wild encounters
+    using the standard exploration engine but with Safari-mode catch mechanics.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    if not game_state.in_game:
+        output.write("[red]❌ Start a game first![/red]")
+        return
+
+    output.write("")
+    output.write("[bold green]═══════════════════════════════════════════[/bold green]")
+    output.write("[bold green]          🦁 SAFARI ZONE ENTRANCE 🦁       [/bold green]")
+    output.write("[bold green]═══════════════════════════════════════════[/bold green]")
+    output.write("")
+    output.write("[bold]Warden:[/bold] [green]Welcome, Trainer![/green]")
+    output.write("[green]   The Safari Zone is home to rare Pokemon found nowhere else![/green]")
+    output.write("[green]   The admission fee is ₽500 for 30 Safari Balls.[/green]")
+    output.write("")
+
+    money = game_state.game_data.get("money", 0)
+    if money < 500:
+        output.write(
+            "[red]Warden: You don't have enough money for admission (₽500 required).[/red]"
+        )
+        output.write("")
+        return
+
+    game_state.game_data["money"] = money - 500
+
+    # Give 30 Safari Balls
+    bag = game_state.game_data.get("bag", {})
+    bag["Safari Ball"] = bag.get("Safari Ball", 0) + 30
+    game_state.game_data["bag"] = bag
+
+    # Move player into the Safari Zone
+    from pytemon.locations import get_location
+
+    safari_location = get_location("Safari Zone")
+    if safari_location:
+        game_state.previous_location = (
+            game_state.current_location.name if game_state.current_location else "Fuchsia City"
+        )
+        game_state.current_location = safari_location
+
+    output.write("[green]   You paid ₽500 and received [bold]30 Safari Balls[/bold]![/green]")
+    output.write("")
+    output.write("[bold]Safari Zone Rules:[/bold]")
+    output.write("   🎯 [cyan]throw ball[/cyan]  — throw a Safari Ball directly")
+    output.write("   🥩 [cyan]bait[/cyan]        — toss bait to make Pokemon easier to catch")
     output.write(
-        "[dim]   This is a display only — use the Pokemart for purchases.[/dim]"
+        "   🪨 [cyan]rock[/cyan]        — throw a rock to anger Pokemon (boosts catch rate briefly)"
     )
-    output.write(
-        "[dim]   Tip: The Pokemart in Celadon stocks the full advanced catalogue.[/dim]"
-    )
+    output.write("   🏃 [cyan]run[/cyan]         — flee from the wild Pokemon")
+    output.write("")
+    output.write("[yellow]⚠️  You cannot battle wild Pokemon in the Safari Zone![/yellow]")
+    output.write("[dim]   Explore to encounter wild Pokemon. You have 30 Safari Balls.[/dim]")
+    output.write("")
+
+    remaining = bag.get("Safari Ball", 0)
+    output.write(f"[dim]Safari Balls remaining: {remaining}[/dim]")
     output.write("")

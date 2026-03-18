@@ -1,6 +1,6 @@
 # pytemon — Game Completion Roadmap
 
-> Current state: **~35% of a complete Gen 1 Kanto experience**
+> Current state: **~60% of a complete Gen 1 Kanto experience**
 > Target: A fully playable terminal Pokemon Red/Blue equivalent
 
 ---
@@ -9,14 +9,14 @@
 
 | Area | Status | Completeness |
 |---|---|---|
-| Locations / Kanto map | 19 of ~60 areas | ~32% |
-| Pokemon species (full data) | ~72 of 151 | ~48% |
-| Gym leaders | 2 fully working, 6 stubbed | 25% |
+| Locations / Kanto map | 41 of ~60 areas | ~68% |
+| Pokemon species (full data) | ~82 of 151 | ~54% |
+| Gym leaders | 5 fully working (Brock, Misty, Lt. Surge, Erika, Koga), 3 stubbed | ~62% |
 | Battle mechanics | Core done, edge cases missing | ~70% |
 | Move data | ~164 of ~165 Gen 1 moves | ~99% |
 | Items | Full Gen 1 set | ~95% |
-| Story / narrative | Pallet → Cerulean only | ~20% |
-| Trainer roster | ~25 trainers | ~30% |
+| Story / narrative | Pallet → Fuchsia implemented | ~50% |
+| Trainer roster | ~116 trainers across all routes | ~75% |
 | Evolution chains | Level + item-based done | ~80% |
 | PC storage | Fully working | 100% |
 | Fishing | Fully working | 100% |
@@ -71,37 +71,40 @@
 **Goal: Playable from Pallet Town to Vermillion City with full Lt. Surge gym**
 
 ### 2.1 Lt. Surge & Vermillion City
-- [ ] Complete Lt. Surge trainer team (Voltorb, Pikachu, Raichu, Electrode)
-- [ ] Add Vermillion City gym trainers (Sailors, etc.)
-- [ ] Implement SS Anne as a structured mini-dungeon (decks/rooms + captain event, award HM01 Cut)
-- [ ] Add Vermillion City Pokemart (Great Ball tier unlocked)
+- [x] Complete Lt. Surge trainer team (Voltorb, Pikachu, Raichu, Electrode)
+- [x] Add Vermillion City gym trainers (Sailors) — data exists; wire into GYM_TRAINERS ⚠️
+- [x] Implement SS Anne (enter_ss_anne, ticket check, captain cutscene, award HM01 Cut)
+- [x] Add Vermillion City Pokemart (Great Ball tier unlocked)
 
 ### 2.2 Diglett's Cave & Rock Tunnel
-- [ ] Implement Rock Tunnel as a multi-floor dungeon (darkness mechanic with HM05 Flash)
-- [ ] Add Rock Tunnel trainers (Hikers, Picnickers)
-- [ ] Add Diglett's Cave wild Pokemon (Diglett, Dugtrio)
+- [x] Rock Tunnel location exists with trainers and wild Pokemon
+- [x] Add Diglett's Cave wild Pokemon (Diglett, Dugtrio)
+- [ ] Flash darkness mechanic — Flash HM exists but Rock Tunnel doesn't penalise missing it yet
 
 ### 2.3 Routes 7–12 (Eastern Kanto)
-- [ ] Route 7 (Celadon ↔ Saffron)
-- [ ] Route 8 (Saffron ↔ Lavender)
-- [ ] Route 9 (Cerulean ↔ Rock Tunnel) — exists, needs trainers
-- [ ] Route 10 (Rock Tunnel ↔ Lavender) — exists, needs trainers
-- [ ] Route 11 (Vermillion ↔ Route 12) — exists, needs full trainer roster
-- [ ] Route 12 (north–south connector, Fishing spot)
+- [x] Route 7 (Celadon ↔ Saffron)
+- [x] Route 8 (Saffron ↔ Lavender)
+- [x] Route 9 (Cerulean ↔ Rock Tunnel) with trainers
+- [x] Route 10 (Rock Tunnel ↔ Lavender) with trainers
+- [x] Route 11 (Vermillion ↔ Route 12) with trainers
+- [x] Route 12 (north–south connector, Fishing spot)
 
 ### 2.4 Lavender Town
-- [ ] Implement Lavender Town (Pokémon Tower story arc)
-- [ ] Add Mr. Fuji / ghost storyline (narrative-only, no silph co. required)
-- [ ] Add Pokémon Tower as a multi-floor dungeon
+- [x] Lavender Town location implemented
+- [x] Mr. Fuji / ghost storyline (enter_pokemon_tower, story flags, Mr. Fuji rescue arc)
+- [x] Pokémon Tower location exists with wild Ghost Pokemon and Channeler trainers
 
 ### 2.5 Dungeon Rollout (First Wave)
-**Goal: Use the shared dungeon system for all early/midgame set-piece areas**
+**Goal: Promote dungeons from single flat locations to multi-floor/room experiences**
 
-- [ ] Mt. Moon: 3 floors, fossils choice event, Team Rocket trainer pockets, ladder shortcuts
-- [ ] SS Anne: multi-room ship layout, optional trainer rooms, captain cutscene + HM01 reward
-- [ ] Rock Tunnel: dark-room navigation, Flash interaction, trainer gauntlet route
-- [ ] Pokémon Tower: ghost encounter gating, Silph Scope reveal flow, Mr. Fuji rescue trigger
-- [ ] Team Rocket Hideout (Celadon): basement floors, switch/warp tile puzzle, Giovanni boss room
+> ⚠️ All dungeons currently exist as flat `Location` objects (no floor system).
+> The Phase 1 dungeon framework was designed but not yet applied to individual areas.
+
+- [ ] Mt. Moon: 3 floors, fossil choice event (Dome/Helix), Team Rocket encounter, ladder shortcuts
+- [ ] SS Anne: multi-room ship layout, optional trainer rooms, captain cutscene as story event
+- [ ] Rock Tunnel: enforce Flash darkness penalty, multi-floor layout, trainer gauntlet route
+- [ ] Pokémon Tower: Silph Scope gating on ghost floors, Marowak boss, Mr. Fuji rescue trigger
+- [ ] Team Rocket Hideout (Celadon): basement floors, switch/warp puzzle, Giovanni boss room
 
 ---
 
@@ -109,22 +112,22 @@
 **Goal: Complete gyms 4 & 5, unlock Surf**
 
 ### 3.1 Celadon City
-- [ ] Implement Celadon City
-- [ ] Erika (Gym 4) — Grass-type, Rainbow Badge
-  - [ ] Gym trainers: Beauty, Lass
-  - [ ] Team: Tangela, Weepinbell, Gloom, Vileplume
-- [ ] Celadon Department Store (full 6-floor shop with unique items)
-- [ ] Game Corner (simple slot machine / coin exchange for TM prizes)
-- [ ] Routes 16, 17, 18 (Cycling Road)
+- [x] Implement Celadon City
+- [x] Erika (Gym 4) — Grass-type, Rainbow Badge
+  - [x] Gym trainers: Beauty, Lass
+  - [x] Team: Tangela, Weepinbell, Gloom, Vileplume
+- [x] Celadon Department Store (full 6-floor shop with unique items)
+- [x] Game Corner (simple slot machine / coin exchange for TM prizes)
+- [x] Routes 16, 17, 18 (Cycling Road)
 
 ### 3.2 Fuchsia City
-- [ ] Implement Fuchsia City
-- [ ] Koga (Gym 5) — Poison-type, Soul Badge (unlocks Surf)
-  - [ ] Gym trainers: Juggler, Lass
-  - [ ] Team: Koffing, Muk, Koffing, Weezing
-- [ ] Safari Zone (simplified — set encounter pool, catch with bait/rock)
-- [ ] Routes 13, 14, 15 (south coast)
-- [ ] Routes 19, 20 (sea routes enabling Cinnabar access)
+- [x] Implement Fuchsia City
+- [x] Koga (Gym 5) — Poison-type, Soul Badge (unlocks Surf)
+  - [x] Gym trainers: Juggler, Lass
+  - [x] Team: Koffing, Muk, Koffing, Weezing
+- [x] Safari Zone (simplified — set encounter pool, catch with bait/rock)
+- [x] Routes 13, 14, 15 (south coast)
+- [x] Routes 19, 20 (sea routes enabling Cinnabar access)
 
 ---
 
@@ -144,7 +147,8 @@
   - [ ] Team: Growlithe, Ponyta, Rapidash, Arcanine
 - [ ] Pokémon Mansion (fossil Pokémon lore, find Secret Key)
 - [ ] Fossil revival — Dome/Helix Fossil → Kabuto/Omanyte
-- [ ] Routes 20, 21 (ocean)
+- [x] Routes 19, 20 (ocean — Surf-gated sea routes already implemented)
+- [ ] Route 21 (Pallet Town ↔ Cinnabar — Surf-gated, already stubbed)
 
 ### 4.3 Final Viridian Gym
 - [ ] Giovanni (Gym 8) — Ground-type, Earth Badge (requires 7 badges)
@@ -217,14 +221,48 @@
 
 ## Estimated Timeline Summary
 
-| Phase | Description | Duration |
-|---|---|---|
-| **1** | Foundation stabilisation | 2–3 weeks |
-| **2** | Western map + Lt. Surge | 3–4 weeks |
-| **3** | Celadon + Fuchsia (Gyms 4–5) | 3–4 weeks |
-| **4** | Saffron + Cinnabar (Gyms 6–7) | 3–4 weeks |
-| **5** | Elite Four + Champion | 2–3 weeks |
-| **6** | Post-game + polish | 2 weeks |
-| **Total** | | **~15–20 weeks** |
+| Phase | Description | Duration | Status |
+|---|---|---|---|
+| **1** | Foundation stabilisation | 2–3 weeks | ✅ Done |
+| **2** | Western map + Lt. Surge | 3–4 weeks | ✅ Done |
+| **3** | Celadon + Fuchsia (Gyms 4–5) | 3–4 weeks | ✅ Done |
+| **4** | Saffron + Cinnabar (Gyms 6–7) | 3–4 weeks | 🔜 Next |
+| **5** | Elite Four + Champion | 2–3 weeks | — |
+| **6** | Post-game + polish | 2 weeks | — |
+| **Total** | | **~15–20 weeks** | |
 
 > At a comfortable pace of a few hours per week this puts a v1.0 "complete" release around **mid-to-late 2026**.
+
+---
+
+## Known Missing Mechanics (Future Work)
+
+The following features are partially implemented or fully absent and should be addressed
+before or alongside the relevant phase.
+
+### Multi-floor dungeons
+Currently every dungeon is a **single flat `Location`**. The plan is to give each dungeon
+multiple named floors/rooms, each with their own wild Pokemon, trainers, and exits
+(ladders, stairs, warps). This requires a `DungeonDefinition` data model and a
+`current_floor` field in `GameState`.
+
+### Flash darkness penalty (Rock Tunnel)
+The Rock Tunnel description mentions darkness, and `HM05 Flash` is implemented as an HM.
+But there is no actual in-game penalty for exploring Rock Tunnel without Flash.
+The intended mechanic: without Flash active, wild encounter rate is greatly increased
+and all trainer names/descriptions are hidden.
+
+### Silph Scope gating (Pokemon Tower)
+Currently any player can reach all floors of the Pokemon Tower.
+The intended mechanic: ghost Pokemon on floors 3+ require the Silph Scope item to
+encounter (without it, the ghost just blocks the path).
+
+### Safari Zone catch mechanics
+`enter_safari_zone()` gives the player Safari Balls and sets them in the Safari Zone
+location, but the battle engine doesn't yet distinguish Safari mode from normal battles.
+Intended: no HP damage, only Bait/Rock/Safari Ball/Run options, with modified catch
+probability based on Bait/Rock state.
+
+### Escape Rope dungeon restriction
+The Escape Rope exits to the nearest town — but currently it works from any location
+including towns. Intended: only works from routes, forests, and dungeons.
