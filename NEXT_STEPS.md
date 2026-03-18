@@ -67,41 +67,44 @@
 
 ---
 
-## Phase 2 — Complete the Western Map (3–4 weeks) ✅ Completed
+## Phase 2 — Complete the Western Map (3–4 weeks)
 **Goal: Playable from Pallet Town to Vermillion City with full Lt. Surge gym**
 
 ### 2.1 Lt. Surge & Vermillion City
 - [x] Complete Lt. Surge trainer team (Voltorb, Pikachu, Raichu, Electrode)
-- [x] Add Vermillion City gym trainers (Sailors, etc.)
-- [x] Implement SS Anne as a structured mini-dungeon (decks/rooms + captain event, award HM01 Cut)
+- [x] Add Vermillion City gym trainers (Sailors) — data exists; wire into GYM_TRAINERS ⚠️
+- [x] Implement SS Anne (enter_ss_anne, ticket check, captain cutscene, award HM01 Cut)
 - [x] Add Vermillion City Pokemart (Great Ball tier unlocked)
 
 ### 2.2 Diglett's Cave & Rock Tunnel
-- [x] Implement Rock Tunnel as a multi-floor dungeon (darkness mechanic with HM05 Flash)
-- [x] Add Rock Tunnel trainers (Hikers, Picnickers)
+- [x] Rock Tunnel location exists with trainers and wild Pokemon
 - [x] Add Diglett's Cave wild Pokemon (Diglett, Dugtrio)
+- [ ] Flash darkness mechanic — Flash HM exists but Rock Tunnel doesn't penalise missing it yet
 
 ### 2.3 Routes 7–12 (Eastern Kanto)
 - [x] Route 7 (Celadon ↔ Saffron)
 - [x] Route 8 (Saffron ↔ Lavender)
-- [x] Route 9 (Cerulean ↔ Rock Tunnel) — exists, needs trainers
-- [x] Route 10 (Rock Tunnel ↔ Lavender) — exists, needs trainers
-- [x] Route 11 (Vermillion ↔ Route 12) — exists, needs full trainer roster
+- [x] Route 9 (Cerulean ↔ Rock Tunnel) with trainers
+- [x] Route 10 (Rock Tunnel ↔ Lavender) with trainers
+- [x] Route 11 (Vermillion ↔ Route 12) with trainers
 - [x] Route 12 (north–south connector, Fishing spot)
 
 ### 2.4 Lavender Town
-- [x] Implement Lavender Town (Pokémon Tower story arc)
-- [x] Add Mr. Fuji / ghost storyline (narrative-only, no silph co. required)
-- [x] Add Pokémon Tower as a multi-floor dungeon
+- [x] Lavender Town location implemented
+- [x] Mr. Fuji / ghost storyline (enter_pokemon_tower, story flags, Mr. Fuji rescue arc)
+- [x] Pokémon Tower location exists with wild Ghost Pokemon and Channeler trainers
 
 ### 2.5 Dungeon Rollout (First Wave)
-**Goal: Use the shared dungeon system for all early/midgame set-piece areas**
+**Goal: Promote dungeons from single flat locations to multi-floor/room experiences**
 
-- [ ] Mt. Moon: 3 floors, fossils choice event, Team Rocket trainer pockets, ladder shortcuts
-- [ ] SS Anne: multi-room ship layout, optional trainer rooms, captain cutscene + HM01 reward
-- [ ] Rock Tunnel: dark-room navigation, Flash interaction, trainer gauntlet route
-- [ ] Pokémon Tower: ghost encounter gating, Silph Scope reveal flow, Mr. Fuji rescue trigger
-- [ ] Team Rocket Hideout (Celadon): basement floors, switch/warp tile puzzle, Giovanni boss room
+> ⚠️ All dungeons currently exist as flat `Location` objects (no floor system).
+> The Phase 1 dungeon framework was designed but not yet applied to individual areas.
+
+- [ ] Mt. Moon: 3 floors, fossil choice event (Dome/Helix), Team Rocket encounter, ladder shortcuts
+- [ ] SS Anne: multi-room ship layout, optional trainer rooms, captain cutscene as story event
+- [ ] Rock Tunnel: enforce Flash darkness penalty, multi-floor layout, trainer gauntlet route
+- [ ] Pokémon Tower: Silph Scope gating on ghost floors, Marowak boss, Mr. Fuji rescue trigger
+- [ ] Team Rocket Hideout (Celadon): basement floors, switch/warp puzzle, Giovanni boss room
 
 ---
 

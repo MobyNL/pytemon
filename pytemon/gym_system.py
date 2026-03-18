@@ -185,6 +185,10 @@ GYM_TRAINERS: Dict[str, List[str]] = {
     "Cerulean City": [
         "gym_trainer_cerulean_swimmer",
     ],
+    "Vermillion City": [
+        "gym_trainer_vermillion_sailor_1",
+        "gym_trainer_vermillion_sailor_2",
+    ],
     "Celadon City": [
         "gym_trainer_celadon_beauty",
         "gym_trainer_celadon_lass",
