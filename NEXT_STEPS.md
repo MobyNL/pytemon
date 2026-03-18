@@ -232,3 +232,37 @@
 | **Total** | | **~15–20 weeks** | |
 
 > At a comfortable pace of a few hours per week this puts a v1.0 "complete" release around **mid-to-late 2026**.
+
+---
+
+## Known Missing Mechanics (Future Work)
+
+The following features are partially implemented or fully absent and should be addressed
+before or alongside the relevant phase.
+
+### Multi-floor dungeons
+Currently every dungeon is a **single flat `Location`**. The plan is to give each dungeon
+multiple named floors/rooms, each with their own wild Pokemon, trainers, and exits
+(ladders, stairs, warps). This requires a `DungeonDefinition` data model and a
+`current_floor` field in `GameState`.
+
+### Flash darkness penalty (Rock Tunnel)
+The Rock Tunnel description mentions darkness, and `HM05 Flash` is implemented as an HM.
+But there is no actual in-game penalty for exploring Rock Tunnel without Flash.
+The intended mechanic: without Flash active, wild encounter rate is greatly increased
+and all trainer names/descriptions are hidden.
+
+### Silph Scope gating (Pokemon Tower)
+Currently any player can reach all floors of the Pokemon Tower.
+The intended mechanic: ghost Pokemon on floors 3+ require the Silph Scope item to
+encounter (without it, the ghost just blocks the path).
+
+### Safari Zone catch mechanics
+`enter_safari_zone()` gives the player Safari Balls and sets them in the Safari Zone
+location, but the battle engine doesn't yet distinguish Safari mode from normal battles.
+Intended: no HP damage, only Bait/Rock/Safari Ball/Run options, with modified catch
+probability based on Bait/Rock state.
+
+### Escape Rope dungeon restriction
+The Escape Rope exits to the nearest town — but currently it works from any location
+including towns. Intended: only works from routes, forests, and dungeons.
