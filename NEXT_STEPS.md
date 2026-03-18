@@ -1,6 +1,6 @@
 # pytemon — Game Completion Roadmap
 
-> Current state: **~35% of a complete Gen 1 Kanto experience**
+> Current state: **~60% of a complete Gen 1 Kanto experience**
 > Target: A fully playable terminal Pokemon Red/Blue equivalent
 
 ---
@@ -9,14 +9,14 @@
 
 | Area | Status | Completeness |
 |---|---|---|
-| Locations / Kanto map | 19 of ~60 areas | ~32% |
-| Pokemon species (full data) | ~72 of 151 | ~48% |
-| Gym leaders | 2 fully working, 6 stubbed | 25% |
+| Locations / Kanto map | 41 of ~60 areas | ~68% |
+| Pokemon species (full data) | ~82 of 151 | ~54% |
+| Gym leaders | 5 fully working (Brock, Misty, Lt. Surge, Erika, Koga), 3 stubbed | ~62% |
 | Battle mechanics | Core done, edge cases missing | ~70% |
 | Move data | ~164 of ~165 Gen 1 moves | ~99% |
 | Items | Full Gen 1 set | ~95% |
-| Story / narrative | Pallet → Cerulean only | ~20% |
-| Trainer roster | ~25 trainers | ~30% |
+| Story / narrative | Pallet → Fuchsia implemented | ~50% |
+| Trainer roster | ~116 trainers across all routes | ~75% |
 | Evolution chains | Level + item-based done | ~80% |
 | PC storage | Fully working | 100% |
 | Fishing | Fully working | 100% |
@@ -67,32 +67,32 @@
 
 ---
 
-## Phase 2 — Complete the Western Map (3–4 weeks)
+## Phase 2 — Complete the Western Map (3–4 weeks) ✅ Completed
 **Goal: Playable from Pallet Town to Vermillion City with full Lt. Surge gym**
 
 ### 2.1 Lt. Surge & Vermillion City
-- [ ] Complete Lt. Surge trainer team (Voltorb, Pikachu, Raichu, Electrode)
-- [ ] Add Vermillion City gym trainers (Sailors, etc.)
-- [ ] Implement SS Anne as a structured mini-dungeon (decks/rooms + captain event, award HM01 Cut)
-- [ ] Add Vermillion City Pokemart (Great Ball tier unlocked)
+- [x] Complete Lt. Surge trainer team (Voltorb, Pikachu, Raichu, Electrode)
+- [x] Add Vermillion City gym trainers (Sailors, etc.)
+- [x] Implement SS Anne as a structured mini-dungeon (decks/rooms + captain event, award HM01 Cut)
+- [x] Add Vermillion City Pokemart (Great Ball tier unlocked)
 
 ### 2.2 Diglett's Cave & Rock Tunnel
-- [ ] Implement Rock Tunnel as a multi-floor dungeon (darkness mechanic with HM05 Flash)
-- [ ] Add Rock Tunnel trainers (Hikers, Picnickers)
-- [ ] Add Diglett's Cave wild Pokemon (Diglett, Dugtrio)
+- [x] Implement Rock Tunnel as a multi-floor dungeon (darkness mechanic with HM05 Flash)
+- [x] Add Rock Tunnel trainers (Hikers, Picnickers)
+- [x] Add Diglett's Cave wild Pokemon (Diglett, Dugtrio)
 
 ### 2.3 Routes 7–12 (Eastern Kanto)
-- [ ] Route 7 (Celadon ↔ Saffron)
-- [ ] Route 8 (Saffron ↔ Lavender)
-- [ ] Route 9 (Cerulean ↔ Rock Tunnel) — exists, needs trainers
-- [ ] Route 10 (Rock Tunnel ↔ Lavender) — exists, needs trainers
-- [ ] Route 11 (Vermillion ↔ Route 12) — exists, needs full trainer roster
-- [ ] Route 12 (north–south connector, Fishing spot)
+- [x] Route 7 (Celadon ↔ Saffron)
+- [x] Route 8 (Saffron ↔ Lavender)
+- [x] Route 9 (Cerulean ↔ Rock Tunnel) — exists, needs trainers
+- [x] Route 10 (Rock Tunnel ↔ Lavender) — exists, needs trainers
+- [x] Route 11 (Vermillion ↔ Route 12) — exists, needs full trainer roster
+- [x] Route 12 (north–south connector, Fishing spot)
 
 ### 2.4 Lavender Town
-- [ ] Implement Lavender Town (Pokémon Tower story arc)
-- [ ] Add Mr. Fuji / ghost storyline (narrative-only, no silph co. required)
-- [ ] Add Pokémon Tower as a multi-floor dungeon
+- [x] Implement Lavender Town (Pokémon Tower story arc)
+- [x] Add Mr. Fuji / ghost storyline (narrative-only, no silph co. required)
+- [x] Add Pokémon Tower as a multi-floor dungeon
 
 ### 2.5 Dungeon Rollout (First Wave)
 **Goal: Use the shared dungeon system for all early/midgame set-piece areas**
@@ -144,7 +144,8 @@
   - [ ] Team: Growlithe, Ponyta, Rapidash, Arcanine
 - [ ] Pokémon Mansion (fossil Pokémon lore, find Secret Key)
 - [ ] Fossil revival — Dome/Helix Fossil → Kabuto/Omanyte
-- [ ] Routes 20, 21 (ocean)
+- [x] Routes 19, 20 (ocean — Surf-gated sea routes already implemented)
+- [ ] Route 21 (Pallet Town ↔ Cinnabar — Surf-gated, already stubbed)
 
 ### 4.3 Final Viridian Gym
 - [ ] Giovanni (Gym 8) — Ground-type, Earth Badge (requires 7 badges)
@@ -217,14 +218,14 @@
 
 ## Estimated Timeline Summary
 
-| Phase | Description | Duration |
-|---|---|---|
-| **1** | Foundation stabilisation | 2–3 weeks |
-| **2** | Western map + Lt. Surge | 3–4 weeks |
-| **3** | Celadon + Fuchsia (Gyms 4–5) | 3–4 weeks |
-| **4** | Saffron + Cinnabar (Gyms 6–7) | 3–4 weeks |
-| **5** | Elite Four + Champion | 2–3 weeks |
-| **6** | Post-game + polish | 2 weeks |
-| **Total** | | **~15–20 weeks** |
+| Phase | Description | Duration | Status |
+|---|---|---|---|
+| **1** | Foundation stabilisation | 2–3 weeks | ✅ Done |
+| **2** | Western map + Lt. Surge | 3–4 weeks | ✅ Done |
+| **3** | Celadon + Fuchsia (Gyms 4–5) | 3–4 weeks | ✅ Done |
+| **4** | Saffron + Cinnabar (Gyms 6–7) | 3–4 weeks | 🔜 Next |
+| **5** | Elite Four + Champion | 2–3 weeks | — |
+| **6** | Post-game + polish | 2 weeks | — |
+| **Total** | | **~15–20 weeks** | |
 
 > At a comfortable pace of a few hours per week this puts a v1.0 "complete" release around **mid-to-late 2026**.
