@@ -1508,6 +1508,141 @@ POKEMON: dict[int, SpeciesData] = {
         },
         evolution=None,
     ),
+    # ── Dratini ───────────────────────────────────────────────────────────────
+    147: SpeciesData(
+        name="DRATINI",
+        number=147,
+        types=[DRAGON],
+        stats=StatsData(hp=41, attack=64, defense=45, special=50, speed=50),
+        catch_rate=45,
+        base_exp=67,
+        learnset={
+            1: ["WRAP", "LEER"],
+            10: ["THUNDER WAVE"],
+            20: ["AGILITY"],
+            35: ["SLAM"],
+            45: ["DRAGON RAGE"],
+            55: ["HYPER BEAM"],
+        },
+        evolution=LevelEvolution(level=30, into_species="DRAGONAIR"),
+    ),
+    # ── Dragonair ─────────────────────────────────────────────────────────────
+    148: SpeciesData(
+        name="DRAGONAIR",
+        number=148,
+        types=[DRAGON],
+        stats=StatsData(hp=61, attack=84, defense=65, special=70, speed=70),
+        catch_rate=45,
+        base_exp=147,
+        learnset={
+            1: ["WRAP", "LEER"],
+            10: ["THUNDER WAVE"],
+            20: ["AGILITY"],
+            35: ["SLAM"],
+            45: ["DRAGON RAGE"],
+            55: ["HYPER BEAM"],
+        },
+        evolution=LevelEvolution(level=55, into_species="DRAGONITE"),
+    ),
+    # ── Dragonite ─────────────────────────────────────────────────────────────
+    149: SpeciesData(
+        name="DRAGONITE",
+        number=149,
+        types=[DRAGON, FLYING],
+        stats=StatsData(hp=91, attack=134, defense=95, special=100, speed=80),
+        catch_rate=45,
+        base_exp=218,
+        learnset={
+            1: ["WRAP", "LEER"],
+            10: ["THUNDER WAVE"],
+            20: ["AGILITY"],
+            35: ["SLAM"],
+            45: ["DRAGON RAGE"],
+            55: ["HYPER BEAM"],
+        },
+        evolution=None,
+    ),
+    # ── Articuno ──────────────────────────────────────────────────────────────
+    144: SpeciesData(
+        name="ARTICUNO",
+        number=144,
+        types=[ICE, FLYING],
+        stats=StatsData(hp=90, attack=85, defense=100, special=125, speed=85),
+        catch_rate=3,
+        base_exp=215,
+        learnset={
+            1: ["ICE BEAM"],
+            51: ["MIST"],
+            55: ["BLIZZARD"],
+            60: ["AGILITY"],
+        },
+        evolution=None,
+    ),
+    # ── Zapdos ────────────────────────────────────────────────────────────────
+    145: SpeciesData(
+        name="ZAPDOS",
+        number=145,
+        types=[ELECTRIC, FLYING],
+        stats=StatsData(hp=90, attack=90, defense=85, special=125, speed=100),
+        catch_rate=3,
+        base_exp=216,
+        learnset={
+            1: ["THUNDERSHOCK"],
+            51: ["THUNDER WAVE"],
+            55: ["THUNDERBOLT"],
+            60: ["AGILITY"],
+        },
+        evolution=None,
+    ),
+    # ── Moltres ───────────────────────────────────────────────────────────────
+    146: SpeciesData(
+        name="MOLTRES",
+        number=146,
+        types=[FIRE, FLYING],
+        stats=StatsData(hp=90, attack=100, defense=90, special=125, speed=90),
+        catch_rate=3,
+        base_exp=217,
+        learnset={
+            1: ["EMBER"],
+            51: ["FIRE SPIN"],
+            55: ["FLAMETHROWER"],
+            60: ["AGILITY"],
+        },
+        evolution=None,
+    ),
+    # ── Mewtwo ────────────────────────────────────────────────────────────────
+    150: SpeciesData(
+        name="MEWTWO",
+        number=150,
+        types=[PSYCHIC],
+        stats=StatsData(hp=106, attack=110, defense=90, special=154, speed=130),
+        catch_rate=3,
+        base_exp=220,
+        learnset={
+            1: ["CONFUSION"],
+            63: ["DISABLE"],
+            66: ["PSYCHIC"],
+            70: ["AMNESIA"],
+        },
+        evolution=None,
+    ),
+    # ── Mew ───────────────────────────────────────────────────────────────────
+    151: SpeciesData(
+        name="MEW",
+        number=151,
+        types=[PSYCHIC],
+        stats=StatsData(hp=100, attack=100, defense=100, special=100, speed=100),
+        catch_rate=45,
+        base_exp=64,
+        learnset={
+            1: ["POUND"],
+            10: ["TRANSFORM"],
+            20: ["MEGA PUNCH"],
+            30: ["METRONOME"],
+            40: ["PSYCHIC"],
+        },
+        evolution=None,
+    ),
 }
 
 # Populate any missing national dex entries with placeholder stubs so
@@ -1570,14 +1705,6 @@ _STUB_NAMES = {
     141: "KABUTOPS",
     142: "AERODACTYL",
     143: "SNORLAX",
-    144: "ARTICUNO",
-    145: "ZAPDOS",
-    146: "MOLTRES",
-    147: "DRATINI",
-    148: "DRAGONAIR",
-    149: "DRAGONITE",
-    150: "MEWTWO",
-    151: "MEW",
 }
 
 for _num, _name in _STUB_NAMES.items():

@@ -50,6 +50,22 @@ class BuildingMixin:
         """Display location arrival (delegates to exploration module)."""
         exploration.show_location_arrival(self.game_state, output, is_load)
 
+        # Show dungeon entry flavor text and check for legendary encounters
+        location = self.game_state.current_location
+        if location:
+            if location.name == "Power Plant":
+                buildings.enter_power_plant(
+                    self.game_state, output, lambda out=output: self.trigger_wild_encounter(out)
+                )
+            elif location.name == "Seafoam Islands":
+                buildings.enter_seafoam_islands(
+                    self.game_state, output, lambda out=output: self.trigger_wild_encounter(out)
+                )
+            elif location.name == "Cerulean Cave":
+                buildings.enter_cerulean_cave(
+                    self.game_state, output, lambda out=output: self.trigger_wild_encounter(out)
+                )
+
     def look_around(self, output: RichLog, auto: bool = False) -> None:
         """Look around (delegates to exploration module)."""
         exploration.look_around(self.game_state, output, auto)
@@ -221,6 +237,20 @@ class BuildingMixin:
         self.pending_command_data["in_gym_lobby"] = True
         self.pending_command_data["gym_location"] = location_name
         self.trigger_gym_battle(next_trainer_id, output, is_gym_battle=False)
+
+    def _gym_rematch_leader(self, output: RichLog) -> None:
+        """Challenge the gym leader rematch at the current location."""
+        from .. import gym_system
+
+        if not self.game_state.current_location:
+            output.write("[red]❌ No current location[/red]")
+            return
+
+        gym_system.enter_gym_rematch(
+            self.game_state,
+            output,
+            lambda trainer_id, out, is_gym: self.trigger_gym_battle(trainer_id, out, is_gym),
+        )
 
     def enter_pokemart(self, output: RichLog) -> None:
         """Enter the Pokemart and allow purchasing items."""

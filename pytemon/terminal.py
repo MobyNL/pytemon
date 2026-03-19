@@ -465,7 +465,12 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                     classes="gym-button gym-button-leader",
                 )
                 yield Button(
-                    "🚪 Leave Gym", id="btn-gym-leave", classes="gym-button gym-button-leave"
+                    "� Rematch Leader",
+                    id="btn-gym-rematch",
+                    classes="gym-button gym-button-rematch hidden",
+                )
+                yield Button(
+                    "�🚪 Leave Gym", id="btn-gym-leave", classes="gym-button gym-button-leave"
                 )
 
         with Container(id="input-container"):
@@ -931,6 +936,10 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Fight Gym Trainer")
             self.hide_all_panels()
             self._gym_fight_trainer(output)
+        elif button_id == "btn-gym-rematch":
+            output.write("[bold yellow]🎮 >[/bold yellow] Rematch Gym Leader")
+            self.hide_all_panels()
+            self._gym_rematch_leader(output)
         elif button_id == "btn-gym-leave":
             output.write("[bold yellow]🎮 >[/bold yellow] Leave Gym")
             self.hide_all_panels()
@@ -1046,6 +1055,9 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         cmd = command.lower()
 
         if cheat_commands.check_secret_phrase(command, self.game_state, output):
+            # If a forced encounter was queued (e.g. Mew secret phrase), trigger it now
+            if self.game_state.game_data.get("_forced_encounter"):
+                self.trigger_wild_encounter(output)
             return
 
         if self.game_state.cheat_mode and cmd.startswith("cheat "):

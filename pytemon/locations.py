@@ -291,6 +291,11 @@ LOCATIONS: Dict[str, Location] = {
                 "blocked": True,
                 "reason": "Nugget Bridge — You must earn the Cascade Badge first",
             },
+            "Cerulean Cave": {
+                "direction": "northwest",
+                "blocked": True,
+                "reason": "The cave is sealed. Only the Pokemon Champion may enter.",
+            },
         },
         buildings=["Pokemon Center", "Pokemart", "Gym", "Bike Shop", "Nugget Bridge"],
     ),
@@ -503,6 +508,11 @@ LOCATIONS: Dict[str, Location] = {
         exits={
             "Route 9": {"direction": "west", "blocked": False, "min_explores": 6},
             "Rock Tunnel": {"direction": "south", "blocked": False, "min_explores": 6},
+            "Power Plant": {
+                "direction": "east",
+                "blocked": True,
+                "reason": "You need HM Surf to reach the Power Plant across the river",
+            },
         },
         wild_pokemon=["VOLTORB", "MAGNEMITE", "SPEAROW"],
         wild_level_range=(17, 23),
@@ -875,7 +885,8 @@ LOCATIONS: Dict[str, Location] = {
         description=(
             "The sea route curving around the south coast toward Cinnabar Island. "
             "Sea Swimmers patrol the choppy waters, and the volcanic silhouette of "
-            "Cinnabar Island grows larger on the western horizon."
+            "Cinnabar Island grows larger on the western horizon. Rumour has it the "
+            "Seafoam Islands lie somewhere along this frozen stretch of sea."
         ),
         exits={
             "Route 19": {
@@ -886,6 +897,11 @@ LOCATIONS: Dict[str, Location] = {
             "Cinnabar Island": {
                 "direction": "west",
                 "blocked": False,
+            },
+            "Seafoam Islands": {
+                "direction": "north",
+                "blocked": True,
+                "reason": "You need HM Surf to reach the Seafoam Islands",
             },
         },
         wild_pokemon=["TENTACOOL", "TENTACRUEL", "HORSEA", "SEADRA", "GOLDEEN"],
@@ -946,7 +962,8 @@ LOCATIONS: Dict[str, Location] = {
         location_type=TYPE_DUNGEON,
         description=(
             "A treacherous mountain cave on the path to the Pokemon League. "
-            "Only the strongest trainers make it through."
+            "Only the strongest trainers make it through. "
+            "Legends speak of a fiery bird deep within the cave — Moltres, the legendary fire Pokemon."
         ),
         exits={
             "Route 22": {"direction": "west", "blocked": False},
@@ -960,6 +977,71 @@ LOCATIONS: Dict[str, Location] = {
         wild_level_range=(36, 44),
         trainers=4,
         trainer_encounter_rate=0.35,
+        wild_encounter_rate=0.55,
+    ),
+    # ── Power Plant ───────────────────────────────────────────────────────────────────
+    "Power Plant": Location(
+        name="Power Plant",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "An abandoned power station on the banks of Route 10. "
+            "Electric-type Pokemon lurk behind every generator and inside every machine. "
+            "A powerful presence crackles in the deepest room — Zapdos, the legendary electric Pokemon."
+        ),
+        exits={
+            "Route 10": {
+                "direction": "west",
+                "blocked": True,
+                "reason": "You need HM Surf to cross back to Route 10",
+            },
+        },
+        wild_pokemon=["VOLTORB", "ELECTRODE", "MAGNEMITE", "MAGNETON", "ELECTABUZZ"],
+        wild_level_range=(30, 46),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.60,
+    ),
+    # ── Seafoam Islands ────────────────────────────────────────────────────────────────
+    "Seafoam Islands": Location(
+        name="Seafoam Islands",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A pair of icy caverns embedded in the sea south of Cinnabar Island. "
+            "Freezing mist rolls through the tunnels, Water and Ice Pokemon make their home here, "
+            "and a legendary frozen bird slumbers deep inside — Articuno, the legendary ice Pokemon."
+        ),
+        exits={
+            "Route 20": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "You need HM Surf to return to Route 20",
+            },
+        },
+        wild_pokemon=["SEEL", "DEWGONG", "SLOWPOKE", "PSYDUCK", "GOLDUCK"],
+        wild_level_range=(35, 48),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.55,
+    ),
+    # ── Cerulean Cave ──────────────────────────────────────────────────────────────────
+    "Cerulean Cave": Location(
+        name="Cerulean Cave",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "An eerie cave northwest of Cerulean City, sealed to all but the Pokemon Champion. "
+            "Strong Pokemon wander its labyrinthine passages, drawn by an overwhelming psychic presence. "
+            "At the deepest level waits Mewtwo — the most powerful Pokemon ever created."
+        ),
+        exits={
+            "Cerulean City": {
+                "direction": "southeast",
+                "blocked": False,
+            },
+        },
+        wild_pokemon=["DITTO", "GOLBAT", "PARASECT", "RHYDON", "KADABRA"],
+        wild_level_range=(46, 60),
+        trainers=0,
+        trainer_encounter_rate=0.0,
         wild_encounter_rate=0.55,
     ),
 }

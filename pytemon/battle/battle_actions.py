@@ -108,10 +108,16 @@ def trigger_wild_encounter(
         wild_species = fishing_enc["species"]
         wild_level = fishing_enc["level"]
     else:
-        # Pick a random wild species and level
-        wild_species = random.choice(location.wild_pokemon)
-        min_lvl, max_lvl = location.wild_level_range
-        wild_level = random.randint(min_lvl, max_lvl)
+        # Check for a generic forced encounter (e.g. legendary, cheat)
+        forced_enc = game_state.game_data.pop("_forced_encounter", None)
+        if forced_enc:
+            wild_species = forced_enc["species"]
+            wild_level = forced_enc["level"]
+        else:
+            # Pick a random wild species and level
+            wild_species = random.choice(location.wild_pokemon)
+            min_lvl, max_lvl = location.wild_level_range
+            wild_level = random.randint(min_lvl, max_lvl)
 
     # Create and start battle
     bs = BattleState()
@@ -927,9 +933,14 @@ def handle_trainer_defeated(game_state: "GameState", output: RichLog, end_battle
 
     # Check if this was a gym leader and award badge
     if trainer.get("trainer_class") == "Gym Leader":
-        from ..gym_system import handle_gym_victory
+        if trainer["id"].endswith("_rematch"):
+            from ..gym_system import handle_rematch_gym_victory
 
-        handle_gym_victory(game_state, trainer["id"], output)
+            handle_rematch_gym_victory(game_state, trainer["id"], output)
+        else:
+            from ..gym_system import handle_gym_victory
+
+            handle_gym_victory(game_state, trainer["id"], output)
     elif trainer.get("trainer_class") in ("Elite Four", "Champion"):
         from ..buildings import handle_elite_four_victory
 

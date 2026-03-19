@@ -659,3 +659,106 @@ def handle_gym_victory(game_state: "GameState", trainer_id: str, output: RichLog
 
     # If we get here, trainer wasn't a gym leader
     output.write("[yellow]⚠ Warning: Trainer battle completed but no badge found[/yellow]")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Rematch system (post-Champion)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Maps each gym location to its rematch trainer ID
+REMATCH_LEADER_IDS: Dict[str, str] = {
+    "Pewter City": "gym_leader_brock_rematch",
+    "Cerulean City": "gym_leader_misty_rematch",
+    "Vermillion City": "gym_leader_lt_surge_rematch",
+    "Celadon City": "gym_leader_erika_rematch",
+    "Fuchsia City": "gym_leader_koga_rematch",
+    "Saffron City": "gym_leader_sabrina_rematch",
+    "Cinnabar Island": "gym_leader_blaine_rematch",
+    "Viridian City": "gym_leader_giovanni_rematch",
+}
+
+
+def can_rematch_gym(game_state: "GameState", location_name: str) -> bool:
+    """
+    Return True if the player is the Pokemon Champion and has already earned
+    the badge for the gym at this location.
+
+    Args:
+        game_state: The game state
+        location_name: Name of the location with the gym
+
+    Returns:
+        True if a rematch is available
+    """
+    story_flags = game_state.game_data.get("story_flags", {})
+    if not story_flags.get("is_champion"):
+        return False
+
+    gym_data = get_gym_data(location_name)
+    if not gym_data:
+        return False
+
+    badge_id = BADGES[gym_data["badge"]]["id"]
+    badges = game_state.game_data.get("badges", [])
+    return badge_id in badges
+
+
+def handle_rematch_gym_victory(game_state: "GameState", trainer_id: str, output: RichLog) -> None:
+    """
+    Handle a successful gym rematch — display rematch victory message (no badge awarded).
+    Prize money is already awarded by handle_trainer_defeated before this is called.
+
+    Args:
+        game_state: The game state
+        trainer_id: ID of the rematch trainer defeated
+        output: The RichLog widget to write to
+    """
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+    output.write(
+        "[bold cyan]🔄 Rematch complete! Your skills as Champion are undisputed![/bold cyan]"
+    )
+    output.write("")
+
+
+def enter_gym_rematch(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_trainer_battle_callback,
+) -> None:
+    """
+    Enter a gym rematch against the upgraded gym leader.
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+        trigger_trainer_battle_callback: Callback ``(trainer_id, output, is_gym_battle)``
+    """
+    if not game_state.current_location:
+        output.write("[red]❌ No current location[/red]")
+        return
+
+    location_name = game_state.current_location.name
+
+    if not can_rematch_gym(game_state, location_name):
+        output.write("")
+        output.write("[yellow]⚠ No rematch available here.[/yellow]")
+        output.write("[dim]Rematches unlock after you become the Pokemon Champion.[/dim]")
+        output.write("")
+        return
+
+    rematch_id = REMATCH_LEADER_IDS.get(location_name)
+    if not rematch_id:
+        output.write("[yellow]⚠ No rematch trainer data for this gym.[/yellow]")
+        return
+
+    gym_data = get_gym_data(location_name)
+    badge_data = get_badge_data(gym_data["badge"]) if gym_data else None
+    color = badge_data["color"] if badge_data else "orange3"
+
+    output.write("")
+    output.write(f"[bold {color}]🔄 GYM REMATCH — {gym_data['name'].upper()}![/bold {color}]")
+    output.write(f"[{color}]The Gym Leader has powered up since your last battle.[/{color}]")
+    output.write("")
+
+    trigger_trainer_battle_callback(rematch_id, output, is_gym_battle=False)

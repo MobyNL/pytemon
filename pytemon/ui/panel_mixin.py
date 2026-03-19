@@ -629,6 +629,19 @@ class PanelMixin:
         except Exception:
             pass
 
+        # Rematch button — only visible when player is Champion and holds the badge
+        try:
+            rematch_btn = self.query_one("#btn-gym-rematch", Button)
+            can_rematch = gym_system.can_rematch_gym(self.game_state, location_name)
+            if can_rematch:
+                rematch_btn.remove_class("hidden")
+                rematch_btn.disabled = False
+            else:
+                rematch_btn.add_class("hidden")
+                rematch_btn.disabled = True
+        except Exception:
+            pass
+
         try:
             self.query_one("#gym-panel").remove_class("hidden")
         except Exception:

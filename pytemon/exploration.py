@@ -116,6 +116,31 @@ def move_to_location(
                 "reason": "The gate to Victory Road is locked. You need all 8 Badges to pass.",
             }
 
+    # Gate C: Cerulean Cave — requires being Champion
+    if matching_exit == "Cerulean Cave":
+        story_flags = game_state.game_data.get("story_flags", {})
+        if story_flags.get("is_champion"):
+            exit_data = {**exit_data, "blocked": False}
+        else:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": (
+                    "The cave is sealed with heavy barriers. "
+                    'A guard says: "Only the Pokemon Champion may enter."'
+                ),
+            }
+
+    # Seafoam Islands and Power Plant require Surf
+    if matching_exit in ("Seafoam Islands", "Power Plant"):
+        surf_unlocked = game_state.game_data.get("surf_unlocked", [])
+        if matching_exit not in surf_unlocked and not game_state.cheat_mode:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": f"You need HM Surf to reach {matching_exit}.",
+            }
+
     if exit_data.get("blocked", False) and not game_state.cheat_mode:
         reason = exit_data.get("reason", "This path is blocked")
         output.write("")
@@ -705,6 +730,15 @@ def explore_area(
         output.write("[yellow]⚠ You can't explore without Pokemon![/yellow]")
         output.write("[dim]Get a starter from Professor Oak's Lab first[/dim]")
         output.write("")
+        return
+
+    # Legendary encounter — takes priority over random encounters (one per area)
+    from . import buildings as _bld
+
+    if _bld.check_legendary_encounter(
+        game_state, location.name, output, lambda: trigger_wild_callback(output)
+    ):
+        game_state.increment_route_progress(location.name)
         return
 
     # Prioritize trainer encounters

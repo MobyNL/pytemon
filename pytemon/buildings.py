@@ -1335,6 +1335,9 @@ def enter_oaks_lab(
         output.write("[cyan]   in the world... That is my dream![/cyan]")
         output.write("")
 
+        # Check for Pokedex completion award (first visit after catching all 151)
+        check_pokedex_completion(game_state, output)
+
         # Show research information
         output.write("[bold]Research Data:[/bold]")
         output.write("   • Pokemon seen: [dim]Coming soon[/dim]")
@@ -2422,3 +2425,245 @@ def handle_elite_four_victory(
     else:
         output.write("[bold]You won the battle![/bold]")
         output.write("")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legendary encounter helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+_LEGENDARY_LOCATIONS: dict[str, tuple[str, str, int, str]] = {
+    # flag_key -> (display_name, species_name, level, encounter_text)
+    "found_articuno": (
+        "Articuno",
+        "ARTICUNO",
+        50,
+        "❄️  A legendary bird Pokémon emerges from the frozen mist! It's ARTICUNO!",
+    ),
+    "found_zapdos": (
+        "Zapdos",
+        "ZAPDOS",
+        50,
+        "⚡ A legendary bird Pokémon appears amid crackling electricity! It's ZAPDOS!",
+    ),
+    "found_moltres": (
+        "Moltres",
+        "MOLTRES",
+        50,
+        "🔥 A legendary bird Pokémon rises from the volcanic depths! It's MOLTRES!",
+    ),
+    "found_mewtwo": (
+        "Mewtwo",
+        "MEWTWO",
+        70,
+        "🧬 A psychic storm tears through the air. The most powerful Pokémon emerges — it's MEWTWO!",
+    ),
+}
+
+_LEGENDARY_AREA_FLAGS: dict[str, str] = {
+    "Power Plant": "found_zapdos",
+    "Seafoam Islands": "found_articuno",
+    "Victory Road": "found_moltres",
+    "Cerulean Cave": "found_mewtwo",
+}
+
+
+def check_legendary_encounter(
+    game_state: "GameState",
+    location_name: str,
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> bool:
+    """
+    Check if the player has entered a legendary Pokemon's area and trigger the
+    one-time encounter if they haven't yet caught or fled from it.
+
+    Args:
+        game_state: The game state object
+        location_name: Current location name
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+
+    Returns:
+        True if a legendary encounter was triggered, False otherwise
+    """
+    flag_key = _LEGENDARY_AREA_FLAGS.get(location_name)
+    if flag_key is None:
+        return False
+
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    if story_flags.get(flag_key):
+        # Already encountered (caught or fled)
+        return False
+
+    display_name, species, level, text = _LEGENDARY_LOCATIONS[flag_key]
+
+    # Mark as encountered immediately to prevent double-triggering
+    story_flags[flag_key] = True
+
+    output.write("")
+    output.write("[bold cyan]══════════════════════════════════════════════════[/bold cyan]")
+    output.write(f"[bold yellow]{text}[/bold yellow]")
+    output.write("[bold cyan]══════════════════════════════════════════════════[/bold cyan]")
+    output.write("")
+    output.write("[dim]This is a one-time encounter. Use your best Poké Balls![/dim]")
+    output.write("")
+
+    # Queue the species/level so trigger_wild_encounter uses it
+    game_state.game_data["_forced_encounter"] = {"species": species, "level": level}
+    trigger_wild_battle_callback()
+    return True
+
+
+def mark_legendary_encountered(game_state: "GameState", location_name: str) -> None:
+    """
+    Mark the legendary Pokemon for the given area as encountered (one-time flag set).
+
+    Args:
+        game_state: The game state object
+        location_name: The location where the legendary lives
+    """
+    flag_key = _LEGENDARY_AREA_FLAGS.get(location_name)
+    if flag_key:
+        game_state.game_data.setdefault("story_flags", {})[flag_key] = True
+
+
+def enter_power_plant(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> None:
+    """
+    Enter the Power Plant.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+    """
+    output.write("")
+    output.write("[bold yellow]⚡ Power Plant ⚡[/bold yellow]")
+    output.write("[dim]The air crackles with static electricity.[/dim]")
+    output.write("[dim]Broken machines and abandoned generators litter the floor.[/dim]")
+    output.write("")
+    output.write("[cyan]Electric-type Pokémon roam freely here. Stay alert![/cyan]")
+    output.write("")
+
+    check_legendary_encounter(game_state, "Power Plant", output, trigger_wild_battle_callback)
+
+
+def enter_seafoam_islands(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> None:
+    """
+    Enter the Seafoam Islands.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+    """
+    output.write("")
+    output.write("[bold cyan]❄️  Seafoam Islands ❄️[/bold cyan]")
+    output.write("[dim]Biting cold pours from the cave entrance.[/dim]")
+    output.write("[dim]Ice coats every surface, and water flows through frozen chambers.[/dim]")
+    output.write("")
+    output.write("[cyan]Ice and Water-type Pokémon nest deep inside.[/cyan]")
+    output.write("")
+
+    check_legendary_encounter(game_state, "Seafoam Islands", output, trigger_wild_battle_callback)
+
+
+def enter_cerulean_cave(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> bool:
+    """
+    Enter Cerulean Cave (Unknown Dungeon). Blocked until the player is Champion.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+
+    Returns:
+        True if entry was allowed, False if blocked
+    """
+    story_flags = game_state.game_data.get("story_flags", {})
+    if not story_flags.get("is_champion"):
+        output.write("")
+        output.write("[bold red]🚫 The cave is sealed with a heavy barrier.[/bold red]")
+        output.write("[red]A guard blocks the entrance:[/red]")
+        output.write(
+            '[italic]"Only the Pokemon Champion has the authority to enter. '
+            "Come back after you've proven yourself at the Pokemon League.\"[/italic]"
+        )
+        output.write("")
+        return False
+
+    output.write("")
+    output.write("[bold magenta]🌀 Cerulean Cave 🌀[/bold magenta]")
+    output.write("[dim]An oppressive psychic aura fills every passage.[/dim]")
+    output.write("[dim]The most powerful wild Pokémon in Kanto dwell here.[/dim]")
+    output.write("")
+    output.write(
+        "[magenta]Something overwhelmingly powerful lurks in the deepest chamber...[/magenta]"
+    )
+    output.write("")
+
+    check_legendary_encounter(game_state, "Cerulean Cave", output, trigger_wild_battle_callback)
+    return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pokedex completion reward
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def check_pokedex_completion(game_state: "GameState", output: RichLog) -> bool:
+    """
+    Check if the player has caught all 151 Pokemon and award Professor Oak's certificate.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+
+    Returns:
+        True if the certificate was awarded (first time), False otherwise
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    if story_flags.get("oaks_certificate"):
+        return False
+
+    caught_set = game_state.game_data.get("pokedex", {}).get("caught", [])
+    if len(caught_set) < 151:
+        return False
+
+    story_flags["oaks_certificate"] = True
+    player_name = game_state.game_data.get("player_name", "Trainer")
+
+    output.write("")
+    output.write("[bold yellow]════════════════════════════════════════════[/bold yellow]")
+    output.write("[bold yellow]🏅  POKÉDEX COMPLETE!  🏅[/bold yellow]")
+    output.write("[bold yellow]════════════════════════════════════════════[/bold yellow]")
+    output.write("")
+    output.write("[bold green]Professor Oak looks up from his workbench, eyes wide:[/bold green]")
+    output.write(
+        "[italic green]\"Incredible! You've done it, "
+        f'{player_name}! You have caught all 151 Pokémon!"[/italic green]'
+    )
+    output.write("")
+    output.write(
+        '[italic green]"I have spent my life studying Pokémon and even I never managed this feat. '
+        'Please accept this Certificate of Completion as a token of my deepest respect."[/italic green]'
+    )
+    output.write("")
+    output.write("[bold cyan]🏅  PROFESSOR OAK'S CERTIFICATE  🏅[/bold cyan]")
+    output.write("[cyan]This certifies that[/cyan]")
+    output.write(f"[bold cyan]{player_name}[/bold cyan]")
+    output.write("[cyan]has completed the Pokédex by catching all 151 Pokémon.[/cyan]")
+    output.write("[dim cyan]Signed: Professor Samuel Oak[/dim cyan]")
+    output.write("")
+    return True
