@@ -67,6 +67,55 @@ def move_to_location(
         if "Route 21" in surf_unlocked or game_state.cheat_mode:
             exit_data = {**exit_data, "blocked": False}
 
+    # Special check: Unblock Route 19 from Fuchsia City once player has used Surf
+    if matching_exit == "Route 19" and current.name == "Fuchsia City":
+        surf_unlocked = game_state.game_data.get("surf_unlocked", [])
+        if "Route 19" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+
+    # Special check: Unblock Route 20 from Route 19 once player has used Surf
+    if matching_exit == "Route 20" and current.name == "Route 19":
+        surf_unlocked = game_state.game_data.get("surf_unlocked", [])
+        if "Route 20" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+
+    # Special check: Unblock Route 21 from Cinnabar Island once player has used Surf
+    if matching_exit == "Route 21" and current.name == "Cinnabar Island":
+        surf_unlocked = game_state.game_data.get("surf_unlocked", [])
+        if "Route 21" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+        else:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": "Route 21 is open water. You need a Pokemon that knows Surf.",
+            }
+
+    # Gate A: Saffron City gates (from Route 7 or Route 8) — requires marsh_badge or silph_co_cleared
+    if matching_exit == "Saffron City":
+        badges = game_state.game_data.get("badges", [])
+        story_flags = game_state.game_data.get("story_flags", {})
+        if "marsh_badge" not in badges and not story_flags.get("silph_co_cleared", False):
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": (
+                    "The gates to Saffron City are sealed. "
+                    "The Silph Co. employees won't let anyone through "
+                    "until the situation is resolved."
+                ),
+            }
+
+    # Gate B: Victory Road — requires all 8 badges (including Earth Badge from Giovanni)
+    if matching_exit == "Victory Road":
+        badges = game_state.game_data.get("badges", [])
+        if "earth_badge" not in badges:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": "The gate to Victory Road is locked. You need all 8 Badges to pass.",
+            }
+
     if exit_data.get("blocked", False) and not game_state.cheat_mode:
         reason = exit_data.get("reason", "This path is blocked")
         output.write("")
@@ -253,6 +302,53 @@ def show_location_arrival(game_state: "GameState", output: RichLog, is_load: boo
 
     output.write(f"[dim]{location.description}[/dim]")
     output.write("")
+
+    # First-visit rich narrative for key Phase 4 locations
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    _visited_key = f"visited_{location.name.lower().replace(' ', '_')}"
+    if not story_flags.get(_visited_key):
+        story_flags[_visited_key] = True
+        if location.name == "Saffron City":
+            output.write("[bold cyan]🏙️  Saffron City[/bold cyan]")
+            output.write(
+                "[dim]The largest city in Kanto. Silph Co.'s tower looms over the skyline...[/dim]"
+            )
+            output.write("[red]Team Rocket has seized Silph Co.! The city is in a panic.[/red]")
+            output.write("")
+        elif location.name == "Cinnabar Island":
+            output.write("[bold red]🌋  Cinnabar Island[/bold red]")
+            output.write(
+                "[dim]The smell of sulphur hangs in the sea air."
+                " An ancient volcano looms behind the research complex.[/dim]"
+            )
+            output.write(
+                "[dim]Burnt ruins of the Pokemon Mansion are visible just south of the lab.[/dim]"
+            )
+            output.write("")
+        elif location.name == "Victory Road":
+            output.write("[bold yellow]⛰️  Victory Road[/bold yellow]")
+            output.write(
+                "[dim]This treacherous cave connects Viridian City to the Pokemon League.[/dim]"
+            )
+            output.write("[bold]Only the strongest trainers dare to enter...[/bold]")
+            output.write("")
+        elif location.name == "Pokemon League":
+            output.write("[bold yellow]🏆  The Pokémon League — Indigo Plateau[/bold yellow]")
+            badges_count = len(game_state.game_data.get("badges", []))
+            output.write(f"   [dim]You have {badges_count} of 8 badges.[/dim]")
+            if story_flags.get("defeated_champion"):
+                output.write("   [bold gold1]★ You are the Pokémon Champion! ★[/bold gold1]")
+            elif story_flags.get("defeated_lance"):
+                output.write("   [cyan]The Champion awaits...[/cyan]")
+            elif story_flags.get("defeated_agatha"):
+                output.write("   [cyan]Lance, the Dragon Master, waits ahead.[/cyan]")
+            elif story_flags.get("defeated_bruno"):
+                output.write("   [cyan]Agatha of the Ghost Elite Four awaits.[/cyan]")
+            elif story_flags.get("defeated_lorelei"):
+                output.write("   [cyan]Bruno, master of Fighting types, is next.[/cyan]")
+            else:
+                output.write("   [cyan]Lorelei awaits you in the first chamber.[/cyan]")
+            output.write("")
 
     # Build the activities description
     activities = []
@@ -484,6 +580,8 @@ _GROUND_ITEMS: dict[str, list[str]] = {
     "Route 21": ["Hyper Potion", "Super Potion"],
     "Route 22 North": ["Super Potion"],
     "Victory Road": ["Full Restore", "Full Heal", "Max Potion"],
+    # ── Pokemon League ───────────────────────────────────────────────────────
+    "Pokemon League": ["Full Restore", "Max Revive", "Elixir"],
 }
 
 # Item emojis for the found-item message
@@ -514,7 +612,6 @@ _ITEM_EMOJI: dict[str, str] = {
     "X Speed": "⚡",
     "X Attack": "⚔️",
     "Nugget": "💛",
-    "Full Restore": "✨",
 }
 
 # Probability that any given explore attempt finds the next ground item.
@@ -715,12 +812,8 @@ def explore_area(
                     "[bold magenta]👻 A shadowy figure blocks the stairs...[/bold magenta]"
                 )
                 if has_silph_scope:
-                    output.write(
-                        "[magenta]   Through the Silph Scope you see clearly:[/magenta]"
-                    )
-                    output.write(
-                        "[magenta]   It's the ghost of a [bold]MAROWAK[/bold]![/magenta]"
-                    )
+                    output.write("[magenta]   Through the Silph Scope you see clearly:[/magenta]")
+                    output.write("[magenta]   It's the ghost of a [bold]MAROWAK[/bold]![/magenta]")
                     output.write(
                         "[magenta]   The vengeful spirit of a mother protecting her child...[/magenta]"
                     )
@@ -735,9 +828,7 @@ def explore_area(
                     output.write(
                         "[magenta]   The ghost cannot be identified — your Pokeballs pass right through![/magenta]"
                     )
-                    output.write(
-                        "[magenta]   You retreat to a lower floor, shaken.[/magenta]"
-                    )
+                    output.write("[magenta]   You retreat to a lower floor, shaken.[/magenta]")
                     output.write("")
                     output.write(
                         "[yellow]⚠ Tip:[/yellow] [dim]You need the Silph Scope to battle the ghost Pokemon here.[/dim]"
@@ -755,22 +846,14 @@ def explore_area(
                 _tower_flags["rescued_mr_fuji"] = True
                 _bag["Poke Flute"] = _bag.get("Poke Flute", 0) + 1
                 output.write("")
-                output.write(
-                    "[bold cyan]🏠 You reach the top of Pokemon Tower...[/bold cyan]"
-                )
-                output.write(
-                    "[cyan]   Team Rocket Grunts scatter as you approach![/cyan]"
-                )
+                output.write("[bold cyan]🏠 You reach the top of Pokemon Tower...[/bold cyan]")
+                output.write("[cyan]   Team Rocket Grunts scatter as you approach![/cyan]")
                 output.write("")
                 output.write(
                     "[bold]Mr. Fuji:[/bold] [cyan]Oh my... a young trainer, here to rescue me![/cyan]"
                 )
-                output.write(
-                    "[cyan]   Those dreadful Team Rocket villains imprisoned me![/cyan]"
-                )
-                output.write(
-                    "[cyan]   Please — take this Poke Flute as thanks.[/cyan]"
-                )
+                output.write("[cyan]   Those dreadful Team Rocket villains imprisoned me![/cyan]")
+                output.write("[cyan]   Please — take this Poke Flute as thanks.[/cyan]")
                 output.write(
                     "[cyan]   It will wake the sleeping Pokemon that block your path.[/cyan]"
                 )
@@ -791,9 +874,7 @@ def explore_area(
                 output.write(
                     "[bold yellow]🗝️  A small key glints under a fallen crate...[/bold yellow]"
                 )
-                output.write(
-                    "[yellow]   The tag reads: [bold]LIFT KEY — B4F[/bold].[/yellow]"
-                )
+                output.write("[yellow]   The tag reads: [bold]LIFT KEY — B4F[/bold].[/yellow]")
                 output.write("[bold green]✓ Found the Lift Key![/bold green]")
                 output.write(
                     "[dim]   Use this key to reach the lower floors and confront the Rocket Boss.[/dim]"
@@ -811,23 +892,15 @@ def explore_area(
                 output.write(
                     "[bold red]🚀 You reach the deepest level of the Hideout...[/bold red]"
                 )
-                output.write(
-                    "[red]   Giovanni stares at you with cold contempt.[/red]"
-                )
+                output.write("[red]   Giovanni stares at you with cold contempt.[/red]")
                 output.write("")
-                output.write(
-                    "[bold]Giovanni:[/bold] [red]So... you've made it this far.[/red]"
-                )
-                output.write(
-                    "[red]   I am Giovanni — the Boss of Team Rocket.[/red]"
-                )
+                output.write("[bold]Giovanni:[/bold] [red]So... you've made it this far.[/red]")
+                output.write("[red]   I am Giovanni — the Boss of Team Rocket.[/red]")
                 output.write(
                     "[red]   You have some skill. But skill alone does not impress me.[/red]"
                 )
                 output.write("[red]   ...You win. Take the Silph Scope.[/red]")
-                output.write(
-                    "[red]   It is useless to us if we cannot hold this base.[/red]"
-                )
+                output.write("[red]   It is useless to us if we cannot hold this base.[/red]")
                 output.write("[red]   Team Rocket will retreat... for now.[/red]")
                 output.write("")
                 output.write("[bold yellow]★ Received Silph Scope! ★[/bold yellow]")

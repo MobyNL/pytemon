@@ -646,10 +646,10 @@ class TestRoute8:
         loc = get_location("Route 8")
         assert "Lavender Town" in loc.exits
 
-    def test_route_8_saffron_exit_is_blocked(self):
+    def test_route_8_saffron_exit_is_unblocked(self):
         loc = get_location("Route 8")
         assert "Saffron City" in loc.exits
-        assert loc.exits["Saffron City"].get("blocked", False) is True
+        assert loc.exits["Saffron City"].get("blocked", False) is False
 
     def test_route_8_has_wild_pokemon(self):
         loc = get_location("Route 8")
@@ -687,10 +687,10 @@ class TestRoute7:
         assert "Celadon City" in loc.exits
         assert loc.exits["Celadon City"].get("blocked", False) is True
 
-    def test_route_7_saffron_exit_is_blocked(self):
+    def test_route_7_saffron_exit_is_unblocked(self):
         loc = get_location("Route 7")
         assert "Saffron City" in loc.exits
-        assert loc.exits["Saffron City"].get("blocked", False) is True
+        assert loc.exits["Saffron City"].get("blocked", False) is False
 
     def test_route_7_has_wild_pokemon(self):
         loc = get_location("Route 7")

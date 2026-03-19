@@ -197,7 +197,21 @@ GYM_TRAINERS: Dict[str, List[str]] = {
         "gym_trainer_fuchsia_juggler",
         "gym_trainer_fuchsia_lass",
     ],
-    # Future gyms can be populated here
+    "Saffron City": [
+        "psychic_cameron",
+        "medium_doris",
+        "psychic_brad",
+    ],
+    "Cinnabar Island": [
+        "super_nerd_ted",
+        "juggler_kaylee",
+        "blaine_trainee",
+    ],
+    "Viridian City": [
+        "cooltrainer_m_tucker",
+        "tamer_jake",
+        "giovanni_guard",
+    ],
 }
 
 
@@ -471,6 +485,26 @@ def can_challenge_gym(game_state: "GameState", location_name: str) -> tuple[bool
 
     if current < required:
         return False, f"You need at least {required} badge(s) to challenge this gym"
+
+    # Special gate: Saffron City Gym requires Silph Co. to be cleared first
+    if location_name == "Saffron City":
+        story_flags = game_state.game_data.get("story_flags", {})
+        cheat_mode = getattr(game_state, "cheat_mode", False)
+        if not story_flags.get("silph_co_cleared") and not cheat_mode:
+            return (
+                False,
+                "Sabrina won't battle anyone while Team Rocket occupies Silph Co. Clear them out first.",
+            )
+
+    # Special gate: Cinnabar Island Gym requires the Secret Key from Pokemon Mansion
+    if location_name == "Cinnabar Island":
+        story_flags = game_state.game_data.get("story_flags", {})
+        cheat_mode = getattr(game_state, "cheat_mode", False)
+        if not story_flags.get("secret_key_found") and not cheat_mode:
+            return (
+                False,
+                "The Gym is locked. \u26bf\ufe0f Find the Secret Key in the Pokemon Mansion first.",
+            )
 
     # Check if player has any Pokemon
     pokemon = game_state.game_data.get("pokemon", [])

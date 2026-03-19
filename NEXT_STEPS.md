@@ -135,30 +135,30 @@
 **Goal: Complete gyms 6 & 7, open Victory Road**
 
 ### 4.1 Saffron City
-- [ ] Implement Saffron City
-- [ ] Silph Co. (3–4 floor simplified version) — rescue Mr. Fuji, earn Master Ball
-- [ ] Sabrina (Gym 6) — Psychic-type, Marsh Badge
-  - [ ] Team: Abra, Kadabra, Mr. Mime, Alakazam
-- [ ] Route 7 connector
+- [x] Implement Saffron City
+- [x] Silph Co. (3–4 floor simplified version) — rescue Mr. Fuji, earn Master Ball
+- [x] Sabrina (Gym 6) — Psychic-type, Marsh Badge
+  - [x] Team: Abra, Kadabra, Mr. Mime, Alakazam
+- [x] Route 7 connector
 
 ### 4.2 Cinnabar Island
-- [ ] Implement Cinnabar Island
-- [ ] Blaine (Gym 7) — Fire-type, Volcano Badge
-  - [ ] Team: Growlithe, Ponyta, Rapidash, Arcanine
-- [ ] Pokémon Mansion (fossil Pokémon lore, find Secret Key)
-- [ ] Fossil revival — Dome/Helix Fossil → Kabuto/Omanyte
+- [x] Implement Cinnabar Island
+- [x] Blaine (Gym 7) — Fire-type, Volcano Badge
+  - [x] Team: Growlithe, Ponyta, Rapidash, Arcanine
+- [x] Pokémon Mansion (fossil Pokémon lore, find Secret Key)
+- [x] Fossil revival — Dome/Helix Fossil → Kabuto/Omanyte
 - [x] Routes 19, 20 (ocean — Surf-gated sea routes already implemented)
-- [ ] Route 21 (Pallet Town ↔ Cinnabar — Surf-gated, already stubbed)
+- [x] Route 21 (Pallet Town ↔ Cinnabar — Surf-gated, already stubbed)
 
 ### 4.3 Final Viridian Gym
-- [ ] Giovanni (Gym 8) — Ground-type, Earth Badge (requires 7 badges)
-  - [ ] Team: Rhyhorn, Dugtrio, Nidoqueen, Nidoking, Rhydon
-- [ ] Victory Road (cave with strong trainers)
+- [x] Giovanni (Gym 8) — Ground-type, Earth Badge (requires 7 badges)
+  - [x] Team: Rhyhorn, Dugtrio, Nidoqueen, Nidoking, Rhydon
+- [x] Victory Road (cave with strong trainers)
 
 ### 4.4 Dungeon Rollout (Late Game)
-- [ ] Silph Co.: office-building dungeon with floor warps + keycard-gated rooms
-- [ ] Pokémon Mansion: switch-locked doors, journal lore nodes, Secret Key progression
-- [ ] Victory Road: strength/boulder gates + high-level trainer checkpoints
+- [x] Silph Co.: office-building dungeon with floor warps + keycard-gated rooms
+- [x] Pokémon Mansion: switch-locked doors, journal lore nodes, Secret Key progression
+- [x] Victory Road: strength/boulder gates + high-level trainer checkpoints
 
 ---
 
@@ -166,16 +166,16 @@
 **Goal: Complete the story — become Pokémon Champion**
 
 ### 5.1 Pokémon League
-- [ ] Implement Pokémon League building / reception
-- [ ] Lorelei (Ice-type) — Team: Dewgong, Cloyster, Slowbro, Jynx, Lapras
-- [ ] Bruno (Fighting-type) — Team: Onix, Hitmonchan, Hitmonlee, Onix, Machamp
-- [ ] Agatha (Ghost-type) — Team: Gengar, Haunter, Gengar, Arbok, Gengar
-- [ ] Lance (Dragon-type) — Team: Gyarados, Dragonair ×2, Aerodactyl, Dragonite
-- [ ] Champion Gary (rival final battle — team depends on player's starter)
+- [x] Implement Pokémon League building / reception
+- [x] Lorelei (Ice-type) — Team: Dewgong, Cloyster, Slowbro, Jynx, Lapras
+- [x] Bruno (Fighting-type) — Team: Onix, Hitmonchan, Hitmonlee, Onix, Machamp
+- [x] Agatha (Ghost-type) — Team: Gengar, Haunter, Gengar, Arbok, Gengar
+- [x] Lance (Dragon-type) — Team: Gyarados, Dragonair ×2, Aerodactyl, Dragonite
+- [x] Champion Gary (rival final battle — team depends on player's starter)
 
 ### 5.2 Rival Final Battle Scaling
-- [ ] Gary's team should evolve based on player starter choice (implemented stubs, needs finalisation)
-- [ ] Post-game "Hall of Fame" display with party snapshot
+- [x] Gary's team evolves based on player starter choice (Charizard / Blastoise / Venusaur)
+- [x] Post-game "Hall of Fame" display with party snapshot
 
 ---
 
@@ -226,9 +226,9 @@
 | **1** | Foundation stabilisation | 2–3 weeks | ✅ Done |
 | **2** | Western map + Lt. Surge | 3–4 weeks | ✅ Done |
 | **3** | Celadon + Fuchsia (Gyms 4–5) | 3–4 weeks | ✅ Done |
-| **4** | Saffron + Cinnabar (Gyms 6–7) | 3–4 weeks | 🔜 Next |
-| **5** | Elite Four + Champion | 2–3 weeks | — |
-| **6** | Post-game + polish | 2 weeks | — |
+| **4** | Saffron + Cinnabar (Gyms 6–7) | 3–4 weeks | ✅ Done |
+| **5** | Elite Four + Champion | 2–3 weeks | ✅ Done |
+| **6** | Post-game + polish | 2 weeks | 🔜 Next |
 | **Total** | | **~15–20 weeks** | |
 
 > At a comfortable pace of a few hours per week this puts a v1.0 "complete" release around **mid-to-late 2026**.

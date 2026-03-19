@@ -1011,11 +1011,13 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         input_field.value = ""
 
         if not command:
+            input_field.focus()
             return
 
         if self.pending_command:
             self.handle_pending_command(command, output)
             self._refresh_subtitle()
+            input_field.focus()
             return
 
         output.write(f"[bold yellow]🎮 >[/bold yellow] {command}")
@@ -1029,6 +1031,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         self._refresh_subtitle()
         if self.game_state.in_game:
             self.check_autosave(command, output)
+        input_field.focus()
 
     # ── In-game command router ────────────────────────────────────────────────
 
@@ -1316,6 +1319,70 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
         elif cmd in ("quit game", "quit", "stop", "stop playing", "q"):
             self.prompt_for_quit(output)
+
+        # ── Phase 4 building shortcuts ────────────────────────────────────────
+        elif cmd in ("silph co", "silph co.", "silph"):
+            self.enter_building("Silph Co.", output)
+        elif cmd in ("pokemon mansion", "mansion"):
+            self.enter_building("Pokemon Mansion", output)
+        elif cmd in ("pokemon lab", "cinnabar lab"):
+            self.enter_building("Pokemon Lab", output)
+
+        # ── Phase 4 location shortcuts ───────────────────────────────────────
+        elif cmd in (
+            "go saffron city",
+            "go saffron",
+            "saffron city",
+            "saffron",
+            "move saffron",
+            "move saffron city",
+        ):
+            self.move_to_location("Saffron City", output)
+        elif cmd in (
+            "go cinnabar island",
+            "go cinnabar",
+            "cinnabar island",
+            "cinnabar",
+            "move cinnabar",
+            "move cinnabar island",
+        ):
+            self.move_to_location("Cinnabar Island", output)
+        elif cmd in ("go victory road", "victory road", "move victory road"):
+            self.move_to_location("Victory Road", output)
+        elif cmd in (
+            "go pokemon league",
+            "pokemon league",
+            "move pokemon league",
+            "indigo plateau",
+        ):
+            self.move_to_location("Pokemon League", output)
+
+        # ── Phase 5 building shortcuts ────────────────────────────────────────
+        elif cmd in ("elite four", "enter elite four", "challenge elite four", "face elite four"):
+            self.enter_building("Elite Four", output)
+        elif cmd in ("hall of fame", "enter hall of fame"):
+            self.enter_building("Hall of Fame", output)
+        elif cmd in ("reception", "league reception", "pokemon league reception"):
+            self.enter_building("Pokemon League Reception", output)
+
+        # ── Fossil revival shortcut ─────────────────────────────────────────
+        elif cmd in ("revive fossil", "fossil revival", "revive fossils"):
+            if (
+                not self.game_state.current_location
+                or self.game_state.current_location.name != "Cinnabar Island"
+            ):
+                output.write("")
+                output.write(
+                    "[yellow]⚠ You need to go to the Pokemon Lab on Cinnabar Island"
+                    " to revive fossils.[/yellow]"
+                )
+                output.write("[dim]Travel to Cinnabar Island and enter the Pokemon Lab.[/dim]")
+                output.write("")
+            else:
+                from . import buildings as _bld
+
+                _bld.enter_pokemon_lab(self.game_state, output)
+
         else:
             output.write(f"[red]❌ Unknown command:[/red] {command}")
             output.write("[dim]Type 'help' to see available commands[/dim]")

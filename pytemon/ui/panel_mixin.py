@@ -530,6 +530,7 @@ class PanelMixin:
             self.query_one("#faint-switch").add_class("hidden")
         except Exception:
             pass
+        self.hide_battle_loading()
 
     # ── Gym lobby ─────────────────────────────────────────────────────────────
 

@@ -291,6 +291,15 @@ class BattleMixin:
             move = random.choice(available)
             opponent_name = f"Wild {wild['name']}"
 
+        # If the enemy was charging a 2-turn move, force them to release it
+        if battle.enemy_charging:
+            charging_name = battle.enemy_charging
+            forced = next((m for m in wild["moves"] if m["name"] == charging_name), None)
+            if forced:
+                move = forced
+            else:
+                battle.enemy_charging = None
+
         # Track move so HUD "Seen" section stays up to date
         battle.enemy_moves_seen.add(move["name"])
 
@@ -412,6 +421,15 @@ class BattleMixin:
                     if player["hp"] <= 0:
                         self.handle_pokemon_fainted(output)
                         return
+                # ── Auto-execute 2-turn move release (priority path) ───────────────
+                if current_battle and current_battle.player_charging:
+                    charging_move = current_battle.player_charging
+                    output.write("")
+                    output.write(f"[dim]⚡ {player['name']} releases {charging_move}![/dim]")
+                    output.write("")
+                    self.show_battle_loading_panel()
+                    self.execute_player_move(charging_move, output)
+                    return
                 self.hide_battle_loading()
                 self.show_battle_options(output)
                 self.pending_command = "battle"
@@ -454,6 +472,15 @@ class BattleMixin:
                 if player["hp"] <= 0:
                     self.handle_pokemon_fainted(output)
                     return
+            # ── Auto-execute 2-turn move release ───────────────────────────────────
+            if current_battle and current_battle.player_charging:
+                charging_move = current_battle.player_charging
+                output.write("")
+                output.write(f"[dim]⚡ {player['name']} releases {charging_move}![/dim]")
+                output.write("")
+                self.show_battle_loading_panel()
+                self.execute_player_move(charging_move, output)
+                return
             self.hide_battle_loading()
             self.show_battle_options(output)
             self.pending_command = "battle"
@@ -611,6 +638,7 @@ class BattleMixin:
 
     def handle_battle_victory(self, output: RichLog) -> None:
         """Handle opponent Pokemon fainting (wild or trainer)."""
+        self.hide_battle_loading()
         battle_actions.handle_battle_victory(
             self.game_state,
             output,

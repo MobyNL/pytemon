@@ -152,10 +152,9 @@ LOCATIONS: Dict[str, Location] = {
                 "blocked": False,
                 "min_explores": 6,
             },
-            "Pokemon League Gate": {
+            "Victory Road": {
                 "direction": "west",
-                "blocked": True,
-                "reason": "You need all 8 Gym Badges to enter the Pokemon League",
+                "blocked": False,
                 "min_explores": 6,
             },
         },
@@ -325,8 +324,7 @@ LOCATIONS: Dict[str, Location] = {
             "Pallet Town": {"direction": "north", "blocked": False},
             "Cinnabar Island": {
                 "direction": "south",
-                "blocked": True,
-                "reason": "Cinnabar Island is not yet accessible",
+                "blocked": False,
                 "min_explores": 4,
             },
         },
@@ -562,8 +560,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Saffron City": {
                 "direction": "west",
-                "blocked": True,
-                "reason": "Saffron City's gates are sealed — the Silph Co. employees won't let anyone in",
+                "blocked": False,
             },
         },
         wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE"],
@@ -588,8 +585,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Saffron City": {
                 "direction": "east",
-                "blocked": True,
-                "reason": "Saffron City's gates are sealed — the Silph Co. employees won't let anyone in",
+                "blocked": False,
             },
         },
         wild_pokemon=["PIDGEY", "DROWZEE", "SLOWPOKE", "MEOWTH"],
@@ -889,8 +885,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Cinnabar Island": {
                 "direction": "west",
-                "blocked": True,
-                "reason": "Cinnabar Island awaits — you'll need HM Surf to reach it",
+                "blocked": False,
             },
         },
         wild_pokemon=["TENTACOOL", "TENTACRUEL", "HORSEA", "SEADRA", "GOLDEEN"],
@@ -898,6 +893,74 @@ LOCATIONS: Dict[str, Location] = {
         trainers=4,
         trainer_encounter_rate=0.30,
         wild_encounter_rate=0.65,
+    ),
+    # ── Saffron City ──────────────────────────────────────────────────────────────
+    "Saffron City": Location(
+        name="Saffron City",
+        location_type=TYPE_TOWN,
+        description=(
+            "A thriving metropolis in central Kanto. "
+            "The imposing Silph Co. headquarters dominates the skyline."
+        ),
+        exits={
+            "Route 7": {"direction": "west", "blocked": False},
+            "Route 8": {"direction": "east", "blocked": False},
+        },
+        buildings=["Silph Co.", "Sabrina's Gym", "Pokemon Center", "Pokemart"],
+    ),
+    # ── Cinnabar Island ──────────────────────────────────────────────────────────
+    "Cinnabar Island": Location(
+        name="Cinnabar Island",
+        location_type=TYPE_TOWN,
+        description=(
+            "A small volcanic island in the south. "
+            "Home to a world-famous research lab and the ruins of a Pokémon Mansion."
+        ),
+        exits={
+            "Route 20": {"direction": "east", "blocked": False},
+            "Route 21": {"direction": "north", "blocked": False},
+        },
+        buildings=["Pokemon Lab", "Pokemon Mansion", "Blaine's Gym", "Pokemon Center", "Pokemart"],
+    ),
+    # ── Pokemon League ───────────────────────────────────────────────────────────────
+    "Pokemon League": Location(
+        name="Pokemon League",
+        location_type=TYPE_TOWN,
+        description=(
+            "The Indigo Plateau — seat of the Pokemon League. "
+            "The greatest trainers in Kanto have gathered here. "
+            "Four Elite trainers and the reigning Champion stand between you and glory."
+        ),
+        exits={
+            "Victory Road": {"direction": "south", "blocked": False},
+        },
+        buildings=["Pokemon League Reception", "Elite Four", "Hall of Fame"],
+        blocked_buildings={
+            "Hall of Fame": "You haven't become Champion yet.",
+        },
+        wild_pokemon=[],
+    ),
+    # ── Victory Road ─────────────────────────────────────────────────────────────────
+    "Victory Road": Location(
+        name="Victory Road",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A treacherous mountain cave on the path to the Pokemon League. "
+            "Only the strongest trainers make it through."
+        ),
+        exits={
+            "Route 22": {"direction": "west", "blocked": False},
+            "Pokemon League": {
+                "direction": "east",
+                "blocked": True,
+                "reason": "The Pokemon League awaits beyond Victory Road — finish the cave first",
+            },
+        },
+        wild_pokemon=["MACHOKE", "GEODUDE", "GRAVELER", "ONIX", "VENOMOTH"],
+        wild_level_range=(36, 44),
+        trainers=4,
+        trainer_encounter_rate=0.35,
+        wild_encounter_rate=0.55,
     ),
 }
 

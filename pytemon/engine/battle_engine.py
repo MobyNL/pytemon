@@ -16,6 +16,18 @@ if TYPE_CHECKING:
     from ..data.trainer_data import Trainer
 
 
+def _stat_stage_mult(stage: int) -> float:
+    """Return the Gen 1 stat-stage multiplier for a stage value in [-6, 6].
+
+    Positive stage: (2 + stage) / 2  (e.g. +2 → 2.0×)
+    Negative stage: 2 / (2 - stage)  (e.g. -2 → 0.5×)
+    """
+    stage = max(-6, min(6, stage))
+    if stage >= 0:
+        return (2.0 + stage) / 2.0
+    return 2.0 / (2.0 - stage)
+
+
 class BattleState:
     """Manages state and logic for Pokemon battles (wild and trainer)."""
 
@@ -306,7 +318,7 @@ class BattleState:
         power = move["power"]
         move_type = move["type"]
 
-        # Check for critical hit (simplified: speed/512 chance, or speed/64 for high crit moves)
+        # Check for critical hit (Gen 1: uses base speed, not battle speed)
         is_critical = self.check_critical_hit(attacker, move)
 
         # Type effectiveness
@@ -314,13 +326,33 @@ class BattleState:
         if effectiveness == 0:
             return 0, f"It doesn't affect {defender['name']}...", False
 
-        # Attack and Defense stats
+        # Determine whose stat-stage dict is whose
+        is_player_attacker = attacker is self.player_pokemon
+        atk_stages = self.player_stat_stages if is_player_attacker else self.enemy_stat_stages
+        def_stages = self.enemy_stat_stages if is_player_attacker else self.player_stat_stages
+
+        # Attack and Defense stats — apply stat stages unless it's a critical hit
+        # (Gen 1 critical hits ignore all stat changes for both attacker and defender)
         if move["category"] == "physical":
             attack_stat = attacker["stats"]["attack"]
             defense_stat = defender["stats"]["defense"]
+            if not is_critical:
+                attack_stat = max(
+                    1, int(attack_stat * _stat_stage_mult(atk_stages.get("attack", 0)))
+                )
+                defense_stat = max(
+                    1, int(defense_stat * _stat_stage_mult(def_stages.get("defense", 0)))
+                )
         else:  # special
             attack_stat = attacker["stats"]["special"]
             defense_stat = defender["stats"]["special"]
+            if not is_critical:
+                attack_stat = max(
+                    1, int(attack_stat * _stat_stage_mult(atk_stages.get("special", 0)))
+                )
+                defense_stat = max(
+                    1, int(defense_stat * _stat_stage_mult(def_stages.get("special", 0)))
+                )
 
         # Gen 1 damage formula
         level_factor = 2 * attacker["level"] / 5 + 2
@@ -356,7 +388,8 @@ class BattleState:
     def check_critical_hit(self, attacker: PartyPokemon, move) -> bool:
         """
         Check if an attack is a critical hit.
-        Gen 1: Base crit = speed/512, High crit moves = speed/64
+        Gen 1: Base crit = base_speed/512, High crit moves = base_speed/64
+        Uses the species base speed (not the inflated battle stat) to match Gen 1 rates.
 
         Args:
             attacker: Attacking Pokemon dict
@@ -365,7 +398,9 @@ class BattleState:
         Returns:
             bool: True if critical hit
         """
-        speed = attacker["stats"]["speed"]
+        # Use base species speed to avoid inflated crit rates from leveled battle stats
+        species_data = get_pokemon(attacker.get("name", "").upper())
+        speed = species_data.stats.speed if species_data else attacker["stats"]["speed"]
 
         if move.get("effect") == "high_crit":
             crit_chance = min(speed / 64, 0.99)  # Cap at 99%

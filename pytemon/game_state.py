@@ -70,6 +70,16 @@ class GameState:
             "previous_location": None,  # Last location before the current one
             "stats": {},  # Adventure statistics (see stats.py)
             "found_items": {},  # Ground items collected per location (see exploration.py)
+            "story_flags": {
+                "silph_co_cleared": False,
+                "received_master_ball": False,
+                "rescued_mr_fuji_silph": False,  # Cleared Silph Co. and freed Mr. Fuji's contact
+                "secret_key_found": False,
+                "fossil_revived": False,
+                "revived_dome_fossil": False,  # Kabuto revived at Cinnabar Lab
+                "revived_helix_fossil": False,  # Omanyte revived at Cinnabar Lab
+                "victory_road_clear": False,  # Completed Victory Road gauntlet
+            },
         }
         # Load settings from game_data
         self.autosave_enabled = True

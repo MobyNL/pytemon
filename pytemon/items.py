@@ -35,6 +35,8 @@ CAT_ESCAPE = "escape"  # Escape Rope
 CAT_HM = "hm"  # Hidden Machine — teaches a move; never consumed
 CAT_TM = "tm"  # Technical Machine — teaches a move; consumed on use
 CAT_ROD = "rod"  # Fishing rod — used to fish for water Pokemon
+CAT_KEY = "key"  # Key item — cannot be tossed or used from the bag directly
+CAT_FOSSIL = "fossil"  # Fossil — can be revived by the Pokemon Lab on Cinnabar Island
 
 
 @dataclass
@@ -123,6 +125,19 @@ ITEM_DATA: dict[str, ItemData] = {
     "Ultra Ball": ItemData(desc="High catch rate (battle only)", emoji="⚫", cat=CAT_BALL),
     "Master Ball": ItemData(
         desc="Catches any wild Pokemon without fail (battle only)", emoji="🟣", cat=CAT_BALL
+    ),
+    # ── Key Items ──────────────────────────────────────────────────────────
+    "Secret Key": ItemData(desc="Key to the Cinnabar Island Gym", emoji="🗝️", cat=CAT_KEY),
+    # ── Fossils ────────────────────────────────────────────────────────────
+    "Dome Fossil": ItemData(
+        desc="Ancient Pokemon fossil — revive it at the Cinnabar Pokemon Lab",
+        emoji="🦕",
+        cat=CAT_FOSSIL,
+    ),
+    "Helix Fossil": ItemData(
+        desc="Ancient Pokemon fossil — revive it at the Cinnabar Pokemon Lab",
+        emoji="🐚",
+        cat=CAT_FOSSIL,
     ),
     # ── Hidden Machines (HM) ───────────────────────────────────────────────
     "HM01 Cut": ItemData(

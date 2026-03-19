@@ -930,6 +930,10 @@ def handle_trainer_defeated(game_state: "GameState", output: RichLog, end_battle
         from ..gym_system import handle_gym_victory
 
         handle_gym_victory(game_state, trainer["id"], output)
+    elif trainer.get("trainer_class") in ("Elite Four", "Champion"):
+        from ..buildings import handle_elite_four_victory
+
+        handle_elite_four_victory(game_state, trainer["id"], output)
     else:
         output.write("[bold]You won the battle![/bold]")
         output.write("")
@@ -972,10 +976,6 @@ def handle_pokemon_fainted(
     ]
 
     if other_ready:
-        # Heal the fainted Pokemon so it's ready after this battle
-        player["hp"] = player["max_hp"]
-        for m in player.get("moves", []):
-            m["pp"] = m.get("max_pp", m["pp"])
         output.write("[yellow]Your other Pokemon are still standing![/yellow]")
         if show_faint_options_callback:
             output.write("[dim]Choose your next Pokemon...[/dim]")
