@@ -12,6 +12,11 @@ from typing import TYPE_CHECKING, List
 
 from textual.widgets import Button, DataTable, Input, RichLog, Select, Static, TabbedContent
 
+from .. import gym_system, pc_system, pokedex
+from ..buildings import SHOP_CATALOG
+from ..data import POKEMON, get_move, get_trainer
+from .displays import populate_party_detail, populate_party_overview, show_party
+
 if TYPE_CHECKING:
     pass  # Avoid circular imports — self is always a PokemonTerminal at runtime
 
@@ -188,8 +193,6 @@ class PanelMixin:
 
     def show_move_selection_panel(self) -> None:
         """Show the move selection button panel and update button labels."""
-        from ..data import get_move
-
         battle_panel = self.query_one("#battle-actions")
         move_panel = self.query_one("#move-selection")
         battle_panel.add_class("hidden")
@@ -535,9 +538,6 @@ class PanelMixin:
 
     def show_gym_panel(self) -> None:
         """Show the gym lobby panel, updating dynamic content and button states."""
-        from .. import gym_system
-        from ..data import get_trainer
-
         self.hide_all_panels()
 
         location_name = (
@@ -641,13 +641,9 @@ class PanelMixin:
             panel = self.query_one("#pokedex-navigation")
             panel.remove_class("hidden")
 
-            from .. import pokedex
-
             view_state = pokedex.get_pokedex_state(self.game_state)
             current_page = view_state.get("current_page", 1)
             filter_mode = view_state.get("filter_mode", "all")
-
-            from ..data import POKEMON
 
             pokedex_data = self.game_state.game_data.get("pokedex", {})
             seen = set(pokedex_data.get("seen", []))
@@ -807,8 +803,6 @@ class PanelMixin:
 
     def show_pc_main_panel(self) -> None:
         """Show the PC main hub panel, updating box summary and button labels."""
-        from .. import pc_system
-
         try:
             storage = pc_system.get_pc_storage(self.game_state)
             total = pc_system.get_total_in_pc(self.game_state)
@@ -851,8 +845,6 @@ class PanelMixin:
 
     def show_pc_withdraw_panel(self, box_num: int) -> None:
         """Show the withdraw panel for the given box number."""
-        from .. import pc_system
-
         try:
             storage = pc_system.get_pc_storage(self.game_state)
             box_key = f"Box {box_num}"
@@ -875,10 +867,6 @@ class PanelMixin:
     def show_pokemart_panel(self) -> None:
         """Show the Pokemart shop panel and populate the item Select with current catalog."""
         try:
-            from textual.widgets import Select, Static
-
-            from ..buildings import SHOP_CATALOG
-
             money = self.game_state.game_data.get("money", 0)
             self.query_one("#pokemart-money", Static).update(f"Your money:  ₽{money}")
 
@@ -903,8 +891,6 @@ class PanelMixin:
         Tabs for empty slots are hidden.
         """
         try:
-            from .displays import populate_party_detail, populate_party_overview
-
             pokemon = self.game_state.game_data.get("pokemon", [])
             real_pokemon = [p for p in pokemon if not isinstance(p, str)]
             party_size = len(real_pokemon)
@@ -955,11 +941,7 @@ class PanelMixin:
         except Exception:
             # Fallback: write to main output log
             try:
-                from textual.widgets import RichLog as _RichLog
-
-                output = self.query_one("#output", _RichLog)
-                from .displays import show_party
-
+                output = self.query_one("#output", RichLog)
                 show_party(self.game_state, output, self.ensure_battle_ready)
             except Exception:
                 pass

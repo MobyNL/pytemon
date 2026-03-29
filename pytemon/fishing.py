@@ -16,6 +16,9 @@ from textual.widgets import RichLog
 if TYPE_CHECKING:
     from .game_state import GameState
 
+from .texts.en import fishing as T
+from .ui.formatters import write_lines
+
 # ---------------------------------------------------------------------------
 # Fishing data — rod → (species, weight) tables and level ranges
 # ---------------------------------------------------------------------------
@@ -144,18 +147,12 @@ def start_fishing(
     # --- Party check ---
     party = game_state.game_data.get("pokemon", [])
     if not party:
-        output.write("")
-        output.write("[yellow]⚠ You can't fish without Pokemon![/yellow]")
-        output.write("[dim]Get a starter from Professor Oak first.[/dim]")
-        output.write("")
+        write_lines(output, T.FISHING_NO_POKEMON)
         return
 
     # --- Location check ---
     if location.name not in _FISHING_LOCATIONS:
-        output.write("")
-        output.write("[yellow]⚠ You can't fish here![/yellow]")
-        output.write("[dim]Fish near water routes, lakes, or coastal areas.[/dim]")
-        output.write("")
+        write_lines(output, T.FISHING_WRONG_LOCATION)
         return
 
     # --- Rod selection ---
@@ -170,13 +167,7 @@ def start_fishing(
     else:
         chosen_rod = get_best_rod(game_state)
         if not chosen_rod:
-            output.write("")
-            output.write("[yellow]⚠ You don't have a fishing rod![/yellow]")
-            output.write("[dim]Obtain a fishing rod to catch water Pokemon.[/dim]")
-            output.write("[dim]  • Old Rod — basic, found early in the game[/dim]")
-            output.write("[dim]  • Good Rod — better variety[/dim]")
-            output.write("[dim]  • Super Rod — rare catches[/dim]")
-            output.write("")
+            write_lines(output, T.FISHING_NO_ROD)
             return
 
     # --- Casting ---
@@ -186,9 +177,7 @@ def start_fishing(
 
     nibble_chance = _NIBBLE_CHANCE.get(chosen_rod, 0.75)
     if random.random() > nibble_chance:
-        output.write("[dim]...Nothing. The water is still.[/dim]")
-        output.write("[dim]  Try again![/dim]")
-        output.write("")
+        write_lines(output, T.FISHING_NOTHING)
         return
 
     # --- Pick a Pokemon from the rod's table ---

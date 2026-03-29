@@ -9,7 +9,13 @@ from typing import TYPE_CHECKING
 
 from textual.widgets import RichLog
 
-from .formatters import format_experience_bar, format_experience_text, format_hp_bar
+from .. import items as _items
+from .. import pc_system
+from ..data import POKEMON, get_move
+from ..gym_system import show_badge_case as show_badges
+from ..texts.en import displays as TDISP
+from ..texts.en import items as TITEMS
+from .formatters import format_experience_bar, format_experience_text, format_hp_bar, write_lines
 
 if TYPE_CHECKING:
     from ..game_state import GameState
@@ -25,34 +31,19 @@ def activate_pikachu_mode(game_state: "GameState", output: RichLog) -> None:
     """
     if game_state.game_data.get("pokemon", []):
         # Player already has Pokemon, can't activate
-        output.write("")
-        output.write("[dim]...Nothing happened.[/dim]")
-        output.write("")
+        write_lines(output, TDISP.PIKACHU_MODE_NOTHING)
         return
 
     if game_state.pikachu_mode:
         # Already activated
-        output.write("")
-        output.write("[yellow]You're already running late! Better hurry to the lab![/yellow]")
-        output.write("")
+        write_lines(output, TDISP.PIKACHU_MODE_ALREADY)
         return
 
     # Activate Pikachu mode
     game_state.pikachu_mode = True
     game_state.game_data["pikachu_mode"] = True
 
-    output.write("")
-    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
-    output.write("[bold yellow]⏰ Oh no! You overslept! ⏰[/bold yellow]")
-    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
-    output.write("")
-    output.write("[yellow]You rush downstairs and run to Professor Oak's Lab![/yellow]")
-    output.write(
-        "[yellow]By the time you arrive, the other trainers have already chosen their Pokemon![/yellow]"
-    )
-    output.write("")
-    output.write("[dim]A special encounter awaits you...[/dim]")
-    output.write("")
+    write_lines(output, TDISP.PIKACHU_MODE_ACTIVATED)
 
 
 def show_party(game_state: "GameState", output: RichLog, ensure_battle_ready_callback) -> None:
@@ -64,14 +55,11 @@ def show_party(game_state: "GameState", output: RichLog, ensure_battle_ready_cal
         output: The RichLog widget to write to
         ensure_battle_ready_callback: Callback to ensure Pokemon has battle stats
     """
-    output.write("")
-    output.write("[bold cyan]👥 Your Pokemon Party[/bold cyan]")
-    output.write("")
+    write_lines(output, TDISP.PARTY_HEADER)
 
     pokemon = game_state.game_data.get("pokemon", [])
     if not pokemon:
-        output.write("[dim]You don't have any Pokemon yet![/dim]")
-        output.write("")
+        write_lines(output, TDISP.PARTY_EMPTY)
         return
 
     for i, p in enumerate(pokemon, 1):
@@ -108,8 +96,6 @@ def show_party(game_state: "GameState", output: RichLog, ensure_battle_ready_cal
             output.write("")
     output.write(f"[dim]Party size: {len(pokemon)}/6[/dim]")
     # Show PC tally if anything is stored
-    from .. import pc_system
-
     pc_total = pc_system.get_total_in_pc(game_state)
     if pc_total > 0:
         output.write(f"[dim]💾 Bill's PC: {pc_total} Pokemon stored — type 'pc' to manage[/dim]")
@@ -211,8 +197,6 @@ def populate_party_detail(log: RichLog, p: dict, slot: int, ensure_battle_ready_
         slot: 1-based slot index
         ensure_battle_ready_callback: Callback to fill in missing battle fields
     """
-    from ..data import POKEMON, get_move
-
     # Human-readable descriptions for move effect keys
     EFFECT_DESC = {
         "absorb": "Restores ½ dmg dealt as HP",
@@ -421,17 +405,11 @@ def show_bag(game_state: "GameState", output: RichLog) -> None:
         game_state: The game state
         output: The RichLog widget to write to
     """
-    from .. import items as _items
-
-    output.write("")
-    output.write("[bold cyan]🎒 Your Bag[/bold cyan]")
-    output.write("")
+    write_lines(output, TITEMS.BAG_HEADER)
 
     bag = game_state.game_data.get("items", {})
     if not bag:
-        output.write("[dim]Your bag is empty![/dim]")
-        output.write("[dim]Buy items at the Pokemart, or find them while exploring.[/dim]")
-        output.write("")
+        write_lines(output, TITEMS.BAG_EMPTY)
         return
 
     # ── Build category buckets ──────────────────────────────────────────────
@@ -508,9 +486,6 @@ def show_badge_case(game_state: "GameState", output: RichLog) -> None:
         game_state: The game state
         output: The RichLog widget to write to
     """
-    # Import here to avoid circular import
-    from ..gym_system import show_badge_case as show_badges
-
     show_badges(game_state, output)
 
 

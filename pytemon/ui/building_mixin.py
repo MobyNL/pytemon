@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from textual.widgets import Input, RichLog
 
-from .. import buildings, exploration
+from .. import buildings, exploration, gym_system, pc_system
 from ..locations import get_location as _get_location
 
 if TYPE_CHECKING:
@@ -122,8 +122,6 @@ class BuildingMixin:
 
     def _open_pc_from_center(self, output: RichLog) -> None:
         """Open Bill's PC from inside the Pokemon Center."""
-        from .. import pc_system
-
         pc_system.show_pc_menu(self.game_state, output)
         self.hide_all_panels()
         self.show_pc_main_panel()
@@ -173,8 +171,6 @@ class BuildingMixin:
 
     def _gym_challenge_leader(self, output: RichLog) -> None:
         """Challenge the gym leader at the current location."""
-        from .. import gym_system
-
         if not self.game_state.current_location:
             output.write("[red]❌ No current location[/red]")
             return
@@ -204,8 +200,6 @@ class BuildingMixin:
 
     def _gym_fight_trainer(self, output: RichLog) -> None:
         """Challenge the next gym trainer at the current location."""
-        from .. import gym_system
-
         if not self.game_state.current_location:
             output.write("[red]❌ No current location[/red]")
             return
@@ -571,9 +565,7 @@ class BuildingMixin:
         output.write("")
 
         self.update_pallet_town_buildings()
-        from .. import exploration as _exp
-
-        _exp.show_location_arrival(self.game_state, output)
+        exploration.show_location_arrival(self.game_state, output)
 
     def random_name_selection(self, output: RichLog) -> None:
         """Generate random names for player and rival."""

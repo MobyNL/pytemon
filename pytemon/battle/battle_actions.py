@@ -10,12 +10,15 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog
 
-from .. import pokedex
+from .. import evolution as _evo_module
+from .. import pc_system, pokedex
 from .. import stats as _stats
 from ..data import get_move
 from ..data.move_data import MoveSlot
 from ..engine.battle_engine import BattleState
+from ..gym_system import handle_gym_victory
 from ..locations import get_location
+from . import battle_ui
 
 if TYPE_CHECKING:
     from ..data.trainer_data import Trainer
@@ -90,8 +93,6 @@ def trigger_wild_encounter(
             displays the battle-start animation and calls ``on_ready()`` when done.
             When omitted the default instant display is used.
     """
-    from . import battle_ui
-
     location = game_state.current_location
 
     # Get the first non-fainted Pokemon
@@ -116,6 +117,9 @@ def trigger_wild_encounter(
     # Create and start battle
     bs = BattleState()
     bs.start_wild_battle(player_pokemon, wild_species, wild_level)
+    # Safari Zone: no HP damage, special catch mechanics
+    if location and location.name == "Safari Zone":
+        bs.is_safari = True
     game_state.battle_state = bs
     game_state.in_battle = True
 
@@ -166,8 +170,6 @@ def trigger_trainer_encounter(
             displays the battle-start animation and calls ``on_ready()`` when done.
             When omitted the default instant display is used.
     """
-    from . import battle_ui
-
     # Get the first non-fainted Pokemon
     player_pokemon = game_state.get_active_pokemon()
 
@@ -544,8 +546,6 @@ def attempt_catch_pokemon(
             pokemon_party = game_state.game_data.get("pokemon", [])
 
             if len(pokemon_party) >= 6:
-                from .. import pc_system
-
                 caught_pokemon = {
                     "name": wild["name"],
                     "number": wild.get("number", 0),
@@ -653,6 +653,154 @@ def attempt_catch_pokemon(
         for line in shake_lines:
             output.write(line)
         _after_shake()
+
+
+def handle_safari_action(
+    game_state: "GameState",
+    output: RichLog,
+    action: str,
+    pending_command_callback,
+    show_battle_options_callback,
+    end_battle_callback,
+) -> None:
+    """
+    Handle a Safari Zone action: bait, rock, ball, or run.
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+        action: One of "bait", "rock", "ball", "run"
+        pending_command_callback: Callback to set pending command
+        show_battle_options_callback: Callback to show battle options
+        end_battle_callback: Callback to end battle cleanly
+    """
+    battle = game_state.battle_state
+    if not battle or not battle.is_safari:
+        return
+
+    wild = battle.wild_pokemon
+
+    if action == "bait":
+        battle.safari_bait_turns = 3
+        battle.safari_rock_turns = 0
+        output.write("")
+        output.write(f"[cyan]🥩 You tossed some Bait at {wild['name']}...[/cyan]")
+        output.write(f"[dim]   {wild['name']} is distracted by the food![/dim]")
+        output.write("")
+
+    elif action == "rock":
+        battle.safari_rock_turns = 2
+        battle.safari_bait_turns = 0
+        output.write("")
+        output.write(f"[red]🪨 You threw a Rock at {wild['name']}...[/red]")
+        output.write(f"[dim]   {wild['name']} became angry![/dim]")
+        output.write("")
+
+    elif action == "ball":
+        items = game_state.game_data.get("items", {})
+        safari_balls = items.get("Safari Ball", 0)
+        if safari_balls <= 0:
+            output.write("")
+            output.write("[red]❌ You have no Safari Balls left![/red]")
+            output.write("")
+            show_battle_options_callback(output)
+            pending_command_callback("battle")
+            return
+
+        items["Safari Ball"] = safari_balls - 1
+
+        output.write("")
+        output.write(f"[bold cyan]🎯 You threw a Safari Ball at {wild['name']}![/bold cyan]")
+        output.write("")
+
+        caught, shakes, messages = battle.attempt_catch("Safari Ball")
+
+        wiggle_text = "● " * shakes + "○ " * (4 - shakes)
+        for msg in messages:
+            output.write(msg)
+        output.write(f"[dim]{wiggle_text.strip()}[/dim]")
+        output.write("")
+
+        if caught:
+            pokemon_party = game_state.game_data.get("pokemon", [])
+            caught_pokemon = {
+                "name": wild["name"],
+                "number": wild.get("number", 0),
+                "level": wild["level"],
+                "types": wild["types"],
+                "hp": wild["hp"],
+                "max_hp": wild["max_hp"],
+                "stats": wild["stats"],
+                "moves": wild["moves"],
+                "experience": 0,
+                "next_level_exp": battle.calculate_exp_for_level(wild["level"] + 1),
+                "status": None,
+                "no_evolve": False,
+            }
+            if len(pokemon_party) >= 6:
+                placed_box = pc_system.send_to_pc(game_state, caught_pokemon)
+                if placed_box:
+                    output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
+                    output.write(
+                        f"[yellow]  Your party is full — {wild['name']} was sent to {placed_box}![/yellow]"
+                    )
+                else:
+                    output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
+                    output.write(
+                        f"[red]  Your party and PC are both full! {wild['name']} could not be stored.[/red]"
+                    )
+            else:
+                pokemon_party.append(caught_pokemon)
+                output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
+                output.write(f"[green]✓ {wild['name']} was added to your party![/green]")
+
+            species = wild.get("species", wild["name"]).upper()
+            if pokedex.mark_as_caught(game_state, species):
+                output.write(f"[dim]📖 Pokedex: {wild['name']} was registered as caught![/dim]")
+                caught_count = len(game_state.game_data.get("pokedex", {}).get("caught", []))
+                milestone_msg = pokedex.get_caught_milestone_message(caught_count)
+                if milestone_msg:
+                    output.write(f"[bold yellow]{milestone_msg}[/bold yellow]")
+
+            output.write("")
+            _stats.record_catch(game_state, wild.get("species", wild["name"]))
+            end_battle_callback(output)
+            return
+        else:
+            if shakes == 0:
+                output.write(f"[yellow]Oh no! {wild['name']} broke free immediately![/yellow]")
+            elif shakes == 1:
+                output.write("[yellow]Aww! It appeared to be caught![/yellow]")
+            elif shakes == 2:
+                output.write("[yellow]Aargh! Almost had it![/yellow]")
+            elif shakes == 3:
+                output.write("[yellow]Gah! It was so close, too![/yellow]")
+            output.write("")
+
+    elif action == "run":
+        output.write("")
+        output.write("[yellow]You safely fled from the Safari Zone encounter![/yellow]")
+        output.write("")
+        end_battle_callback(output)
+        return
+
+    # After action: check if wild Pokemon flees (except on run which already returned)
+    flee_chance = 0.10  # base flee chance per turn
+    if battle.safari_rock_turns > 0:
+        flee_chance = 0.35  # angry Pokemon flee more
+        battle.safari_rock_turns -= 1
+    elif battle.safari_bait_turns > 0:
+        flee_chance = 0.02  # baited Pokemon rarely flee
+        battle.safari_bait_turns -= 1
+
+    if random.random() < flee_chance:
+        output.write(f"[yellow]{wild['name']} fled![/yellow]")
+        output.write("")
+        end_battle_callback(output)
+        return
+
+    show_battle_options_callback(output)
+    pending_command_callback("battle")
 
 
 def execute_switch(
@@ -831,8 +979,6 @@ def handle_battle_victory(
             break
 
     # Determine what comes next after this Pokemon faints
-    from .. import evolution as _evo_module
-
     evo_target = _evo_module.get_level_evolution(player)
 
     # If the trainer has more Pokemon left, defer evolution until after the whole battle.
@@ -927,8 +1073,6 @@ def handle_trainer_defeated(game_state: "GameState", output: RichLog, end_battle
 
     # Check if this was a gym leader and award badge
     if trainer.get("trainer_class") == "Gym Leader":
-        from ..gym_system import handle_gym_victory
-
         handle_gym_victory(game_state, trainer["id"], output)
     else:
         output.write("[bold]You won the battle![/bold]")

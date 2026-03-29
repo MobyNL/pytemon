@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from textual.widgets import RichLog
 
+from .texts.en import pokedex as T
+from .ui.formatters import write_lines
+
 if TYPE_CHECKING:
     from .game_state import GameState
 
@@ -321,11 +324,7 @@ def show_pokedex(
     page_entries = filtered_list[start_idx:end_idx]
 
     # Display header
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]            📖 POKEDEX 📖                 [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.POKEDEX_HEADER)
 
     # Show statistics
     output.write(
@@ -363,7 +362,7 @@ def show_pokedex(
 
     # Display Pokemon entries for current page
     if not page_entries:
-        output.write("[dim]No Pokemon match this filter.[/dim]")
+        write_lines(output, T.POKEDEX_NO_MATCH)
     else:
         for number, species_name, data, is_seen_flag, is_caught_flag in page_entries:
             # Format entry
@@ -392,9 +391,7 @@ def show_pokedex(
                 status = "[dim]●[/dim]"  # Not seen
                 output.write(f"{status} [dim]#{number:03d} ???[/dim]")
 
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.POKEDEX_DIVIDER)
 
     # Navigation help
     if total_pages > 1:
@@ -453,15 +450,10 @@ def show_pokedex_entry(game_state: "GameState", output: RichLog, species: str) -
     is_seen_flag = found_species in seen
     is_caught_flag = found_species in caught
 
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]         📖 POKEDEX ENTRY 📖               [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.POKEDEX_ENTRY_HEADER)
 
     if not is_seen_flag:
-        output.write("[dim]No data available - Pokemon not yet encountered[/dim]")
-        output.write("")
+        write_lines(output, T.POKEDEX_ENTRY_NOT_SEEN)
         return
 
     # Display entry

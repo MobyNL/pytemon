@@ -30,6 +30,19 @@ def get_battle_start_lines(game_state: "GameState") -> List[str]:
     battle = game_state.battle_state
     wild = battle.wild_pokemon
     player = battle.player_pokemon
+
+    if battle.is_safari:
+        return [
+            "",
+            "[bold green]═══════════════════════════════════════════[/bold green]",
+            f"[bold green]🦁  A wild {wild['name']} appeared! (Lv. {wild['level']})  🦁[/bold green]",
+            "[bold green]═══════════════════════════════════════════[/bold green]",
+            "",
+            "[dim]You're in the Safari Zone — you can't battle here![/dim]",
+            "[dim]Use Bait, Rock, or throw a Safari Ball![/dim]",
+            "",
+        ]
+
     return [
         "",
         "[bold red]═══════════════════════════════════════════[/bold red]",
@@ -142,13 +155,34 @@ def show_battle_options(game_state: "GameState", output: RichLog) -> None:
     output.write("")
     output.write("[bold yellow]What will you do?[/bold yellow]")
     items = game_state.game_data.get("items", {})
-    pokeballs = items.get("Pokeball", 0)
 
+    # Safari Zone: show Bait/Rock/Safari Ball/Run instead of normal options
+    if battle.is_safari:
+        safari_balls = items.get("Safari Ball", 0)
+        status_parts = []
+        if battle.safari_bait_turns > 0:
+            status_parts.append(f"[green]🥩 Bait ({battle.safari_bait_turns}t)[/green]")
+        if battle.safari_rock_turns > 0:
+            status_parts.append(f"[red]🪨 Rock ({battle.safari_rock_turns}t)[/red]")
+        if status_parts:
+            output.write("  " + "  |  ".join(status_parts))
+        if safari_balls > 0:
+            output.write(
+                f"  [green]Safari Ball[/green] ({safari_balls})"
+                "  |  [cyan]Bait[/cyan]  |  [cyan]Rock[/cyan]  |  [yellow]Run[/yellow]"
+            )
+        else:
+            output.write(
+                "  [dim]No Safari Balls![/dim]"
+                "  |  [cyan]Bait[/cyan]  |  [cyan]Rock[/cyan]  |  [yellow]Run[/yellow]"
+            )
     # Show different options for trainer battles
-    if battle.is_trainer_battle:
+    elif battle.is_trainer_battle:
+        pokeballs = items.get("Pokeball", 0)
         output.write("  [cyan]Fight[/cyan]  |  [cyan]Switch[/cyan]  |  [cyan]Item[/cyan]")
         output.write("[dim]  (Can't flee or catch in trainer battles)[/dim]")
     else:
+        pokeballs = items.get("Pokeball", 0)
         output.write("  [cyan]Fight[/cyan]  |  [cyan]Switch[/cyan]  |  [cyan]Item[/cyan]")
         if pokeballs > 0:
             output.write(

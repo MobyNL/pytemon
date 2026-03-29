@@ -253,7 +253,7 @@ LOCATIONS: Dict[str, Location] = {
     ),
     "Mt. Moon": Location(
         name="Mt. Moon",
-        location_type=TYPE_FOREST,
+        location_type=TYPE_DUNGEON,
         description="A twisting cave system riddled with Zubat and Clefairy. Deep inside, researchers dig for fossils, and a strange sparkling stone has been sighted near the exit tunnel.",
         exits={
             "Route 3": {"direction": "west", "blocked": False, "min_explores": 8},

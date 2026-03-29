@@ -16,6 +16,7 @@ What stays here:
 """
 
 import asyncio
+import math
 import os
 from pathlib import Path
 
@@ -39,9 +40,16 @@ from textual.widgets import (
 )
 
 # ── Original modules (kept for on_input_submitted and process_command) ──────
-from . import cheat_commands, exploration
+from . import buildings, cheat_commands, exploration, pc_system, pokedex
 
 # Game modules
+from . import evolution as _evo
+from . import fishing as _fishing
+from . import hm_tm_system as _hm_tm
+from . import items as _items
+from . import stats as _stats
+from .buildings import SHOP_CATALOG
+from .data.pokemon_data import POKEMON, get_pokemon
 from .game_state import GameState
 from .ui import displays
 from .ui.battle_mixin import BattleMixin
@@ -754,8 +762,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             self.hide_all_panels()
             self.pending_command = None
             self.pending_command_data = {}
-            from . import buildings
-
             buildings.perform_mom_heal(self.game_state, output)
         elif button_id == "btn-nurse-joy-no":
             output.write("[bold yellow]🎮 >[/bold yellow] No")
@@ -774,8 +780,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         elif button_id == "btn-pc-center-heal":
             output.write("[bold yellow]🎮 >[/bold yellow] Heal Pokemon")
             self.hide_all_panels()
-            from . import buildings
-
             buildings.perform_pokemon_center_heal(self.game_state, output)
             self._return_to_pokemon_center(output)
         elif button_id == "btn-pc-center-usepc":
@@ -796,8 +800,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         elif button_id.startswith("btn-pc-view-box-"):
             box_num = int(button_id.split("-")[-1])
             output.write(f"[bold yellow]🎮 >[/bold yellow] View Box {box_num}")
-            from . import pc_system
-
             pc_system.show_pc_box(self.game_state, box_num, output)
             self.query_one("#pc-panel").add_class("hidden")
             self.pending_command_data["pc_box"] = box_num
@@ -820,8 +822,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             slot_num = slot_idx + 1
             output.write(f"[bold yellow]🎮 >[/bold yellow] Deposit slot {slot_num}")
             self.query_one("#pc-deposit-panel").add_class("hidden")
-            from . import pc_system
-
             pc_system.process_pc_command(
                 self.game_state,
                 f"deposit {slot_num}",
@@ -839,8 +839,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             box_num = self.pending_command_data.get("pc_box", 1)
             output.write(f"[bold yellow]🎮 >[/bold yellow] Withdraw Box {box_num} Slot {slot_num}")
             self.query_one("#pc-withdraw-panel").add_class("hidden")
-            from . import pc_system
-
             pc_system.process_pc_command(
                 self.game_state,
                 f"withdraw {box_num} {slot_num}",
@@ -892,8 +890,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                     self.query_one("#pokemart-money", Static).update(f"Your money:  ₽{money}")
                 elif result == "ok":
                     qty_input.remove_class("shop-error")
-                    from .buildings import SHOP_CATALOG
-
                     money = self.game_state.game_data.get("money", 0)
                     self.query_one("#pokemart-money", Static).update(f"Your money:  ₽{money}")
                     options = [
@@ -961,8 +957,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
             def do_evolve() -> None:
                 if pokemon_ref is not None:
-                    from . import evolution as _evo
-
                     _evo.force_evolve(
                         self.game_state,
                         pokemon_ref,
@@ -1054,6 +1048,8 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                 self.trigger_trainer_encounter,
                 lambda cmd: setattr(self, "pending_command", cmd),
                 lambda: self.show_battle_action_panel(),
+                self.handle_battle_victory,
+                self.handle_pokemon_fainted,
             )
             return
 
@@ -1300,8 +1296,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         elif cmd.startswith("fly to "):
             destination = command[7:].strip()
             if destination:
-                from . import hm_tm_system as _hm_tm
-
                 _hm_tm.fly_to_town(self.game_state, destination, output)
             else:
                 self._handle_hm_field(output, "FLY")
@@ -1330,8 +1324,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def open_pc(self, output: RichLog) -> None:
         """Open Bill's PC storage system."""
-        from . import pc_system
-
         pc_system.show_pc_menu(self.game_state, output)
         self.pending_command = "pc"
 
@@ -1348,8 +1340,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
         Examples: ``use potion`` / ``use fire stone on eevee`` / ``use revive on 2``
         """
-        from . import items as _items
-
         # Strip leading "use " (case-insensitive already handled by cmd)
         rest = command[4:].strip()
 
@@ -1382,8 +1372,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
         Examples: ``fish`` / ``fish with old rod`` / ``go fishing with super rod``
         """
-        from . import fishing as _fishing
-
         cmd = command.lower()
         rod_hint = None
         if "with " in cmd:
@@ -1398,8 +1386,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def _trigger_fishing_encounter(self, output: RichLog, species: str, level: int) -> None:
         """Trigger a wild encounter with a specific fishing Pokemon."""
-        from .data.pokemon_data import get_pokemon, POKEMON
-
         species_upper = species.upper()
 
         # Build a wild Pokemon dict for the encounter
@@ -1429,8 +1415,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output:    RichLog widget.
             move_name: Upper-case HM move name (e.g. ``"SURF"``).
         """
-        from . import hm_tm_system as _hm_tm
-
         _hm_tm.use_hm_field(self.game_state, move_name, output)
 
     def show_map(self, output: RichLog) -> None:
@@ -1439,21 +1423,15 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def show_adventure_stats(self, output: RichLog) -> None:
         """Display battle and exploration statistics."""
-        from . import stats as _stats
-
         _stats.show_stats(self.game_state, output)
 
     def show_pokedex(self, output: RichLog, filter_mode: str = "all", page: int = None) -> None:
         """Display the Pokedex with pagination."""
-        from . import pokedex
-
         pokedex.show_pokedex(self.game_state, output, filter_mode, page)
         self.show_pokedex_navigation()
 
     def pokedex_next_page(self, output: RichLog) -> None:
         """Navigate to next Pokedex page."""
-        from . import pokedex
-
         view_state = pokedex.get_pokedex_state(self.game_state)
         pokedex.show_pokedex(
             self.game_state,
@@ -1465,8 +1443,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def pokedex_prev_page(self, output: RichLog) -> None:
         """Navigate to previous Pokedex page."""
-        from . import pokedex
-
         view_state = pokedex.get_pokedex_state(self.game_state)
         current_page = view_state.get("current_page", 1)
         if current_page > 1:
@@ -1481,19 +1457,12 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def pokedex_first_page(self, output: RichLog) -> None:
         """Navigate to the first Pokedex page."""
-        from . import pokedex
-
         view_state = pokedex.get_pokedex_state(self.game_state)
         pokedex.show_pokedex(self.game_state, output, view_state.get("filter_mode", "all"), 1)
         self.show_pokedex_navigation()
 
     def pokedex_last_page(self, output: RichLog) -> None:
         """Navigate to the last Pokedex page."""
-        import math
-
-        from . import pokedex
-        from .data import POKEMON
-
         view_state = pokedex.get_pokedex_state(self.game_state)
         filter_mode = view_state.get("filter_mode", "all")
         pokedex_data = self.game_state.game_data.get("pokedex", {})
@@ -1515,8 +1484,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def pokedex_goto_page(self, output: RichLog, page_num: int) -> None:
         """Go to specific Pokedex page."""
-        from . import pokedex
-
         view_state = pokedex.get_pokedex_state(self.game_state)
         if page_num < 1:
             output.write("")
@@ -1530,8 +1497,6 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     def show_pokedex_entry(self, output: RichLog, species: str) -> None:
         """Display a specific Pokedex entry."""
-        from . import pokedex
-
         pokedex.show_pokedex_entry(self.game_state, output, species)
 
     def inspect_pokemon(self, output: RichLog, target: str) -> None:
@@ -1579,13 +1544,10 @@ def launch_terminal() -> None:
     try:
         app.run()
     finally:
-        import os as _os
-        from pathlib import Path as _Path
-
-        lock_file = _os.environ.get("POKEMON_LOCK_FILE")
+        lock_file = os.environ.get("POKEMON_LOCK_FILE")
         if lock_file:
             try:
-                _Path(lock_file).unlink()
+                Path(lock_file).unlink()
             except Exception:
                 pass
 

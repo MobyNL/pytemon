@@ -17,7 +17,7 @@ from pytemon.data.trainer_data import TRAINER_CLASSES, TRAINERS
 from pytemon.exploration import explore_area
 from pytemon.game_state import GameState
 from pytemon.gym_system import GYMS, can_challenge_gym, get_gym_trainers
-from pytemon.locations import LOCATIONS, TYPE_FOREST, TYPE_ROUTE, TYPE_TOWN, get_location
+from pytemon.locations import LOCATIONS, TYPE_DUNGEON, TYPE_FOREST, TYPE_ROUTE, TYPE_TOWN, get_location
 
 
 class MockRichLog:
@@ -84,7 +84,7 @@ class TestNewLocations:
 
     def test_mt_moon_exists(self):
         assert "Mt. Moon" in LOCATIONS
-        assert LOCATIONS["Mt. Moon"].type == TYPE_FOREST
+        assert LOCATIONS["Mt. Moon"].type == TYPE_DUNGEON
 
     def test_mt_moon_can_explore(self):
         assert LOCATIONS["Mt. Moon"].can_explore() is True

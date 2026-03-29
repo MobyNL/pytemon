@@ -5,6 +5,7 @@ This module handles location navigation, area exploration, and related displays.
 """
 
 import random
+from dataclasses import replace as _dataclass_replace
 from typing import TYPE_CHECKING
 
 from textual.widgets import RichLog
@@ -12,7 +13,8 @@ from textual.widgets import RichLog
 from . import stats as _stats
 from .data import get_trainers_by_location
 from .locations import get_location
-from .ui.formatters import format_list, get_travel_description
+from .texts.en import exploration as T
+from .ui.formatters import format_list, get_travel_description, write_lines
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -101,12 +103,7 @@ def move_to_location(
         and not pokemon
         and not game_state.cheat_mode
     ):
-        output.write("")
-        output.write("[bold red]Professor Oak:[/bold red] [cyan]Wait! Don't go out there![/cyan]")
-        output.write("")
-        output.write("[cyan]   It's dangerous to go alone without a Pokemon![/cyan]")
-        output.write("[cyan]   Come to my lab and I'll give you your first Pokemon![/cyan]")
-        output.write("")
+        write_lines(output, T.OAK_NO_POKEMON_WARNING)
         return
 
     # Move to the new location
@@ -120,6 +117,12 @@ def move_to_location(
     game_state.game_data["location"] = new_location.name
     # Reset explore counter for the destination — requirements apply fresh every visit
     game_state.game_data.setdefault("route_progress", {})[new_location.name] = 0
+
+    # Flash wears off when leaving a location
+    flash_lit: list = game_state.game_data.get("flash_lit_locations", [])
+    if current.name in flash_lit:
+        flash_lit.remove(current.name)
+        game_state.game_data["flash_lit_locations"] = flash_lit
 
     # Autosave silently on every location change
     autosave_path = game_state.autosave_on_location_change()
@@ -147,15 +150,10 @@ def prompt_for_location(
     available_exits = current.get_available_exits()
 
     if not available_exits:
-        output.write("")
-        output.write("[yellow]⚠ There are no available paths from here[/yellow]")
-        output.write("")
+        write_lines(output, T.NO_AVAILABLE_PATHS)
         return
 
-    output.write("")
-    output.write("[bold cyan]🗺️  Where would you like to go?[/bold cyan]")
-    output.write("")
-    output.write("[bold green]Available destinations:[/bold green]")
+    write_lines(output, T.SELECT_DESTINATION_HEADER)
 
     for exit_name in available_exits:
         exit_data = current.exits[exit_name]
@@ -174,13 +172,10 @@ def prompt_for_location(
 
     # Use panel callback if provided, otherwise show text-based prompt
     if show_panel_callback:
-        output.write("[yellow]Select a destination from the menu above[/yellow]")
-        output.write("")
+        write_lines(output, T.SELECT_DESTINATION_PANEL_PROMPT)
         show_panel_callback(available_exits)
     else:
-        output.write("[yellow]Type the name of the location you want to visit:[/yellow]")
-        output.write("[dim](or type 'cancel' to go back)[/dim]")
-        output.write("")
+        write_lines(output, T.SELECT_DESTINATION_TEXT_PROMPT)
 
     set_pending_command_callback("move_to")
 
@@ -196,16 +191,10 @@ def prompt_for_building(
     current = game_state.current_location
 
     if not current.buildings:
-        output.write("")
-        output.write("[yellow]⚠ There are no buildings here to enter[/yellow]")
-        output.write("[dim]You can only enter buildings in towns and cities[/dim]")
-        output.write("")
+        write_lines(output, T.NO_BUILDINGS_HERE)
         return
 
-    output.write("")
-    output.write("[bold cyan]🏛️  Which building would you like to enter?[/bold cyan]")
-    output.write("")
-    output.write("[bold green]Available buildings:[/bold green]")
+    write_lines(output, T.SELECT_BUILDING_HEADER)
 
     for building in current.buildings:
         output.write(f"  🏛️  [green]{building}[/green]")
@@ -220,13 +209,10 @@ def prompt_for_building(
 
     # Use panel callback if provided, otherwise show text-based prompt
     if show_panel_callback:
-        output.write("[yellow]Select a building from the menu above[/yellow]")
-        output.write("")
+        write_lines(output, T.SELECT_BUILDING_PANEL_PROMPT)
         show_panel_callback(current.buildings)
     else:
-        output.write("[yellow]Type the name of the building you want to enter:[/yellow]")
-        output.write("[dim](or type 'cancel' to go back)[/dim]")
-        output.write("")
+        write_lines(output, T.SELECT_BUILDING_TEXT_PROMPT)
 
     set_pending_command_callback("enter_building")
 
@@ -314,11 +300,9 @@ def show_location_arrival(game_state: "GameState", output: RichLog, is_load: boo
 
     # Show exploration hint
     if location.can_explore():
-        output.write(
-            "[yellow]💡 Tip:[/yellow] Use the [cyan]'Explore'[/cyan] command to search this area"
-        )
+        write_lines(output, T.ARRIVAL_EXPLORE_TIP)
         if location.wild_pokemon:
-            output.write("[dim]   for wild Pokemon encounters[/dim]")
+            write_lines(output, T.ARRIVAL_EXPLORE_WILD)
         forward_exits = [
             (n, d["min_explores"])
             for n, d in location.exits.items()
@@ -327,11 +311,10 @@ def show_location_arrival(game_state: "GameState", output: RichLog, is_load: boo
         if forward_exits and any(
             game_state.get_route_progress(location.name) < req for _, req in forward_exits
         ):
-            output.write("[dim]   Explore this area to unlock forward paths.[/dim]")
+            write_lines(output, T.ARRIVAL_EXPLORE_UNLOCK)
         output.write("")
 
-    output.write("[dim]Type 'Help' to see all available commands[/dim]")
-    output.write("")
+    write_lines(output, T.ARRIVAL_FOOTER)
 
 
 def look_around(game_state: "GameState", output: RichLog, auto: bool = False) -> None:
@@ -363,9 +346,9 @@ def look_around(game_state: "GameState", output: RichLog, auto: bool = False) ->
 
     # Show exploration hint for routes/forests
     if location.can_explore():
-        output.write("[yellow]💡 This area can be explored[/yellow]")
+        write_lines(output, T.LOOK_AROUND_EXPLORE_HINT)
         if location.wild_pokemon:
-            output.write("[dim]   Wild Pokemon may appear when exploring[/dim]")
+            write_lines(output, T.LOOK_AROUND_WILD_HINT)
         if location.trainers > 0:
             output.write(f"[dim]   {location.trainers} trainer(s) may challenge you[/dim]")
         forward_exits = [
@@ -598,6 +581,14 @@ def explore_area(
     output.write(f"[bold cyan]🔍 Exploring {location.name}...[/bold cyan]")
     output.write("")
 
+    # ── Rock Tunnel darkness check ────────────────────────────────────────────
+    flash_lit: list = game_state.game_data.get("flash_lit_locations", [])
+    _is_dark_tunnel = location.name == "Rock Tunnel" and location.name not in flash_lit
+    if _is_dark_tunnel:
+        output.write("[dim]🌑 The tunnel is pitch black — encounters are far more frequent![/dim]")
+        output.write("[dim]   Use Flash to illuminate the cave and reduce wild encounter rate.[/dim]")
+        output.write("")
+
     # Check for undefeated trainers first (60% chance to encounter if available)
     trainers = get_trainers_by_location(location.name)
     defeated_ids = game_state.game_data.get("defeated_trainers", [])
@@ -614,6 +605,14 @@ def explore_area(
     if available_trainers and random.random() < location.trainer_encounter_rate:
         # Encounter a random undefeated trainer
         trainer = random.choice(available_trainers)
+        # In dark Rock Tunnel without Flash, trainer names/details are hidden
+        if _is_dark_tunnel:
+            trainer = _dataclass_replace(
+                trainer,
+                name="???",
+                trainer_class="Trainer",
+                intro_text=["[dim]Someone jumps at you from the darkness...[/dim]"],
+            )
         game_state.increment_route_progress(location.name)
         _stats.record_explore(game_state, location.name)
         trigger_trainer_callback(output, trainer)
@@ -635,6 +634,9 @@ def explore_area(
     cycling = game_state.game_data.get("cycling", False)
     explore_step = 2 if cycling else 1
     wild_encounter_rate = location.wild_encounter_rate
+    if _is_dark_tunnel:
+        # Darkness triples the encounter rate (capped at 100%)
+        wild_encounter_rate = min(1.0, wild_encounter_rate * 3.0)
     if cycling:
         wild_encounter_rate = wild_encounter_rate * 0.5
 
@@ -655,6 +657,33 @@ def explore_area(
                     output.write("[dim]   The Repel wore off![/dim]")
                 output.write("")
                 return
+        # ── Silph Scope gating for Pokemon Tower ──────────────────────────────
+        if location.name == "Pokemon Tower":
+            _bag = game_state.game_data.get("items", {})
+            has_silph_scope = bool(_bag.get("Silph Scope", 0))
+            if not has_silph_scope:
+                ghost_species = {"GASTLY", "HAUNTER"}
+                ghost_pool = [p for p in location.wild_pokemon if p in ghost_species]
+                if ghost_pool and random.random() < 0.70:
+                    game_state.increment_route_progress(location.name, explore_step)
+                    _stats.record_explore(game_state, location.name)
+                    output.write("")
+                    output.write(
+                        "[bold magenta]👻 A wandering spirit materialises before you![/bold magenta]"
+                    )
+                    output.write(
+                        "[magenta]   Your Pokeballs pass right through it — you can't fight it![/magenta]"
+                    )
+                    output.write("[magenta]   You back away slowly to a lower floor...[/magenta]")
+                    output.write("")
+                    output.write(
+                        "[yellow]⚠ Tip:[/yellow] [dim]You need the Silph Scope to battle Ghost-type Pokemon here.[/dim]"
+                    )
+                    output.write(
+                        "[dim]   The Silph Scope is held by Team Rocket — defeat them in Celadon City.[/dim]"
+                    )
+                    output.write("")
+                    return
         game_state.increment_route_progress(location.name, explore_step)
         _stats.record_explore(game_state, location.name)
         trigger_wild_callback(output)
