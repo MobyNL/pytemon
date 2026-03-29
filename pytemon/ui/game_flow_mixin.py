@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog
 
+from .. import evolution as _evo
+from .. import pc_system
+from ..data.move_data import get_move as _get_move
 from ..ui import menus
 
 if TYPE_CHECKING:
@@ -151,8 +154,6 @@ class GameFlowMixin:
             self.execute_faint_switch(user_input, output)
 
         elif cmd_type == "pc":
-            from .. import pc_system
-
             pc_system.process_pc_command(
                 self.game_state,
                 user_input,
@@ -169,8 +170,6 @@ class GameFlowMixin:
             remaining = self.pending_command_data.get("learn_remaining", [])
             post_action = self.pending_command_data.get("learn_post_action", "wild_end")
             choice = user_input.strip().lower()
-
-            from ..data.move_data import get_move as _get_move
 
             if choice in ("no", "skip", "cancel", "stop"):
                 output.write(
@@ -213,8 +212,6 @@ class GameFlowMixin:
                 pokemon_ref = self.pending_command_data.get("evolving_pokemon")
                 evolved_into = self.pending_command_data.get("evolves_into", "???")
                 if pokemon_ref is not None:
-                    from .. import evolution as _evo
-
                     _evo.force_evolve(
                         self.game_state, pokemon_ref, evolved_into, output, update_battle_state=True
                     )

@@ -11,7 +11,10 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog, Static
 
+from .. import evolution as _evo_module
+from .. import gym_system
 from ..battle import battle_actions, battle_ui
+from ..data import get_trainer
 from ..ui.formatters import format_hp_bar
 
 if TYPE_CHECKING:
@@ -68,8 +71,6 @@ class BattleMixin:
         self, trainer_id: str, output: RichLog, is_gym_battle: bool = False
     ) -> None:
         """Trigger a gym leader battle."""
-        from ..data import get_trainer
-
         trainer = get_trainer(trainer_id)
         if not trainer:
             output.write(f"[red]❌ Error: Trainer '{trainer_id}' not found[/red]")
@@ -138,11 +139,38 @@ class BattleMixin:
             return
 
         if cmd in ("fight", "attack", "f"):
-            self.show_move_selection(output)
-            self.pending_command = "select_move"
+            # Block fight in Safari Zone
+            battle = self.game_state.battle_state
+            if battle and battle.is_safari:
+                output.write("")
+                output.write("[yellow]⚠ You can't battle in the Safari Zone![/yellow]")
+                output.write("[dim]Use Bait, Rock, Safari Ball, or Run.[/dim]")
+                output.write("")
+                self.show_battle_options(output)
+                self.pending_command = "battle"
+            else:
+                self.show_move_selection(output)
+                self.pending_command = "select_move"
+
+        elif cmd in ("bait",):
+            self._handle_safari_action(output, "bait")
+
+        elif cmd in ("rock",):
+            self._handle_safari_action(output, "rock")
+
+        elif cmd in (
+            "safari ball",
+            "throw safari ball",
+            "safari",
+        ):
+            self._handle_safari_action(output, "ball")
 
         elif cmd in ("run", "flee", "r"):
-            self.attempt_flee(output)
+            battle = self.game_state.battle_state
+            if battle and battle.is_safari:
+                self._handle_safari_action(output, "run")
+            else:
+                self.attempt_flee(output)
 
         elif cmd in ("bag",):
             self.hide_all_battle_panels()
@@ -475,6 +503,17 @@ class BattleMixin:
 
     # ── Flee / catch / switch ────────────────────────────────────────────────
 
+    def _handle_safari_action(self, output: RichLog, action: str) -> None:
+        """Dispatch a Safari Zone action (bait/rock/ball/run)."""
+        battle_actions.handle_safari_action(
+            self.game_state,
+            output,
+            action,
+            lambda cmd: setattr(self, "pending_command", cmd),
+            self.show_battle_options,
+            self.end_battle,
+        )
+
     def attempt_flee(self, output: RichLog) -> None:
         """Attempt to flee from a battle."""
         battle_actions.attempt_flee(
@@ -704,8 +743,6 @@ class BattleMixin:
             self.pending_command = None
             self.pending_command_data = {}
             self.hide_all_battle_panels()
-            from .. import gym_system
-
             gym_system.enter_gym_lobby(self.game_state, output, self.show_gym_panel)
         else:
             battle_actions.end_battle(self.game_state, output, self.look_around)
@@ -756,8 +793,6 @@ class BattleMixin:
 
     def _resume_after_move_learn(self, post_action: str, output: RichLog) -> None:
         """Resume battle resolution after all move-learn prompts are resolved."""
-        from .. import evolution as _evo_module
-
         # Clear learn state
         pokemon = self.pending_command_data.pop("learn_pokemon", None)
         self.pending_command_data.pop("learn_move_name", None)

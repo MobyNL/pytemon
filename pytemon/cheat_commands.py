@@ -9,6 +9,19 @@ from typing import TYPE_CHECKING
 
 from textual.widgets import RichLog
 
+from .texts.en import cheat_commands as T
+from .ui.formatters import write_lines, write_lines_fmt
+from . import evolution as _evo
+from . import exploration
+from .battle import battle_ui
+from .buildings import SHOP_CATALOG
+from .data.move_data import MOVES
+from .data.pokemon_data import POKEMON
+from .data.trainer_data import TRAINERS
+from .engine import BattleState
+from .hm_tm_system import teach_move
+from .locations import LOCATIONS, get_location
+
 if TYPE_CHECKING:
     from .game_state import GameState
 
@@ -35,58 +48,18 @@ def check_secret_phrase(command: str, game_state: "GameState", output: RichLog) 
     if cmd_lower == SECRET_PHRASE_ENABLE:
         if not game_state.cheat_mode:
             game_state.cheat_mode = True
-            output.write("")
-            output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
-            output.write("[bold yellow]    🎮 CHEAT MODE ACTIVATED 🎮[/bold yellow]")
-            output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
-            output.write("")
-            output.write("[cyan]Developer mode enabled![/cyan]")
-            output.write("")
-            output.write("[bold]Available cheat commands:[/bold]")
-            output.write(
-                "  [green]cheat battle <pokemon> <level>[/green]  - Battle a specific Pokemon"
-            )
-            output.write(
-                "  [green]cheat trainer <id>[/green]              - Battle a specific trainer"
-            )
-            output.write(
-                "  [green]cheat warp <location>[/green]           - Teleport to any location"
-            )
-            output.write("  [green]cheat add <pokemon> <level>[/green]     - Add Pokemon to party")
-            output.write(
-                "  [green]cheat remove <pokemon/slot>[/green]     - Remove Pokemon from party"
-            )
-            output.write("  [green]cheat level <pokemon/slot> <lvl>[/green] - Set Pokemon level")
-            output.write(
-                "  [green]cheat evolve <pokemon/slot>[/green]     - Force Pokemon evolution"
-            )
-            output.write("  [green]cheat list pokemon[/green]              - List all Pokemon")
-            output.write("  [green]cheat list trainers[/green]             - List all trainers")
-            output.write("  [green]cheat list locations[/green]            - List all locations")
-            output.write(
-                "  [green]cheat give <item> <qty>[/green]         - Add items to inventory"
-            )
-            output.write("  [green]cheat money <amount>[/green]            - Add money")
-            output.write("")
-            output.write("[dim]Type 'I am not professor Oak' to disable cheat mode[/dim]")
-            output.write("")
+            write_lines(output, T.CHEAT_ACTIVATED)
         else:
-            output.write("")
-            output.write("[yellow]⚠ Cheat mode is already enabled[/yellow]")
-            output.write("")
+            write_lines(output, T.CHEAT_ALREADY_ENABLED)
         return True
 
     # Check for disable phrase
     elif cmd_lower == SECRET_PHRASE_DISABLE:
         if game_state.cheat_mode:
             game_state.cheat_mode = False
-            output.write("")
-            output.write("[bold yellow]🎮 CHEAT MODE DEACTIVATED 🎮[/bold yellow]")
-            output.write("")
+            write_lines(output, T.CHEAT_DEACTIVATED)
         else:
-            output.write("")
-            output.write("[yellow]⚠ Cheat mode is already disabled[/yellow]")
-            output.write("")
+            write_lines(output, T.CHEAT_ALREADY_DISABLED)
         return True
 
     return False
@@ -100,6 +73,8 @@ def process_cheat_command(
     trigger_trainer_battle,
     set_pending_command_callback,
     show_battle_buttons_callback=None,
+    handle_battle_victory_callback=None,
+    handle_pokemon_fainted_callback=None,
 ) -> bool:
     """
     Process cheat commands.
@@ -112,6 +87,8 @@ def process_cheat_command(
         trigger_trainer_battle: Callback to trigger trainer battle
         set_pending_command_callback: Callback to set pending command
         show_battle_buttons_callback: Optional callback to show battle action buttons
+        handle_battle_victory_callback: Optional callback to handle battle victory
+        handle_pokemon_fainted_callback: Optional callback to handle player Pokemon fainting
 
     Returns:
         True if command was processed, False otherwise
@@ -267,6 +244,58 @@ def process_cheat_command(
         evolve_pokemon(game_state, identifier, output)
         return True
 
+    # Instantly win the current battle
+    elif action == "win":
+        if not game_state.in_battle or not game_state.battle_state:
+            output.write("[red]❌ Not in a battle! Use 'cheat win' during a battle.[/red]")
+            return True
+        battle = game_state.battle_state
+        enemy = battle.wild_pokemon
+        enemy["hp"] = 0
+        output.write(
+            f"[bold yellow]🎮 [CHEAT MODE] {enemy['name']} instantly fainted![/bold yellow]"
+        )
+        if handle_battle_victory_callback:
+            handle_battle_victory_callback(output)
+        return True
+
+    # Instantly lose the current battle
+    elif action == "lose":
+        if not game_state.in_battle or not game_state.battle_state:
+            output.write("[red]❌ Not in a battle! Use 'cheat lose' during a battle.[/red]")
+            return True
+        battle = game_state.battle_state
+        player = battle.player_pokemon
+        player["hp"] = 0
+        output.write(
+            f"[bold yellow]🎮 [CHEAT MODE] {player['name']} instantly fainted![/bold yellow]"
+        )
+        if handle_pokemon_fainted_callback:
+            handle_pokemon_fainted_callback(output)
+        return True
+
+    # Faint a party Pokemon
+    elif action == "faint":
+        if len(parts) < 2:
+            output.write("[red]❌ Usage: cheat faint <pokemon/slot>[/red]")
+            return True
+
+        identifier = " ".join(parts[1:])
+        faint_pokemon(game_state, identifier, output)
+        return True
+
+    # Teach a move to a party Pokemon
+    elif action == "learn":
+        if len(parts) < 3:
+            output.write("[red]❌ Usage: cheat learn <pokemon/slot> <move>[/red]")
+            return True
+
+        # Move is the last token; identifier is everything in between
+        identifier = " ".join(parts[1:-1])
+        move_name = parts[-1]
+        teach_move_cheat(game_state, identifier, move_name, output)
+        return True
+
     else:
         output.write(f"[red]❌ Unknown cheat command: {action}[/red]")
         show_cheat_help(output)
@@ -275,31 +304,12 @@ def process_cheat_command(
 
 def show_cheat_help(output: RichLog) -> None:
     """Show cheat mode help."""
-    output.write("")
-    output.write("[bold yellow]🎮 Cheat Commands:[/bold yellow]")
-    output.write("")
-    output.write("  [green]cheat battle <pokemon> <level>[/green]  - Battle a specific Pokemon")
-    output.write("  [green]cheat trainer <id>[/green]              - Battle a specific trainer")
-    output.write("  [green]cheat warp <location>[/green]           - Teleport to any location")
-    output.write("  [green]cheat add <pokemon> <level>[/green]     - Add Pokemon to party")
-    output.write("  [green]cheat remove <pokemon/slot>[/green]     - Remove Pokemon from party")
-    output.write("  [green]cheat level <pokemon/slot> <lvl>[/green] - Set Pokemon level")
-    output.write("  [green]cheat evolve <pokemon/slot>[/green]     - Force Pokemon evolution")
-    output.write("  [green]cheat list pokemon[/green]              - List all Pokemon")
-    output.write("  [green]cheat list trainers[/green]             - List all trainers")
-    output.write("  [green]cheat list locations[/green]            - List all locations")
-    output.write("  [green]cheat give <item> <qty>[/green]         - Add items to inventory")
-    output.write("  [green]cheat money <amount>[/green]            - Add money")
-    output.write("")
+    write_lines(output, T.CHEAT_HELP)
 
 
 def list_pokemon(output: RichLog) -> None:
     """List all available Pokemon."""
-    from .data.pokemon_data import POKEMON
-
-    output.write("")
-    output.write("[bold cyan]Available Pokemon:[/bold cyan]")
-    output.write("")
+    write_lines(output, T.LIST_POKEMON_HEADER)
 
     # Show first 50 Pokemon (Gen 1)
     pokemon_list = []
@@ -312,18 +322,12 @@ def list_pokemon(output: RichLog) -> None:
         row = pokemon_list[i : i + 3]
         output.write("  " + "  ".join(f"[cyan]{p}[/cyan]" for p in row))
 
-    output.write("")
-    output.write("[dim]Usage: cheat battle <pokemon_name> <level>[/dim]")
-    output.write("")
+    write_lines(output, T.LIST_POKEMON_FOOTER)
 
 
 def list_trainers(output: RichLog) -> None:
     """List all available trainers."""
-    from .data.trainer_data import TRAINERS
-
-    output.write("")
-    output.write("[bold cyan]Available Trainers:[/bold cyan]")
-    output.write("")
+    write_lines(output, T.LIST_TRAINERS_HEADER)
 
     for trainer_id, trainer in TRAINERS.items():
         name = trainer.get("name", "Unknown")
@@ -336,17 +340,12 @@ def list_trainers(output: RichLog) -> None:
         output.write(f"    {pokemon_count} Pokemon")
         output.write("")
 
-    output.write("[dim]Usage: cheat trainer <trainer_id>[/dim]")
-    output.write("")
+    write_lines(output, T.LIST_TRAINERS_FOOTER)
 
 
 def list_locations(game_state: "GameState", output: RichLog) -> None:
     """List all available locations."""
-    from .locations import LOCATIONS
-
-    output.write("")
-    output.write("[bold cyan]Available Locations:[/bold cyan]")
-    output.write("")
+    write_lines(output, T.LIST_LOCATIONS_HEADER)
 
     for location_name in sorted(LOCATIONS.keys()):
         location = LOCATIONS[location_name]
@@ -355,18 +354,12 @@ def list_locations(game_state: "GameState", output: RichLog) -> None:
         marker = "🏙️" if loc_type == "town" else "🛤️"
         output.write(f"  {marker} [cyan]{location_name}[/cyan] ({loc_type})")
 
-    output.write("")
-    output.write("[dim]Usage: cheat warp <location_name>[/dim]")
-    output.write("")
+    write_lines(output, T.LIST_LOCATIONS_FOOTER)
 
 
 def warp_to_location(game_state: "GameState", location_name: str, output: RichLog) -> None:
     """Warp to any location."""
-    from . import exploration
-
     # Try to find matching location
-    from .locations import LOCATIONS, get_location
-
     matching_location = None
     for loc_name in LOCATIONS.keys():
         if loc_name.lower() == location_name.lower() or location_name.lower() in loc_name.lower():
@@ -374,10 +367,7 @@ def warp_to_location(game_state: "GameState", location_name: str, output: RichLo
             break
 
     if not matching_location:
-        output.write("")
-        output.write(f"[red]❌ Location not found: {location_name}[/red]")
-        output.write("[dim]Use 'cheat list locations' to see all locations[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.WARP_NOT_FOUND, location=location_name)
         return
 
     # Warp to location
@@ -385,12 +375,7 @@ def warp_to_location(game_state: "GameState", location_name: str, output: RichLo
     if location:
         game_state.current_location = location
         game_state.game_data["location"] = matching_location
-
-        output.write("")
-        output.write("[bold yellow]✨ *WHOOSH* ✨[/bold yellow]")
-        output.write("")
-        output.write(f"[bold green]Warped to {matching_location}![/bold green]")
-        output.write("")
+        write_lines_fmt(output, T.WARP_SUCCESS, location=matching_location)
 
         # Show location arrival
         exploration.show_location_arrival(game_state, output)
@@ -398,8 +383,6 @@ def warp_to_location(game_state: "GameState", location_name: str, output: RichLo
 
 def give_item(game_state: "GameState", item_name: str, quantity: int, output: RichLog) -> None:
     """Give items to player."""
-    from .buildings import SHOP_CATALOG
-
     # Find matching item
     matching_item = None
     for shop_item in SHOP_CATALOG.keys():
@@ -449,10 +432,6 @@ def trigger_cheat_battle(
         pending_command_callback: Callback to set pending command
         show_battle_buttons_callback: Optional callback to show battle action buttons
     """
-    from .battle import battle_ui
-    from .data.pokemon_data import POKEMON
-    from .engine import BattleState
-
     # Find matching Pokemon
     matching_pokemon = None
     for num, data in POKEMON.items():
@@ -488,8 +467,7 @@ def trigger_cheat_battle(
     game_state.in_battle = True
 
     # Show battle start
-    output.write("")
-    output.write("[bold yellow]🎮 [CHEAT MODE] Spawning battle...[/bold yellow]")
+    write_lines(output, T.CHEAT_BATTLE_SPAWN)
     battle_ui.show_battle_start(game_state, output)
     battle_ui.show_battle_options(game_state, output)
     pending_command_callback("battle")
@@ -514,8 +492,6 @@ def trigger_cheat_trainer_battle(
         trigger_trainer_battle_callback: Callback to trigger trainer battle
         pending_command_callback: Callback to set pending command
     """
-    from .data.trainer_data import TRAINERS
-
     # Find matching trainer
     if trainer_id not in TRAINERS:
         output.write("")
@@ -526,9 +502,7 @@ def trigger_cheat_trainer_battle(
 
     trainer = TRAINERS[trainer_id]
 
-    output.write("")
-    output.write("[bold yellow]🎮 [CHEAT MODE] Spawning trainer battle...[/bold yellow]")
-    output.write("")
+    write_lines(output, T.CHEAT_TRAINER_BATTLE_SPAWN)
 
     # Trigger the trainer battle
     trigger_trainer_battle_callback(output, trainer)
@@ -551,9 +525,6 @@ def add_pokemon_to_party(
         level: Level of the Pokemon
         output: The RichLog widget to write to
     """
-    from .data.pokemon_data import POKEMON
-    from .engine import BattleState
-
     # Check party size
     pokemon_list = game_state.game_data.get("pokemon", [])
     if len(pokemon_list) >= 6:
@@ -656,9 +627,6 @@ def level_up_pokemon(
         new_level: New level (1-100)
         output: The RichLog widget to write to
     """
-    from .data.pokemon_data import POKEMON
-    from .engine import BattleState
-
     if not 1 <= new_level <= 100:
         output.write("")
         output.write("[red]❌ Level must be between 1 and 100[/red]")
@@ -717,9 +685,6 @@ def evolve_pokemon(game_state: "GameState", identifier: str, output: RichLog) ->
         identifier: Pokemon name or slot number
         output: The RichLog widget to write to
     """
-    from . import evolution as _evo
-    from .data.pokemon_data import POKEMON
-
     pokemon, idx = game_state.find_pokemon(identifier)
 
     if pokemon is None:
@@ -759,3 +724,88 @@ def evolve_pokemon(game_state: "GameState", identifier: str, output: RichLog) ->
         output.write("")
         output.write(f"[red]❌ Evolved form not found in data: {evolved_form}[/red]")
         output.write("")
+
+
+def faint_pokemon(game_state: "GameState", identifier: str, output: RichLog) -> None:
+    """
+    Force a party Pokemon to faint (HP → 0).
+
+    Args:
+        game_state: The game state
+        identifier: Pokemon name or slot number
+        output: The RichLog widget to write to
+    """
+    pokemon, idx = game_state.find_pokemon(identifier)
+
+    if pokemon is None:
+        output.write("")
+        output.write(f"[red]❌ Pokemon not found: {identifier}[/red]")
+        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
+        output.write("")
+        return
+
+    if pokemon.get("hp", 0) <= 0:
+        output.write("")
+        output.write(f"[yellow]⚠ {pokemon['name']} is already fainted![/yellow]")
+        output.write("")
+        return
+
+    # Don't allow fainting the last healthy Pokemon
+    pokemon_list = game_state.game_data.get("pokemon", [])
+    healthy = [p for p in pokemon_list if p.get("hp", 0) > 0]
+    if len(healthy) <= 1:
+        output.write("")
+        output.write("[red]❌ Can't faint your last healthy Pokemon![/red]")
+        output.write("")
+        return
+
+    pokemon["hp"] = 0
+
+    output.write("")
+    output.write(f"[bold yellow]🎮 [CHEAT MODE] {pokemon['name']} fainted![/bold yellow]")
+    output.write("")
+
+
+def teach_move_cheat(
+    game_state: "GameState", identifier: str, move_name: str, output: RichLog
+) -> None:
+    """
+    Teach any move to a party Pokemon, bypassing TM/HM item requirements.
+
+    Args:
+        game_state: The game state
+        identifier: Pokemon name or slot number
+        move_name: Name of the move to teach
+        output: The RichLog widget to write to
+    """
+    pokemon, idx = game_state.find_pokemon(identifier)
+
+    if pokemon is None:
+        output.write("")
+        output.write(f"[red]❌ Pokemon not found: {identifier}[/red]")
+        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
+        output.write("")
+        return
+
+    # Find matching move (case-insensitive, partial match allowed)
+    move_upper = move_name.upper()
+    matching_move = None
+    for key in MOVES:
+        if key == move_upper:
+            matching_move = key
+            break
+    if not matching_move:
+        for key in MOVES:
+            if move_upper in key:
+                matching_move = key
+                break
+
+    if not matching_move:
+        output.write("")
+        output.write(f"[red]❌ Move not found: {move_name}[/red]")
+        output.write("[dim]Check the move name and try again[/dim]")
+        output.write("")
+        return
+
+    output.write(f"[bold yellow]🎮 [CHEAT MODE] Teaching {matching_move}...[/bold yellow]")
+    teach_move(game_state, matching_move, pokemon, f"TM {matching_move}", False, output)

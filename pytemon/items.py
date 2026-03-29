@@ -8,10 +8,17 @@ catch attempts) stays in battle_actions.py.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog
+
+from . import evolution as _evo
+from . import hm_tm_system as _hm_tm
+from .engine import BattleState as _BattleState
+from .locations import get_location
+from .models import PartyPokemon as _PartyPokemon
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -497,8 +504,6 @@ def _consume(game_state: GameState, item_name: str) -> None:
 
 
 def _first_fainted(game_state: GameState) -> Optional[PartyPokemon]:
-    from .models import PartyPokemon as _PartyPokemon
-
     for p in game_state.game_data.get("pokemon", []):
         if isinstance(p, _PartyPokemon) and p.hp <= 0:
             return p
@@ -615,9 +620,6 @@ def _use_stat_booster(
 def _use_rare_candy(
     game_state: GameState, name: str, pokemon: PartyPokemon, output: RichLog
 ) -> bool:
-    from . import evolution as _evo
-    from .engine import BattleState as _BattleState
-
     old_level = pokemon.get("level", 1)
     if old_level >= 100:
         output.write("")
@@ -647,8 +649,6 @@ def _use_rare_candy(
 
 
 def _use_stone(game_state: GameState, name: str, pokemon: PartyPokemon, output: RichLog) -> bool:
-    from . import evolution as _evo
-
     pokemon_name = pokemon.get("name", "POKÉMON")
     evo_target = _evo.get_stone_evolution(pokemon, name)
     if not evo_target:
@@ -666,9 +666,27 @@ def _use_stone(game_state: GameState, name: str, pokemon: PartyPokemon, output: 
     return success
 
 
-def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
-    from .locations import get_location
+def _find_nearest_town(start_name: str) -> str | None:
+    """BFS through the location graph to find the name of the nearest reachable town."""
+    visited: set[str] = {start_name}
+    queue: deque[str] = deque([start_name])
+    while queue:
+        loc_name = queue.popleft()
+        loc = get_location(loc_name)
+        if loc is None:
+            continue
+        for exit_name in loc.exits:
+            if exit_name in visited:
+                continue
+            visited.add(exit_name)
+            dest = get_location(exit_name)
+            if dest and dest.type == "town":
+                return exit_name
+            queue.append(exit_name)
+    return None
 
+
+def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
     location = game_state.current_location
     if not location:
         output.write("[red]❌ No current location![/red]")
@@ -680,10 +698,11 @@ def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
         output.write("")
         return False
 
-    # Find the nearest town exit
-    for exit_name, _ in location.exits.items():
-        dest = get_location(exit_name)
-        if dest and dest.type == "town":
+    # BFS to find the nearest town (works even when no town is a direct exit)
+    town_name = _find_nearest_town(location.name)
+    if town_name:
+        dest = get_location(town_name)
+        if dest:
             _consume(game_state, name)
             game_state.game_data["previous_location"] = location.name
             game_state.current_location = dest
@@ -737,8 +756,6 @@ def _use_hm_tm(
     Returns:
         True if the move was successfully taught.
     """
-    from . import hm_tm_system as _hm_tm
-
     move_name = data.get("move", "")
     if not move_name:
         output.write(f"[red]❌ {name} has no move data.[/red]")

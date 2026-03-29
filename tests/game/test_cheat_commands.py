@@ -17,6 +17,7 @@ from pytemon.cheat_commands import (
     add_pokemon_to_party,
     check_secret_phrase,
     evolve_pokemon,
+    faint_pokemon,
     give_item,
     level_up_pokemon,
     list_locations,
@@ -25,6 +26,7 @@ from pytemon.cheat_commands import (
     process_cheat_command,
     remove_pokemon_from_party,
     show_cheat_help,
+    teach_move_cheat,
     warp_to_location,
 )
 from pytemon.game_state import GameState
@@ -478,3 +480,179 @@ class TestEvolvePokemon:
         make_party_pokemon(gs, "KANGASKHAN", 30)
         evolve_pokemon(gs, "kangaskhan", output)
         assert "doesn't evolve" in output.combined.lower()
+
+
+# ===========================================================================
+# cheat win / cheat lose  (battle commands)
+# ===========================================================================
+
+
+def _make_battle_state(gs, player_name="PIKACHU", enemy_name="RATTATA", level=5):
+    """Put gs into an active battle and return the BattleState."""
+    from pytemon.engine import BattleState
+
+    make_party_pokemon(gs, player_name, level)
+    bs = BattleState()
+    player_pokemon = gs.game_data["pokemon"][0]
+    bs.start_wild_battle(player_pokemon, enemy_name, level)
+    gs.battle_state = bs
+    gs.in_battle = True
+    return bs
+
+
+class TestCheatWin:
+    def _run(self, gs, output, victory_cb=None):
+        gs.cheat_mode = True
+        return process_cheat_command(
+            "cheat win", gs, output, noop, noop, noop,
+            handle_battle_victory_callback=victory_cb,
+        )
+
+    def test_win_outside_battle_shows_error(self, gs, output):
+        gs.in_battle = False
+        result = self._run(gs, output)
+        assert result is True
+        assert "not in a battle" in output.combined.lower()
+
+    def test_win_sets_enemy_hp_to_zero(self, gs, output):
+        bs = _make_battle_state(gs)
+        self._run(gs, output)
+        assert bs.wild_pokemon["hp"] == 0
+
+    def test_win_calls_victory_callback(self, gs, output):
+        _make_battle_state(gs)
+        called = []
+        self._run(gs, output, victory_cb=lambda o: called.append(True))
+        assert called
+
+    def test_win_without_callback_does_not_raise(self, gs, output):
+        _make_battle_state(gs)
+        self._run(gs, output, victory_cb=None)  # should not raise
+
+    def test_win_writes_output(self, gs, output):
+        _make_battle_state(gs)
+        self._run(gs, output)
+        assert len(output.lines) > 0
+
+
+class TestCheatLose:
+    def _run(self, gs, output, fainted_cb=None):
+        gs.cheat_mode = True
+        return process_cheat_command(
+            "cheat lose", gs, output, noop, noop, noop,
+            handle_pokemon_fainted_callback=fainted_cb,
+        )
+
+    def test_lose_outside_battle_shows_error(self, gs, output):
+        gs.in_battle = False
+        result = self._run(gs, output)
+        assert result is True
+        assert "not in a battle" in output.combined.lower()
+
+    def test_lose_sets_player_hp_to_zero(self, gs, output):
+        bs = _make_battle_state(gs)
+        self._run(gs, output)
+        assert bs.player_pokemon["hp"] == 0
+
+    def test_lose_calls_fainted_callback(self, gs, output):
+        _make_battle_state(gs)
+        called = []
+        self._run(gs, output, fainted_cb=lambda o: called.append(True))
+        assert called
+
+    def test_lose_without_callback_does_not_raise(self, gs, output):
+        _make_battle_state(gs)
+        self._run(gs, output, fainted_cb=None)
+
+    def test_lose_writes_output(self, gs, output):
+        _make_battle_state(gs)
+        self._run(gs, output)
+        assert len(output.lines) > 0
+
+
+# ===========================================================================
+# faint_pokemon
+# ===========================================================================
+
+
+class TestFaintPokemon:
+    def test_faint_reduces_hp_to_zero(self, gs, output):
+        make_party_pokemon(gs, "PIKACHU", 10)
+        make_party_pokemon(gs, "BULBASAUR", 10)  # need 2 so guard doesn't block
+        faint_pokemon(gs, "pikachu", output)
+        assert gs.game_data["pokemon"][0]["hp"] == 0
+
+    def test_faint_nonexistent_shows_error(self, gs, output):
+        faint_pokemon(gs, "fakemon999", output)
+        assert "not found" in output.combined.lower() or "❌" in output.combined
+
+    def test_faint_already_fainted_shows_warning(self, gs, output):
+        make_party_pokemon(gs, "PIKACHU", 10)
+        make_party_pokemon(gs, "BULBASAUR", 10)
+        gs.game_data["pokemon"][0]["hp"] = 0
+        faint_pokemon(gs, "pikachu", output)
+        assert "already" in output.combined.lower()
+
+    def test_faint_last_healthy_shows_error(self, gs, output):
+        make_party_pokemon(gs, "PIKACHU", 10)
+        faint_pokemon(gs, "pikachu", output)
+        assert "last" in output.combined.lower() or "can't" in output.combined.lower()
+
+    def test_faint_via_process_cheat_command(self, gs, output):
+        gs.cheat_mode = True
+        make_party_pokemon(gs, "PIKACHU", 10)
+        make_party_pokemon(gs, "SQUIRTLE", 10)
+        result = process_cheat_command("cheat faint pikachu", gs, output, noop, noop, noop)
+        assert result is True
+        assert gs.game_data["pokemon"][0]["hp"] == 0
+
+    def test_faint_without_args_shows_error(self, gs, output):
+        gs.cheat_mode = True
+        result = process_cheat_command("cheat faint", gs, output, noop, noop, noop)
+        assert result is True
+        assert "usage" in output.combined.lower() or "❌" in output.combined
+
+
+# ===========================================================================
+# teach_move_cheat
+# ===========================================================================
+
+
+class TestTeachMoveCheat:
+    def test_teach_valid_move(self, gs, output):
+        make_party_pokemon(gs, "PIKACHU", 10)
+        teach_move_cheat(gs, "pikachu", "SURF", output)
+        moves = gs.game_data["pokemon"][0]["moves"]
+        assert any(m["name"] == "SURF" for m in moves)
+
+    def test_teach_invalid_move_shows_error(self, gs, output):
+        make_party_pokemon(gs, "PIKACHU", 10)
+        teach_move_cheat(gs, "pikachu", "NOTAMOVE99", output)
+        assert "not found" in output.combined.lower() or "❌" in output.combined
+
+    def test_teach_to_nonexistent_pokemon_shows_error(self, gs, output):
+        teach_move_cheat(gs, "fakemon999", "SURF", output)
+        assert "not found" in output.combined.lower() or "❌" in output.combined
+
+    def test_teach_partial_move_name(self, gs, output):
+        make_party_pokemon(gs, "PIKACHU", 10)
+        # "FLAM" should match "FLAMETHROWER"
+        teach_move_cheat(gs, "pikachu", "FLAM", output)
+        moves = gs.game_data["pokemon"][0]["moves"]
+        names = [m["name"] for m in moves]
+        assert any("FLAM" in n for n in names)
+
+    def test_teach_via_process_cheat_command(self, gs, output):
+        gs.cheat_mode = True
+        make_party_pokemon(gs, "PIKACHU", 10)
+        result = process_cheat_command("cheat learn pikachu surf", gs, output, noop, noop, noop)
+        assert result is True
+        moves = gs.game_data["pokemon"][0]["moves"]
+        assert any(m["name"] == "SURF" for m in moves)
+
+    def test_learn_without_move_shows_error(self, gs, output):
+        gs.cheat_mode = True
+        make_party_pokemon(gs, "PIKACHU", 10)
+        result = process_cheat_command("cheat learn pikachu", gs, output, noop, noop, noop)
+        assert result is True
+        assert "usage" in output.combined.lower() or "❌" in output.combined

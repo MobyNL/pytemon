@@ -67,6 +67,11 @@ class BattleState:
         self.enemy_disabled_move: Optional[str] = None
         self.enemy_disable_turns: int = 0
 
+        # ── Safari Zone state ─────────────────────────────────────────────
+        self.is_safari: bool = False
+        self.safari_bait_turns: int = 0   # turns bait is active (reduces flee chance)
+        self.safari_rock_turns: int = 0   # turns rock is active (raises flee + catch rate)
+
     def start_wild_battle(
         self, player_pokemon: PartyPokemon, wild_species: str, wild_level: int
     ) -> None:
@@ -832,6 +837,7 @@ class BattleState:
             "Pokeball": 255,
             "Great Ball": 200,
             "Ultra Ball": 150,
+            "Safari Ball": 150,  # Same as Ultra Ball per Gen 1 mechanics
         }
         ball_mod = ball_modifiers.get(ball_type, 255)
 
@@ -846,6 +852,14 @@ class BattleState:
 
         # Catch rate from species data
         catch_rate = wild.get("catch_rate", 255)
+
+        # Safari Zone: apply bait/rock modifier and treat Pokemon as if at full HP
+        # (no HP damage occurs in Safari battles)
+        if self.is_safari:
+            if self.safari_rock_turns > 0:
+                catch_rate = min(255, int(catch_rate * 1.5))
+            elif self.safari_bait_turns > 0:
+                catch_rate = max(1, catch_rate // 2)
 
         # HP factor: ((3 * max_hp - 2 * current_hp) * catch_rate) / (3 * max_hp)
         max_hp = wild["max_hp"]
