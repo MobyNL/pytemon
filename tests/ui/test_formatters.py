@@ -9,7 +9,151 @@ from pytemon.ui.formatters import (
     format_hp_bar,
     format_list,
     get_travel_description,
+    write_dynamic_lines,
+    write_lines,
+    write_lines_fmt,
 )
+
+
+class MockRichLog:
+    """Minimal stub for Textual's RichLog, capturing written lines."""
+
+    def __init__(self):
+        self.lines: list[str] = []
+
+    def write(self, text: str) -> None:
+        self.lines.append(text)
+
+    @property
+    def combined(self) -> str:
+        return "\n".join(str(line) for line in self.lines)
+
+
+class TestWriteLines:
+    """Tests for write_lines()."""
+
+    def test_writes_all_lines(self):
+        log = MockRichLog()
+        write_lines(log, ["line1", "line2", "line3"])
+        assert log.lines == ["line1", "line2", "line3"]
+
+    def test_empty_list_writes_nothing(self):
+        log = MockRichLog()
+        write_lines(log, [])
+        assert log.lines == []
+
+    def test_single_line(self):
+        log = MockRichLog()
+        write_lines(log, ["only"])
+        assert log.lines == ["only"]
+
+    def test_preserves_rich_markup(self):
+        log = MockRichLog()
+        write_lines(log, ["[bold]hello[/bold]"])
+        assert log.lines[0] == "[bold]hello[/bold]"
+
+    def test_blank_lines_written_verbatim(self):
+        log = MockRichLog()
+        write_lines(log, ["a", "", "b"])
+        assert log.lines == ["a", "", "b"]
+
+
+class TestWriteLinesFmt:
+    """Tests for write_lines_fmt()."""
+
+    def test_substitutes_single_placeholder(self):
+        log = MockRichLog()
+        write_lines_fmt(log, ["Hello {name}!"], name="Ash")
+        assert log.lines == ["Hello Ash!"]
+
+    def test_leaves_plain_lines_unchanged(self):
+        log = MockRichLog()
+        write_lines_fmt(log, ["no placeholders here"], name="Ash")
+        assert log.lines == ["no placeholders here"]
+
+    def test_mixed_static_and_dynamic(self):
+        log = MockRichLog()
+        write_lines_fmt(log, ["static", "go to {place}"], place="Pewter City")
+        assert log.lines == ["static", "go to Pewter City"]
+
+    def test_multiple_placeholders_in_one_line(self):
+        log = MockRichLog()
+        write_lines_fmt(log, ["{a} meets {b}"], a="Ash", b="Misty")
+        assert log.lines == ["Ash meets Misty"]
+
+    def test_empty_lines_list(self):
+        log = MockRichLog()
+        write_lines_fmt(log, [], location="X")
+        assert log.lines == []
+
+    def test_rich_markup_preserved_with_substitution(self):
+        log = MockRichLog()
+        write_lines_fmt(log, ["[green]Warped to {loc}![/green]"], loc="Cerulean")
+        assert "Cerulean" in log.lines[0]
+        assert "[green]" in log.lines[0]
+
+
+class TestWriteDynamicLines:
+    """Tests for write_dynamic_lines()."""
+
+    def test_substitutes_single_key(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["Hello {name}!"], {"name": "Ash"})
+        assert log.lines == ["Hello Ash!"]
+
+    def test_leaves_plain_lines_unchanged(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["no placeholders"], {"key": "value"})
+        assert log.lines == ["no placeholders"]
+
+    def test_mixed_static_and_dynamic(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["static", "go to {place}"], {"place": "Pewter City"})
+        assert log.lines == ["static", "go to Pewter City"]
+
+    def test_multiple_placeholders_in_one_line(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["{a} meets {b}"], {"a": "Ash", "b": "Misty"})
+        assert log.lines == ["Ash meets Misty"]
+
+    def test_empty_lines_list(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, [], {"location": "X"})
+        assert log.lines == []
+
+    def test_empty_dict_leaves_lines_without_placeholders(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["static line"], {})
+        assert log.lines == ["static line"]
+
+    def test_rich_markup_preserved_with_substitution(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["[bold green]Warped to {loc}![/bold green]"], {"loc": "Cerulean"})
+        assert "Cerulean" in log.lines[0]
+        assert "[bold green]" in log.lines[0]
+
+    def test_dict_with_integer_value(self):
+        log = MockRichLog()
+        write_dynamic_lines(log, ["Level {lvl}"], {"lvl": 42})
+        assert log.lines == ["Level 42"]
+
+    def test_multiple_lines_substituted(self):
+        log = MockRichLog()
+        lines = ["Player: {name}", "Location: {place}", "static"]
+        write_dynamic_lines(log, lines, {"name": "Red", "place": "Pallet Town"})
+        assert log.lines[0] == "Player: Red"
+        assert log.lines[1] == "Location: Pallet Town"
+        assert log.lines[2] == "static"
+
+    def test_equivalent_to_write_lines_fmt(self):
+        """write_dynamic_lines(data) must produce the same output as write_lines_fmt(**data)."""
+        lines = ["Warped to {location}!", "static"]
+        data = {"location": "Cerulean City"}
+        log1 = MockRichLog()
+        log2 = MockRichLog()
+        write_dynamic_lines(log1, lines, data)
+        write_lines_fmt(log2, lines, **data)
+        assert log1.lines == log2.lines
 
 
 class TestFormatHpBar:

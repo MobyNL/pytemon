@@ -119,7 +119,8 @@ LIST_LOCATIONS_FOOTER: list[str] = [
 ]
 
 # ── warp_to_location ─────────────────────────────────────────────────────────
-# Dynamic lines — use write_lines_fmt(output, WARP_SUCCESS, location=name)
+# Dynamic lines — use write_dynamic_lines(output, WARP_SUCCESS, {"location": name})
+#                 or   write_lines_fmt(output, WARP_SUCCESS, location=name)
 
 WARP_NOT_FOUND: list[str] = [
     "",

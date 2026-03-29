@@ -17,5 +17,6 @@ Each module mirrors its source counterpart:
     texts/en/battle_ui.py       ← pytemon/battle/battle_ui.py
 
 Each constant is a list[str] that can be passed directly to write_lines().
-Lines containing {placeholders} are used with write_lines_fmt(**kwargs).
+Lines containing {placeholders} are used with write_dynamic_lines(data_dict)
+or write_lines_fmt(**kwargs).
 """
