@@ -20,6 +20,7 @@ This is a Robot Framework library that provides an interactive terminal-based Po
 - **robotframework-pythonlibcore 4.4+** - Base class for creating RF libraries
 - **Textual 0.73+** - Terminal User Interface framework
 - **Rich 13.7+** - Terminal text formatting
+- **Poetry** - Dependency management and packaging, venv management
 
 ### Project Structure
 

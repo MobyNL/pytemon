@@ -241,6 +241,30 @@ class TestShowLeadSelectionPrompt:
         assert any("Squirtle" in line for line in output.lines)
         assert any("1." in line for line in output.lines)
         assert any("2." in line for line in output.lines)
+        assert not any("or 'cancel'" in line.lower() for line in output.lines)
+
+    def test_wild_prompt_mentions_run_instead_of_cancel(self, term, output):
+        """Wild lead prompt teaches run mechanic rather than canceling."""
+        term.game_state.game_data["pokemon"] = [
+            _make_pokemon("Pikachu"),
+            _make_pokemon("Squirtle"),
+        ]
+
+        term._show_lead_selection_prompt(output, battle_type="wild")
+
+        assert any("use 'run'" in line.lower() for line in output.lines)
+
+    def test_trainer_prompt_mentions_must_choose(self, term, output):
+        """Trainer lead prompt states that selection is required."""
+        trainer = {"name": "Brock", "pokemon": [], "prize": 100}
+        term.game_state.game_data["pokemon"] = [
+            _make_pokemon("Pikachu"),
+            _make_pokemon("Squirtle"),
+        ]
+
+        term._show_lead_selection_prompt(output, battle_type="trainer", trainer=trainer)
+
+        assert any("require you to choose" in line.lower() for line in output.lines)
 
     def test_fainted_pokemon_excluded_from_list(self, term, output):
         """Fainted Pokemon are not shown in the selection list."""
@@ -323,8 +347,8 @@ class TestHandleChooseLead:
         term.game_state.game_data["pokemon"] = [pikachu, charmander]
         return pikachu, charmander
 
-    def test_cancel_clears_state(self, term, output):
-        """'cancel' input clears pending data without triggering a battle."""
+    def test_cancel_wild_reprompts_and_keeps_state(self, term, output):
+        """Wild lead selection cannot be canceled; player is told to use run later."""
         triggered = []
         term._do_trigger_wild_encounter = lambda out: triggered.append("wild")
         self._setup_two_pokemon(term)
@@ -333,11 +357,12 @@ class TestHandleChooseLead:
         term._handle_choose_lead("cancel", output)
 
         assert triggered == []
-        assert term.pending_command_data == {}
-        assert any("hesitated" in line.lower() for line in output.lines)
+        assert term.pending_command == "choose_lead"
+        assert term.pending_command_data.get("battle_type") == "wild"
+        assert any("use [bold]run[/bold]" in line.lower() for line in output.lines)
 
-    def test_back_also_cancels(self, term, output):
-        """'back' is treated as cancel."""
+    def test_back_wild_also_reprompts(self, term, output):
+        """'back' is treated like cancel and does not exit wild lead selection."""
         triggered = []
         term._do_trigger_wild_encounter = lambda out: triggered.append("wild")
         self._setup_two_pokemon(term)
@@ -346,6 +371,19 @@ class TestHandleChooseLead:
         term._handle_choose_lead("back", output)
 
         assert triggered == []
+        assert term.pending_command == "choose_lead"
+
+    def test_cancel_trainer_reprompts_and_blocks_cancel(self, term, output):
+        """Trainer lead selection cannot be canceled."""
+        trainer = {"name": "Misty", "pokemon": [], "prize": 300}
+        self._setup_two_pokemon(term)
+        term.pending_command_data = {"battle_type": "trainer", "trainer": trainer}
+
+        term._handle_choose_lead("cancel", output)
+
+        assert term.pending_command == "choose_lead"
+        assert term.pending_command_data.get("battle_type") == "trainer"
+        assert any("can't cancel" in line.lower() for line in output.lines)
 
     def test_non_digit_input_reprompts(self, term, output):
         """Non-numeric input sets pending_command back to 'choose_lead'."""

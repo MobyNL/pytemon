@@ -47,6 +47,26 @@ _TYPE_ENCOUNTER_HINTS: dict = {
 class BattleMixin:
     """Mixin providing the full battle system for PokemonTerminal."""
 
+    FAILED_CATCH_PAUSE_SECONDS = 0.6
+
+    def _hide_location_banner_for_battle(self) -> None:
+        """Hide the top location banner while battle UI is active."""
+        try:
+            self.query_one("#welcome").add_class("hidden")
+        except Exception:
+            pass
+
+    def _restore_location_banner_after_battle(self) -> None:
+        """Restore the top location banner after battle flow is finished."""
+        try:
+            self.query_one("#welcome").remove_class("hidden")
+        except Exception:
+            pass
+        try:
+            self._refresh_subtitle()
+        except Exception:
+            pass
+
     # ── Battle init helpers ──────────────────────────────────────────────────
 
     def ensure_battle_ready(self, pokemon: dict) -> None:
@@ -85,22 +105,17 @@ class BattleMixin:
         if trainer is not None:
             self.pending_command_data["trainer"] = trainer
 
-        output.write("")
         output.write("[bold cyan]🎮 Who do you choose?[/bold cyan]")
-        output.write("")
+        choices: list[str] = []
         for slot, p in enumerate(non_fainted, 1):
-            types = "/".join(p.get("types", []))
-            hp = p.get("hp", 0)
-            max_hp = p.get("max_hp", 1)
-            hp_bar = format_hp_bar(hp, max_hp, width=10)
             status = p.get("status") or ""
             status_str = f" [red]{status}[/red]" if status else ""
-            output.write(
-                f"  [bold]{slot}.[/bold] {p['name']} Lv.{p.get('level', 5)}{status_str}  "
-                f"{hp_bar} {hp}/{max_hp} HP  [dim]{types}[/dim]"
-            )
-        output.write("")
-        output.write(f"[dim]Enter a number (1-{len(non_fainted)}) or 'cancel':[/dim]")
+            choices.append(f"[bold]{slot}.[/bold] {p['name']} Lv.{p.get('level', 5)}{status_str}")
+
+        output.write("  " + " [dim]|[/dim] ".join(choices))
+        output.write(f"[dim]Enter a number (1-{len(non_fainted)}).[/dim]")
+        if battle_type == "trainer":
+            output.write("[dim]Trainer battles require you to choose a Pokemon.[/dim]")
         self.show_choose_lead_panel(non_fainted)
 
     def trigger_wild_encounter(self, output: RichLog) -> None:
@@ -130,12 +145,7 @@ class BattleMixin:
         primary_type = species_types[0] if species_types else "Normal"
         flavor = _TYPE_ENCOUNTER_HINTS.get(primary_type, "Something is lurking nearby...")
 
-        output.write("")
-        output.write("[bold red]══════════════════════════════════════════[/bold red]")
-        output.write("[bold]A wild Pokémon appeared![/bold]")
-        output.write(f"[dim]{flavor}[/dim]")
-        output.write("[bold red]══════════════════════════════════════════[/bold red]")
-        output.write("")
+        output.write(f"[bold red]A wild Pokémon appeared![/bold red] [dim]{flavor}[/dim]")
 
         self._show_lead_selection_prompt(output, battle_type="wild")
 
@@ -143,11 +153,7 @@ class BattleMixin:
         """Trigger a trainer battle, prompting the player to choose their lead first."""
         trainer_class = trainer.get("trainer_class", "Trainer")
         trainer_name = trainer.get("name", "???")
-        output.write("")
-        output.write("[bold yellow]══════════════════════════════════════════[/bold yellow]")
-        output.write(f"[bold]{trainer_class} {trainer_name} wants to battle![/bold]")
-        output.write("[bold yellow]══════════════════════════════════════════[/bold yellow]")
-        output.write("")
+        output.write(f"[bold yellow]{trainer_class} {trainer_name} wants to battle![/bold yellow]")
         self._show_lead_selection_prompt(output, battle_type="trainer", trainer=trainer)
 
     def _do_trigger_wild_encounter(self, output: RichLog) -> None:
@@ -165,6 +171,7 @@ class BattleMixin:
             show_battle_start_callback=animated_battle_start,
         )
         if self.game_state.battle_state:
+            self._hide_location_banner_for_battle()
             self.show_battle_hud()
             self.update_battle_hud()
 
@@ -184,6 +191,7 @@ class BattleMixin:
             show_battle_start_callback=animated_trainer_start,
         )
         if self.game_state.battle_state:
+            self._hide_location_banner_for_battle()
             self.show_battle_hud()
             self.update_battle_hud()
 
@@ -215,6 +223,7 @@ class BattleMixin:
 
     def show_battle_options(self, output: RichLog) -> None:
         """Display the main battle menu with HP bars."""
+        self._hide_location_banner_for_battle()
         battle_ui.show_battle_options(self.game_state, output)
         self.show_battle_action_panel()
         self.show_battle_hud()
@@ -402,7 +411,10 @@ class BattleMixin:
                 return player["moves"][idx]
             return None
         for move in player["moves"]:
-            if move["name"].lower() == cmd or cmd in move["name"].lower():
+            if move["name"].lower() == cmd:
+                return move
+        for move in player["moves"]:
+            if cmd in move["name"].lower():
                 return move
         return None
 
@@ -656,6 +668,14 @@ class BattleMixin:
         def _animate_shake(out: RichLog, lines: list, on_complete) -> None:
             self.text_animator.write_slow(out, lines, on_complete=on_complete)
 
+        def _delay_after_failed_catch(on_complete) -> None:
+            """Pause briefly so failed-catch feedback remains readable."""
+            set_timer = getattr(self, "set_timer", None)
+            if callable(set_timer):
+                set_timer(self.FAILED_CATCH_PAUSE_SECONDS, on_complete)
+            else:
+                on_complete()
+
         battle_actions.attempt_catch_pokemon(
             self.game_state,
             output,
@@ -665,6 +685,7 @@ class BattleMixin:
             self.handle_pokemon_fainted,
             ball_type=ball_type,
             animate_shake_callback=_animate_shake,
+            post_fail_delay_callback=_delay_after_failed_catch,
         )
 
     def show_pokemon_switch_menu(self, output: RichLog) -> None:
@@ -853,6 +874,7 @@ class BattleMixin:
         """Clean up after a battle ends and return to exploration (or gym lobby)."""
         # Capture gym context BEFORE pending_command_data is cleared
         in_gym = self.pending_command_data.get("in_gym_lobby", False)
+        self._restore_location_banner_after_battle()
 
         if in_gym:
             # Manually mirror battle_actions.end_battle then re-open gym lobby
@@ -914,8 +936,14 @@ class BattleMixin:
         output.write(f"  [dim]Delete a move to make room for {move_name}?[/dim]")
         output.write("")
         for i, m in enumerate(current_moves, 1):
-            pp_info = f" ({m['pp']}/{m.get('max_pp', m['pp'])} PP)" if "pp" in m else ""
-            output.write(f"  [cyan]{i}.[/cyan] {m['name']}{pp_info}")
+            if hasattr(m, "pp"):
+                pp_info = f" ({m.pp}/{m.max_pp} PP)"
+            elif isinstance(m, dict) and "pp" in m:
+                pp_info = f" ({m['pp']}/{m.get('max_pp', m['pp'])} PP)"
+            else:
+                pp_info = ""
+            name = m.name if hasattr(m, "name") else m.get("name", "?")
+            output.write(f"  [cyan]{i}.[/cyan] {name}{pp_info}")
         output.write("")
         output.write(
             "  [dim]Type [bold]1-4[/bold] to forget that move, or [bold]no[/bold] to skip.[/dim]"

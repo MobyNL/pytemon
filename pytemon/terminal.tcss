@@ -259,24 +259,32 @@ Footer {
 
 #choose-lead-grid {
     grid-size: 3 2;
-    height: auto;
+    grid-columns: 1fr 1fr 1fr;
+    grid-rows: 3 3;
+    grid-gutter: 1 1;
+    height: 7;
     margin-bottom: 1;
 }
 
 .lead-slot-button {
-    height: 4;
-    background: $accent 15%;
-    color: $text;
+    width: 1fr;
+    height: 3;
+    content-align: center middle;
+    background: $accent 40%;
+    color: white;
+    text-style: bold;
+    border: tall $accent 60%;
 }
 
 .lead-slot-button:hover {
-    background: $accent 35%;
+    background: $accent 60%;
 }
 
 .lead-slot-button:disabled {
     background: $panel;
+    border: tall $panel-lighten-1;
     color: $text-muted;
-    opacity: 0.4;
+    opacity: 0.7;
 }
 
 .lead-cancel-button {
@@ -924,6 +932,24 @@ Footer {
 #pokemon-center-buttons {
     height: auto;
     width: 100%;
+}
+
+#pokemon-center-loading {
+    height: auto;
+    width: 100%;
+    margin-top: 1;
+    align: center middle;
+}
+
+#pokemon-center-loading LoadingIndicator {
+    height: 3;
+    color: $success;
+}
+
+#pokemon-center-loading-text {
+    color: $success;
+    margin-left: 1;
+    text-style: bold;
 }
 
 .pokemon-center-button {

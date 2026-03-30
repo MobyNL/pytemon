@@ -9,8 +9,6 @@ from typing import TYPE_CHECKING
 
 from textual.widgets import RichLog
 
-from .texts.en import cheat_commands as T
-from .ui.formatters import write_lines, write_lines_fmt
 from . import evolution as _evo
 from . import exploration
 from .battle import battle_ui
@@ -21,6 +19,8 @@ from .data.trainer_data import TRAINERS
 from .engine import BattleState
 from .hm_tm_system import teach_move
 from .locations import LOCATIONS, get_location
+from .texts.en import cheat_commands as T  # noqa: N812
+from .ui.formatters import write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -400,9 +400,7 @@ def give_item(game_state: "GameState", item_name: str, quantity: int, output: Ri
     items = game_state.game_data.setdefault("items", {})
     items[matching_item] = items.get(matching_item, 0) + quantity
 
-    output.write("")
-    output.write(f"[bold green]✓ Received {quantity}x {matching_item}![/bold green]")
-    output.write("")
+    write_lines_fmt(output, T.CHEAT_ITEM_RECEIVED, quantity=quantity, item_name=matching_item)
 
 
 def add_money(game_state: "GameState", amount: int, output: RichLog) -> None:
@@ -410,10 +408,12 @@ def add_money(game_state: "GameState", amount: int, output: RichLog) -> None:
     current = game_state.game_data.get("money", 0)
     game_state.game_data["money"] = current + amount
 
-    output.write("")
-    output.write(f"[bold green]✓ Received ₽{amount}![/bold green]")
-    output.write(f"  [dim]Total money: ₽{game_state.game_data['money']}[/dim]")
-    output.write("")
+    write_lines_fmt(
+        output,
+        T.CHEAT_MONEY_RECEIVED,
+        amount=amount,
+        total_money=game_state.game_data["money"],
+    )
 
 
 def trigger_cheat_battle(
@@ -437,7 +437,7 @@ def trigger_cheat_battle(
     """
     # Find matching Pokemon
     matching_pokemon = None
-    for num, data in POKEMON.items():
+    for _, data in POKEMON.items():
         if (
             data["name"].lower() == pokemon_name.lower()
             or pokemon_name.lower() in data["name"].lower()
@@ -446,21 +446,14 @@ def trigger_cheat_battle(
             break
 
     if not matching_pokemon:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found: {pokemon_name}[/red]")
-        output.write("[dim]Use 'cheat list pokemon' to see all Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_POKEMON_NOT_FOUND, pokemon_name=pokemon_name)
         return
 
     # Get player's first non-fainted Pokemon
     player_pokemon = game_state.get_active_pokemon()
 
     if not player_pokemon:
-        output.write("")
-        output.write(
-            "[red]❌ All your Pokemon have fainted! You need at least one Pokemon to battle.[/red]"
-        )
-        output.write("")
+        write_lines(output, T.CHEAT_ALL_FAINTED_FOR_BATTLE)
         return
 
     # Create and start battle
@@ -497,10 +490,7 @@ def trigger_cheat_trainer_battle(
     """
     # Find matching trainer
     if trainer_id not in TRAINERS:
-        output.write("")
-        output.write(f"[red]❌ Trainer not found: {trainer_id}[/red]")
-        output.write("[dim]Use 'cheat list trainers' to see all trainers[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_TRAINER_NOT_FOUND, trainer_id=trainer_id)
         return
 
     trainer = TRAINERS[trainer_id]
@@ -531,28 +521,21 @@ def add_pokemon_to_party(
     # Check party size
     pokemon_list = game_state.game_data.get("pokemon", [])
     if len(pokemon_list) >= 6:
-        output.write("")
-        output.write("[red]❌ Party is full! Remove a Pokemon first.[/red]")
-        output.write("")
+        write_lines(output, T.CHEAT_PARTY_FULL)
         return
 
     # Find matching Pokemon
     matching_pokemon = None
-    pokemon_number = None
-    for num, data in POKEMON.items():
+    for _, data in POKEMON.items():
         if (
             data["name"].lower() == pokemon_name.lower()
             or pokemon_name.lower() in data["name"].lower()
         ):
             matching_pokemon = data["name"]
-            pokemon_number = num
             break
 
     if not matching_pokemon:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found: {pokemon_name}[/red]")
-        output.write("[dim]Use 'cheat list pokemon' to see all Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_POKEMON_NOT_FOUND, pokemon_name=pokemon_name)
         return
 
     # Create the Pokemon using battle engine
@@ -565,10 +548,13 @@ def add_pokemon_to_party(
 
     game_state.game_data["pokemon"].append(new_pokemon)
 
-    output.write("")
-    output.write(f"[bold green]✓ Added {matching_pokemon} (Lv.{level}) to party![/bold green]")
-    output.write(f"  [dim]Party size: {len(game_state.game_data['pokemon'])}/6[/dim]")
-    output.write("")
+    write_lines_fmt(
+        output,
+        T.CHEAT_PARTY_ADD_SUCCESS,
+        pokemon_name=matching_pokemon,
+        level=level,
+        party_size=len(game_state.game_data["pokemon"]),
+    )
 
 
 def remove_pokemon_from_party(game_state: "GameState", identifier: str, output: RichLog) -> None:
@@ -583,25 +569,18 @@ def remove_pokemon_from_party(game_state: "GameState", identifier: str, output: 
     pokemon_list = game_state.game_data.get("pokemon", [])
 
     if not pokemon_list:
-        output.write("")
-        output.write("[red]❌ Your party is empty![/red]")
-        output.write("")
+        write_lines(output, T.CHEAT_PARTY_EMPTY)
         return
 
     pokemon, idx = game_state.find_pokemon(identifier)
 
     if pokemon is None:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found in party: {identifier}[/red]")
-        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_PARTY_MEMBER_NOT_FOUND, identifier=identifier)
         return
 
     # Don't allow removing the last Pokemon
     if len(pokemon_list) == 1:
-        output.write("")
-        output.write("[red]❌ Can't remove your last Pokemon![/red]")
-        output.write("")
+        write_lines(output, T.CHEAT_PARTY_CANNOT_REMOVE_LAST)
         return
 
     pokemon_name = pokemon.get("name", "Unknown")
@@ -610,12 +589,13 @@ def remove_pokemon_from_party(game_state: "GameState", identifier: str, output: 
     # Remove from party
     game_state.game_data["pokemon"].pop(idx)
 
-    output.write("")
-    output.write(
-        f"[bold yellow]Removed {pokemon_name} (Lv.{pokemon_level}) from party[/bold yellow]"
+    write_lines_fmt(
+        output,
+        T.CHEAT_PARTY_REMOVE_SUCCESS,
+        pokemon_name=pokemon_name,
+        pokemon_level=pokemon_level,
+        party_size=len(game_state.game_data["pokemon"]),
     )
-    output.write(f"  [dim]Party size: {len(game_state.game_data['pokemon'])}/6[/dim]")
-    output.write("")
 
 
 def level_up_pokemon(
@@ -631,18 +611,13 @@ def level_up_pokemon(
         output: The RichLog widget to write to
     """
     if not 1 <= new_level <= 100:
-        output.write("")
-        output.write("[red]❌ Level must be between 1 and 100[/red]")
-        output.write("")
+        write_lines(output, T.CHEAT_LEVEL_OUT_OF_RANGE)
         return
 
     pokemon, idx = game_state.find_pokemon(identifier)
 
     if pokemon is None:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found in party: {identifier}[/red]")
-        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_PARTY_MEMBER_NOT_FOUND, identifier=identifier)
         return
 
     pokemon_name = pokemon.get("name", "Unknown")
@@ -667,11 +642,14 @@ def level_up_pokemon(
         new_moves = battle_engine.get_moves_for_level(pokemon_data, new_level)
         pokemon["moves"] = new_moves
 
-    output.write("")
-    output.write(f"[bold green]✓ {pokemon_name} leveled up![/bold green]")
-    output.write(f"  Level: {old_level} → {new_level}")
-    output.write(f"  [dim]HP: {pokemon['max_hp']} | Stats recalculated[/dim]")
-    output.write("")
+    write_lines_fmt(
+        output,
+        T.CHEAT_LEVEL_UP_SUCCESS,
+        pokemon_name=pokemon_name,
+        old_level=old_level,
+        new_level=new_level,
+        max_hp=pokemon["max_hp"],
+    )
 
 
 def evolve_pokemon(game_state: "GameState", identifier: str, output: RichLog) -> None:
@@ -686,42 +664,31 @@ def evolve_pokemon(game_state: "GameState", identifier: str, output: RichLog) ->
     pokemon, idx = game_state.find_pokemon(identifier)
 
     if pokemon is None:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found in party: {identifier}[/red]")
-        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_PARTY_MEMBER_NOT_FOUND, identifier=identifier)
         return
 
     pokemon_name = pokemon.get("name", "Unknown")
     pokemon_number = pokemon.get("number")
 
     if not pokemon_number or pokemon_number not in POKEMON:
-        output.write("")
-        output.write(f"[red]❌ Can't find evolution data for {pokemon_name}[/red]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_EVOLUTION_DATA_NOT_FOUND, pokemon_name=pokemon_name)
         return
 
     species = POKEMON[pokemon_number]
     evolution = species.get("evolution")
 
     if not evolution:
-        output.write("")
-        output.write(f"[yellow]⚠ {pokemon_name} doesn't evolve[/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_DOES_NOT_EVOLVE, pokemon_name=pokemon_name)
         return
 
     evolved_form = evolution.get("into")
     if not evolved_form:
-        output.write("")
-        output.write(f"[red]❌ Evolution data error for {pokemon_name}[/red]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_EVOLUTION_DATA_ERROR, pokemon_name=pokemon_name)
         return
 
     success = _evo.force_evolve(game_state, pokemon, evolved_form, output)
     if not success:
-        output.write("")
-        output.write(f"[red]❌ Evolved form not found in data: {evolved_form}[/red]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_EVOLVED_FORM_NOT_FOUND, evolved_form=evolved_form)
 
 
 def faint_pokemon(game_state: "GameState", identifier: str, output: RichLog) -> None:
@@ -736,36 +703,30 @@ def faint_pokemon(game_state: "GameState", identifier: str, output: RichLog) -> 
     pokemon, idx = game_state.find_pokemon(identifier)
 
     if pokemon is None:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found: {identifier}[/red]")
-        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_POKEMON_NOT_FOUND_IN_PARTY, identifier=identifier)
         return
 
     if pokemon.get("hp", 0) <= 0:
-        output.write("")
-        output.write(f"[yellow]⚠ {pokemon['name']} is already fainted![/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_ALREADY_FAINTED, pokemon_name=pokemon["name"])
         return
 
     # Don't allow fainting the last healthy Pokemon
     pokemon_list = game_state.game_data.get("pokemon", [])
     healthy = [p for p in pokemon_list if p.get("hp", 0) > 0]
     if len(healthy) <= 1:
-        output.write("")
-        output.write("[red]❌ Can't faint your last healthy Pokemon![/red]")
-        output.write("")
+        write_lines(output, T.CHEAT_CANNOT_FAINT_LAST_HEALTHY)
         return
 
     pokemon["hp"] = 0
 
-    output.write("")
-    output.write(f"[bold yellow]🎮 [CHEAT MODE] {pokemon['name']} fainted![/bold yellow]")
-    output.write("")
+    write_lines_fmt(output, T.CHEAT_FAINTED_SUCCESS, pokemon_name=pokemon["name"])
 
 
 def teach_move_cheat(
-    game_state: "GameState", identifier: str, move_name: str, output: RichLog,
+    game_state: "GameState",
+    identifier: str,
+    move_name: str,
+    output: RichLog,
     queue_move_learn_callback=None,
 ) -> None:
     """
@@ -782,10 +743,7 @@ def teach_move_cheat(
     pokemon, idx = game_state.find_pokemon(identifier)
 
     if pokemon is None:
-        output.write("")
-        output.write(f"[red]❌ Pokemon not found: {identifier}[/red]")
-        output.write("[dim]Use 'party' to see your Pokemon[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_POKEMON_NOT_FOUND_IN_PARTY, identifier=identifier)
         return
 
     # Find matching move (case-insensitive, partial match allowed)
@@ -802,11 +760,16 @@ def teach_move_cheat(
                 break
 
     if not matching_move:
-        output.write("")
-        output.write(f"[red]❌ Move not found: {move_name}[/red]")
-        output.write("[dim]Check the move name and try again[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.CHEAT_MOVE_NOT_FOUND, move_name=move_name)
         return
 
     output.write(f"[bold yellow]🎮 [CHEAT MODE] Teaching {matching_move}...[/bold yellow]")
-    teach_move(game_state, matching_move, pokemon, f"TM {matching_move}", False, output, queue_move_learn_callback)
+    teach_move(
+        game_state,
+        matching_move,
+        pokemon,
+        f"TM {matching_move}",
+        False,
+        output,
+        queue_move_learn_callback,
+    )

@@ -12,6 +12,8 @@ from textual.widgets import Input, RichLog
 
 from .. import buildings, exploration, gym_system, pc_system
 from ..locations import get_location as _get_location
+from ..texts.en import building_mixin as T  # noqa: N812
+from .formatters import write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     pass  # Avoid circular imports — self is always a PokemonTerminal at runtime
@@ -20,10 +22,19 @@ if TYPE_CHECKING:
 class BuildingMixin:
     """Mixin providing buildings, shop, location movement, and name selection."""
 
+    def _set_active_building_context(self, building_name: str) -> None:
+        """Set the active building label used by the top subtitle banner."""
+        self.game_state.game_data["_active_building"] = building_name
+
+    def _clear_active_building_context(self) -> None:
+        """Clear active building subtitle context when back outside."""
+        self.game_state.game_data.pop("_active_building", None)
+
     # ── Exploration / movement ───────────────────────────────────────────────
 
     def move_to_location(self, destination: str, output: RichLog) -> None:
         """Move to a new location (delegates to exploration module)."""
+        self._clear_active_building_context()
         exploration.move_to_location(
             self.game_state, destination, output, self.show_location_arrival
         )
@@ -48,10 +59,12 @@ class BuildingMixin:
 
     def show_location_arrival(self, output: RichLog, is_load: bool = False) -> None:
         """Display location arrival (delegates to exploration module)."""
+        self._clear_active_building_context()
         exploration.show_location_arrival(self.game_state, output, is_load)
 
     def look_around(self, output: RichLog, auto: bool = False) -> None:
         """Look around (delegates to exploration module)."""
+        self._clear_active_building_context()
         exploration.look_around(self.game_state, output, auto)
 
     def explore_area(self, output: RichLog) -> None:
@@ -62,25 +75,46 @@ class BuildingMixin:
 
     # ── Healing confirmation (Pokemon Center & Mom) ──────────────────────────
 
+    def _heal_at_pokemon_center(self, output: RichLog) -> None:
+        """Heal party at the Pokemon Center, animating output when available."""
+
+        def _after_heal() -> None:
+            hide_loading = getattr(self, "hide_pokemon_center_loading", None)
+            if callable(hide_loading):
+                hide_loading()
+            self._return_to_pokemon_center(output)
+
+        show_loading = getattr(self, "show_pokemon_center_loading", None)
+        if callable(show_loading):
+            show_loading()
+
+        self.pending_command = "pokemon_center_healing"
+
+        animator = getattr(self, "text_animator", None)
+        if animator:
+            buildings.perform_pokemon_center_heal(
+                self.game_state,
+                output,
+                line_writer=lambda out, lines: animator.write_medium(
+                    out, lines, on_complete=_after_heal
+                ),
+            )
+            return
+
+        buildings.perform_pokemon_center_heal(self.game_state, output)
+        _after_heal()
+
     def handle_heal_center_confirmation(self, response: str, output: RichLog) -> None:
         """Handle Pokemon Center healing confirmation."""
         response_lower = response.lower().strip()
         if response_lower in ("yes", "y", "heal"):
-            buildings.perform_pokemon_center_heal(self.game_state, output)
+            self._heal_at_pokemon_center(output)
         elif response_lower in ("no", "n", "leave", "exit"):
+            self._clear_active_building_context()
             self.hide_all_panels()
-            output.write("")
-            output.write(
-                "[bold]Nurse Joy:[/bold] [magenta]Please come back if you need us![/magenta]"
-            )
-            output.write("")
-            output.write("[dim]You leave the Pokemon Center[/dim]")
-            output.write("")
+            write_lines(output, T.HEAL_CENTER_DECLINED)
         else:
-            output.write("")
-            output.write("[red]❌ Invalid response[/red]")
-            output.write("[dim]Please type: Yes or No[/dim]")
-            output.write("")
+            write_lines(output, T.INVALID_RESPONSE_YES_NO)
             self.pending_command = "confirm_heal_center"
 
     def handle_heal_mom_confirmation(self, response: str, output: RichLog) -> None:
@@ -89,19 +123,11 @@ class BuildingMixin:
         if response_lower in ("yes", "y", "rest", "heal"):
             buildings.perform_mom_heal(self.game_state, output)
         elif response_lower in ("no", "n", "leave"):
+            self._clear_active_building_context()
             self.hide_all_panels()
-            output.write("")
-            output.write(
-                "[bold]Mom:[/bold] [magenta]Okay! Come back anytime you need to rest![/magenta]"
-            )
-            output.write("")
-            output.write("[dim]You leave the house[/dim]")
-            output.write("")
+            write_lines(output, T.HEAL_MOM_DECLINED)
         else:
-            output.write("")
-            output.write("[red]❌ Invalid response[/red]")
-            output.write("[dim]Please type: Yes or No[/dim]")
-            output.write("")
+            write_lines(output, T.INVALID_RESPONSE_YES_NO)
             self.pending_command = "confirm_heal_mom"
         output.write("")
 
@@ -111,17 +137,21 @@ class BuildingMixin:
         """Set pending command and show the appropriate healing panel."""
         self.pending_command = cmd
         if cmd == "pokemon_center":
+            self._set_active_building_context("Pokemon Center")
             self.show_pokemon_center_panel()
         elif cmd == "confirm_heal_mom":
+            self._set_active_building_context("Player's House")
             self.show_nurse_joy_panel("Would you like me to make them feel better?", "mom")
 
     def _return_to_pokemon_center(self, output: RichLog) -> None:
         """Return to the Pokemon Center lobby after healing or using the PC."""
+        self._set_active_building_context("Pokemon Center")
         self.pending_command = "pokemon_center"
         self.show_pokemon_center_panel()
 
     def _open_pc_from_center(self, output: RichLog) -> None:
         """Open Bill's PC from inside the Pokemon Center."""
+        self._set_active_building_context("Bill's PC")
         pc_system.show_pc_menu(self.game_state, output)
         self.hide_all_panels()
         self.show_pc_main_panel()
@@ -130,22 +160,15 @@ class BuildingMixin:
         """Handle text commands while in the Pokemon Center lobby."""
         cmd = user_input.lower().strip()
         if cmd in ("heal", "heal pokemon", "yes"):
-            buildings.perform_pokemon_center_heal(self.game_state, output)
-            self._return_to_pokemon_center(output)
+            self._heal_at_pokemon_center(output)
         elif cmd in ("pc", "use pc", "computer", "bill", "bill's pc"):
             self._open_pc_from_center(output)
         elif cmd in ("leave", "exit", "bye", "back", "no"):
+            self._clear_active_building_context()
             self.hide_all_panels()
-            output.write(
-                "[dim]You leave the Pokemon Center. Come back if your Pokemon need healing![/dim]"
-            )
-            output.write("")
+            write_lines(output, T.POKEMON_CENTER_LEAVE)
         else:
-            output.write("[bold]Nurse Joy:[/bold] [magenta]I'm not sure I understand.[/magenta]")
-            output.write(
-                "[magenta]   Would you like to heal your Pokemon, use the PC, or leave?[/magenta]"
-            )
-            output.write("")
+            write_lines(output, T.POKEMON_CENTER_UNKNOWN_COMMAND)
             self._return_to_pokemon_center(output)
 
     # ── Building entry ───────────────────────────────────────────────────────
@@ -162,6 +185,9 @@ class BuildingMixin:
             self.show_pokemart_panel,
             show_gym_panel_callback=self.show_gym_panel,
         )
+        if self.pending_command is None:
+            self._clear_active_building_context()
+        self._refresh_subtitle()
 
     def enter_pokemon_center(self, output: RichLog) -> None:
         """Enter Pokemon Center (delegates to buildings module)."""
@@ -218,14 +244,7 @@ class BuildingMixin:
 
     def enter_pokemart(self, output: RichLog) -> None:
         """Enter the Pokemart and allow purchasing items."""
-        output.write("")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("[bold cyan]            🏪 POKEMART 🏪                [/bold cyan]")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("")
-        output.write("[bold]Clerk:[/bold] [yellow]Welcome to the Pokemart![/yellow]")
-        output.write("[yellow]   What can I get for you?[/yellow]")
-        output.write("")
+        write_lines(output, T.POKEMART_HEADER)
         self.show_shop_menu(output)
         self.show_pokemart_panel()
         self.pending_command = "shop"
@@ -233,7 +252,7 @@ class BuildingMixin:
     # ── Pokemart shop ────────────────────────────────────────────────────────
 
     @property
-    def SHOP_CATALOG(self) -> dict:
+    def SHOP_CATALOG(self) -> dict:  # noqa: N802
         """Delegate to the authoritative catalog in buildings module."""
         return buildings.SHOP_CATALOG
 
@@ -259,12 +278,9 @@ class BuildingMixin:
         cmd = command.lower().strip()
 
         if cmd in ("leave", "exit", "done", "goodbye", "bye", "no", "back"):
+            self._clear_active_building_context()
             self.hide_all_panels()
-            output.write("")
-            output.write("[bold]Clerk:[/bold] [yellow]Thank you! Come again![/yellow]")
-            output.write("")
-            output.write("[dim]You leave the Pokemart[/dim]")
-            output.write("")
+            write_lines(output, T.POKEMART_LEAVE)
             return "leave"  # Don't set pending_command — exits the shop
 
         if cmd.startswith("sell "):
@@ -301,18 +317,14 @@ class BuildingMixin:
                         break
 
             if sell_item_name is None:
-                output.write("")
-                output.write("[red]❌ That item has no resale value[/red]")
-                output.write("")
+                write_lines(output, T.SHOP_NO_RESALE_VALUE)
                 self.pending_command = "shop"
                 return "error"
 
             items = self.game_state.game_data.setdefault("items", {})
             owned_qty = items.get(sell_item_name, 0)
             if owned_qty <= 0:
-                output.write("")
-                output.write(f"[red]❌ You don't have any {sell_item_name}![/red]")
-                output.write("")
+                write_lines_fmt(output, T.SHOP_DO_NOT_HAVE_ITEM, item_name=sell_item_name)
                 self.pending_command = "shop"
                 return "error"
 
@@ -329,21 +341,20 @@ class BuildingMixin:
                 items[sell_item_name] = new_qty
 
             new_balance = self.game_state.game_data["money"]
-            output.write("")
-            output.write(
-                f"[bold green]✓ Sold {sale_qty}x {sell_item_name} for ₽{total_earned}![/bold green]"
+            write_lines_fmt(
+                output,
+                T.SHOP_SELL_SUCCESS,
+                qty=sale_qty,
+                item_name=sell_item_name,
+                total_earned=total_earned,
+                money=new_balance,
             )
-            output.write(f"   [dim]Money: ₽{new_balance}[/dim]")
-            output.write("")
             self.show_shop_menu(output)
             self.pending_command = "shop"
             return "ok"
 
         if not cmd.startswith("buy "):
-            output.write("")
-            output.write("[yellow]?[/yellow] [dim]I don't understand that.[/dim]")
-            output.write("[dim]Type 'buy <item>', 'sell <item>' or 'leave'[/dim]")
-            output.write("")
+            write_lines(output, T.SHOP_UNKNOWN_COMMAND)
             self.pending_command = "shop"
             return "error"
 
@@ -365,10 +376,7 @@ class BuildingMixin:
                 break
 
         if not matched_item:
-            output.write("")
-            output.write(f"[red]❌ '{command[4:].strip()}' is not sold here[/red]")
-            output.write("[dim]Check the item list above[/dim]")
-            output.write("")
+            write_lines_fmt(output, T.SHOP_ITEM_NOT_SOLD, item_name=command[4:].strip())
             self.pending_command = "shop"
             return "error"
 
@@ -377,9 +385,7 @@ class BuildingMixin:
         money = self.game_state.game_data.get("money", 0)
 
         if money < total_cost:
-            output.write("")
-            output.write(f"[red]❌ Not enough money! Need ₽{total_cost}, have ₽{money}[/red]")
-            output.write("")
+            write_lines_fmt(output, T.SHOP_NOT_ENOUGH_MONEY, total_cost=total_cost, money=money)
             self.pending_command = "shop"
             return "cant_afford"
 
@@ -387,10 +393,14 @@ class BuildingMixin:
         items = self.game_state.game_data.setdefault("items", {})
         items[matched_item] = items.get(matched_item, 0) + qty
 
-        output.write("")
-        output.write(f"[bold green]✓ Bought {qty}x {matched_item} for ₽{total_cost}![/bold green]")
-        output.write(f"   [dim]Remaining money: ₽{self.game_state.game_data['money']}[/dim]")
-        output.write("")
+        write_lines_fmt(
+            output,
+            T.SHOP_BUY_SUCCESS,
+            qty=qty,
+            item_name=matched_item,
+            total_cost=total_cost,
+            money=self.game_state.game_data["money"],
+        )
 
         self.show_shop_menu(output)
         self.pending_command = "shop"
@@ -400,75 +410,33 @@ class BuildingMixin:
 
     def enter_gym(self, gym_name: str, output: RichLog) -> None:
         """Enter a Pokemon Gym."""
-        output.write("")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("[bold cyan]           ⚔️  POKEMON GYM ⚔️             [/bold cyan]")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("")
+        write_lines(output, T.GYM_HEADER)
         location_name = (
             self.game_state.current_location.name if self.game_state.current_location else ""
         )
         if "Pewter" in location_name:
-            output.write("[bold]Brock:[/bold] [yellow]I'm Brock! I'm Pewter's Gym Leader![/yellow]")
-            output.write("[yellow]   My rock-hard willpower is evident in my Pokemon![/yellow]")
-            output.write("")
-            output.write("[dim]Gym battles will be implemented soon...[/dim]")
+            write_lines(output, T.GYM_PEWTER_DIALOGUE)
         elif "Viridian" in location_name:
-            output.write("[bold]???:[/bold] [yellow]The Gym Leader is not here...[/yellow]")
-            output.write("")
-            output.write("[dim]You need 7 badges to challenge this gym[/dim]")
+            write_lines(output, T.GYM_VIRIDIAN_DIALOGUE)
         else:
-            output.write("[yellow]The gym is currently closed[/yellow]")
-        output.write("")
-        output.write("[dim]You leave the Gym[/dim]")
-        output.write("")
+            write_lines(output, T.GYM_CLOSED)
+        write_lines(output, T.GYM_EXIT)
 
     # ── Story buildings ──────────────────────────────────────────────────────
 
     def enter_players_house(self, output: RichLog) -> None:
         """Enter the player's house."""
-        output.write("")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("[bold cyan]          🏠 PLAYER'S HOUSE 🏠            [/bold cyan]")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("")
-        output.write(
-            "[bold]Mom:[/bold] [magenta]Welcome home! Did you come back to rest?[/magenta]"
-        )
-        output.write("")
-        output.write("[magenta]   Your room is upstairs if you need anything.[/magenta]")
-        output.write("[magenta]   There's a TV in the living room if you want to watch.[/magenta]")
-        output.write("")
-        output.write("[dim]Your room has a bed and a PC for storing Pokemon[/dim]")
-        output.write("")
-        output.write("[bold]Mom:[/bold] [magenta]Take care on your journey![/magenta]")
-        output.write("")
-        output.write("[dim]You leave the house[/dim]")
-        output.write("")
+        write_lines(output, T.PLAYER_HOUSE_VISIT)
 
     def enter_rivals_house(self, output: RichLog) -> None:
         """Enter the rival's house."""
-        output.write("")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("[bold cyan]          🏠 RIVAL'S HOUSE 🏠             [/bold cyan]")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("")
+        write_lines(output, T.RIVALS_HOUSE_HEADER)
         pokemon = self.game_state.game_data.get("pokemon", [])
         if not pokemon:
-            output.write(
-                "[bold]Rival's Sister:[/bold] [yellow]Oh! You're going to see Professor Oak?[/yellow]"
-            )
-            output.write("[yellow]   My brother already left. He's always so impatient![/yellow]")
+            write_lines(output, T.RIVALS_HOUSE_NO_POKEMON)
         else:
-            output.write(
-                "[bold]Rival's Sister:[/bold] [yellow]My brother is on his Pokemon journey too![/yellow]"
-            )
-            output.write(
-                "[yellow]   I hope you two can be good rivals and help each other grow![/yellow]"
-            )
-        output.write("")
-        output.write("[dim]You leave the house[/dim]")
-        output.write("")
+            write_lines(output, T.RIVALS_HOUSE_WITH_POKEMON)
+        write_lines(output, T.RIVALS_HOUSE_EXIT)
 
     def enter_oaks_lab(self, output: RichLog) -> None:
         """Enter Professor Oak's Laboratory."""
@@ -544,25 +512,17 @@ class BuildingMixin:
         rival_name = rival_input.value.strip()
 
         if not player_name:
-            output.write("")
-            output.write("[red]❌ Please enter your name![/red]")
-            output.write("")
+            write_lines(output, T.NAME_REQUIRED_PLAYER)
             return
         if not rival_name:
-            output.write("")
-            output.write("[red]❌ Please enter your rival's name![/red]")
-            output.write("")
+            write_lines(output, T.NAME_REQUIRED_RIVAL)
             return
 
         self.game_state.game_data["player_name"] = player_name
         self.game_state.game_data["rival_name"] = rival_name
         self.hide_all_panels()
 
-        output.write("")
-        output.write("[bold green]✓ Names set![/bold green]")
-        output.write(f"  👤 Your name: [cyan]{player_name}[/cyan]")
-        output.write(f"  👤 Rival's name: [yellow]{rival_name}[/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.NAMES_SET, player_name=player_name, rival_name=rival_name)
 
         self.update_pallet_town_buildings()
         exploration.show_location_arrival(self.game_state, output)
@@ -602,13 +562,12 @@ class BuildingMixin:
         player_input.value = player_name
         rival_input.value = rival_name
 
-        output.write("")
-        output.write("[dim]Generated random names:[/dim]")
-        output.write(f"  👤 Your name: [cyan]{player_name}[/cyan]")
-        output.write(f"  👤 Rival's name: [yellow]{rival_name}[/yellow]")
-        output.write("")
-        output.write("[dim]Click 'Confirm Names' or edit them if you'd like![/dim]")
-        output.write("")
+        write_lines_fmt(
+            output,
+            T.RANDOM_NAMES_GENERATED,
+            player_name=player_name,
+            rival_name=rival_name,
+        )
 
     def update_pallet_town_buildings(self) -> None:
         """Update Pallet Town building names based on player and rival names."""

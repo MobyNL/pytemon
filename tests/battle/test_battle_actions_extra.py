@@ -535,6 +535,26 @@ class TestHandlePokemonFainted:
         handle_pokemon_fainted(gs, output, lambda out: ended.append(True))
         assert ended
 
+    def test_fainted_stays_fainted_during_switch_prompt_flow(self, gs, output):
+        from pytemon.battle.battle_actions import handle_pokemon_fainted
+
+        bs = setup_wild_battle(gs, "PIKACHU")
+        bs.player_pokemon["hp"] = 0
+        make_party_pokemon(gs, "CHARMANDER")
+
+        prompted = []
+        ended = []
+        handle_pokemon_fainted(
+            gs,
+            output,
+            lambda out: ended.append(True),
+            show_faint_options_callback=lambda can_run: prompted.append(can_run),
+        )
+
+        assert prompted
+        assert not ended
+        assert bs.player_pokemon["hp"] == 0
+
     def test_all_fainted_transports_to_pokemon_center(self, gs, output):
         from pytemon.battle.battle_actions import handle_pokemon_fainted
 

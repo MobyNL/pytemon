@@ -349,6 +349,9 @@ class PanelMixin:
             non_fainted: Ordered list of non-fainted party Pokemon dicts / PartyPokemon objects.
         """
         try:
+            # Lead selection cannot be canceled; hide the cancel button for this panel.
+            self.query_one("#btn-lead-cancel", Button).display = False
+
             for i in range(6):
                 btn = self.query_one(f"#btn-lead-slot-{i}", Button)
                 if i < len(non_fainted):
@@ -578,6 +581,7 @@ class PanelMixin:
             self.query_one("#pokedex-navigation").add_class("hidden")
             self.query_one("#nurse-joy-panel").add_class("hidden")
             self.query_one("#pokemon-center-panel").add_class("hidden")
+            self.query_one("#pokemon-center-loading").add_class("hidden")
             self.query_one("#pc-panel").add_class("hidden")
             self.query_one("#pc-deposit-panel").add_class("hidden")
             self.query_one("#pc-withdraw-panel").add_class("hidden")
@@ -853,7 +857,24 @@ class PanelMixin:
     def show_pokemon_center_panel(self) -> None:
         """Show the Pokemon Center lobby panel."""
         try:
+            self.hide_pokemon_center_loading()
             self.query_one("#pokemon-center-panel").remove_class("hidden")
+        except Exception:
+            pass
+
+    def show_pokemon_center_loading(self) -> None:
+        """Show Pokemon Center loading state while healing is in progress."""
+        try:
+            self.query_one("#pokemon-center-buttons").add_class("hidden")
+            self.query_one("#pokemon-center-loading").remove_class("hidden")
+        except Exception:
+            pass
+
+    def hide_pokemon_center_loading(self) -> None:
+        """Hide Pokemon Center loading state and restore lobby buttons."""
+        try:
+            self.query_one("#pokemon-center-loading").add_class("hidden")
+            self.query_one("#pokemon-center-buttons").remove_class("hidden")
         except Exception:
             pass
 

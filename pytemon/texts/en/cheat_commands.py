@@ -149,3 +149,147 @@ CHEAT_TRAINER_BATTLE_SPAWN: list[str] = [
     "[bold yellow]🎮 [CHEAT MODE] Spawning trainer battle...[/bold yellow]",
     "",
 ]
+
+# ── Generic dynamic status blocks ────────────────────────────────────────────
+
+CHEAT_ITEM_RECEIVED: list[str] = [
+    "",
+    "[bold green]✓ Received {quantity}x {item_name}![/bold green]",
+    "",
+]
+
+CHEAT_MONEY_RECEIVED: list[str] = [
+    "",
+    "[bold green]✓ Received ₽{amount}![/bold green]",
+    "  [dim]Total money: ₽{total_money}[/dim]",
+    "",
+]
+
+CHEAT_POKEMON_NOT_FOUND: list[str] = [
+    "",
+    "[red]❌ Pokemon not found: {pokemon_name}[/red]",
+    "[dim]Use 'cheat list pokemon' to see all Pokemon[/dim]",
+    "",
+]
+
+CHEAT_ALL_FAINTED_FOR_BATTLE: list[str] = [
+    "",
+    "[red]❌ All your Pokemon have fainted! You need at least one Pokemon to battle.[/red]",
+    "",
+]
+
+CHEAT_TRAINER_NOT_FOUND: list[str] = [
+    "",
+    "[red]❌ Trainer not found: {trainer_id}[/red]",
+    "[dim]Use 'cheat list trainers' to see all trainers[/dim]",
+    "",
+]
+
+CHEAT_PARTY_FULL: list[str] = [
+    "",
+    "[red]❌ Party is full! Remove a Pokemon first.[/red]",
+    "",
+]
+
+CHEAT_PARTY_ADD_SUCCESS: list[str] = [
+    "",
+    "[bold green]✓ Added {pokemon_name} (Lv.{level}) to party![/bold green]",
+    "  [dim]Party size: {party_size}/6[/dim]",
+    "",
+]
+
+CHEAT_PARTY_EMPTY: list[str] = [
+    "",
+    "[red]❌ Your party is empty![/red]",
+    "",
+]
+
+CHEAT_PARTY_MEMBER_NOT_FOUND: list[str] = [
+    "",
+    "[red]❌ Pokemon not found in party: {identifier}[/red]",
+    "[dim]Use 'party' to see your Pokemon[/dim]",
+    "",
+]
+
+CHEAT_PARTY_CANNOT_REMOVE_LAST: list[str] = [
+    "",
+    "[red]❌ Can't remove your last Pokemon![/red]",
+    "",
+]
+
+CHEAT_PARTY_REMOVE_SUCCESS: list[str] = [
+    "",
+    "[bold yellow]Removed {pokemon_name} (Lv.{pokemon_level}) from party[/bold yellow]",
+    "  [dim]Party size: {party_size}/6[/dim]",
+    "",
+]
+
+CHEAT_LEVEL_OUT_OF_RANGE: list[str] = [
+    "",
+    "[red]❌ Level must be between 1 and 100[/red]",
+    "",
+]
+
+CHEAT_LEVEL_UP_SUCCESS: list[str] = [
+    "",
+    "[bold green]✓ {pokemon_name} leveled up![/bold green]",
+    "  Level: {old_level} → {new_level}",
+    "  [dim]HP: {max_hp} | Stats recalculated[/dim]",
+    "",
+]
+
+CHEAT_EVOLUTION_DATA_NOT_FOUND: list[str] = [
+    "",
+    "[red]❌ Can't find evolution data for {pokemon_name}[/red]",
+    "",
+]
+
+CHEAT_DOES_NOT_EVOLVE: list[str] = [
+    "",
+    "[yellow]⚠ {pokemon_name} doesn't evolve[/yellow]",
+    "",
+]
+
+CHEAT_EVOLUTION_DATA_ERROR: list[str] = [
+    "",
+    "[red]❌ Evolution data error for {pokemon_name}[/red]",
+    "",
+]
+
+CHEAT_EVOLVED_FORM_NOT_FOUND: list[str] = [
+    "",
+    "[red]❌ Evolved form not found in data: {evolved_form}[/red]",
+    "",
+]
+
+CHEAT_POKEMON_NOT_FOUND_IN_PARTY: list[str] = [
+    "",
+    "[red]❌ Pokemon not found: {identifier}[/red]",
+    "[dim]Use 'party' to see your Pokemon[/dim]",
+    "",
+]
+
+CHEAT_ALREADY_FAINTED: list[str] = [
+    "",
+    "[yellow]⚠ {pokemon_name} is already fainted![/yellow]",
+    "",
+]
+
+CHEAT_CANNOT_FAINT_LAST_HEALTHY: list[str] = [
+    "",
+    "[red]❌ Can't faint your last healthy Pokemon![/red]",
+    "",
+]
+
+CHEAT_FAINTED_SUCCESS: list[str] = [
+    "",
+    "[bold yellow]🎮 [CHEAT MODE] {pokemon_name} fainted![/bold yellow]",
+    "",
+]
+
+CHEAT_MOVE_NOT_FOUND: list[str] = [
+    "",
+    "[red]❌ Move not found: {move_name}[/red]",
+    "[dim]Check the move name and try again[/dim]",
+    "",
+]

@@ -6,16 +6,16 @@ like Pokemon Centers, Pokemarts, Gyms, and story buildings.
 """
 
 import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Optional
 
 from textual.widgets import RichLog
 
-from . import gym_system
+from . import gym_system, pokedex
 from .battle import battle_actions
 from .data.trainer_data import TRAINERS
 from .engine import BattleState
-from .texts.en import buildings as T
-from .ui.formatters import write_lines
+from .texts.en import buildings as T  # noqa: N812
+from .ui.formatters import write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -82,6 +82,16 @@ SELL_PRICES: dict[str, int] = {
 }
 
 
+def _set_active_building(game_state: "GameState", building_name: str) -> None:
+    """Store the current building context for the top UI banner."""
+    game_state.game_data["_active_building"] = building_name
+
+
+def _clear_active_building(game_state: "GameState") -> None:
+    """Clear current building context for the top UI banner."""
+    game_state.game_data.pop("_active_building", None)
+
+
 def enter_building(
     game_state: "GameState",
     building_name: str,
@@ -132,28 +142,21 @@ def enter_building(
                 # Allow entry in cheat mode
                 if game_state.cheat_mode:
                     matching_building = building
-                    output.write("")
-                    output.write(
-                        "[bold yellow]🎮 [CHEAT MODE] Bypassing restriction...[/bold yellow]"
-                    )
+                    write_lines(output, T.CHEAT_BYPASS_BUILDING_LOCK)
                     break
                 else:
-                    output.write("")
-                    output.write(f"[yellow]⚠ {reason}[/yellow]")
-                    output.write("")
+                    write_lines_fmt(output, T.BUILDING_BLOCKED_REASON, reason=reason)
                     return
 
         # If still not found, show error
         if not matching_building:
-            output.write("")
-            output.write(f"[red]❌ '{building_name}' is not a building here[/red]")
-            output.write("[dim]Type 'Look Around' to see available buildings[/dim]")
-            output.write("")
+            write_lines_fmt(output, T.BUILDING_NOT_HERE, building_name=building_name)
             return
 
     # Route to appropriate building handler
     player_name = game_state.game_data.get("player_name", "Trainer")
     rival_name = game_state.game_data.get("rival_name", "Rival")
+    _set_active_building(game_state, matching_building)
 
     if "pokemon center" in matching_building.lower():
         enter_pokemon_center(game_state, output, set_pending_command_callback)
@@ -167,9 +170,7 @@ def enter_building(
         elif trigger_trainer_battle_callback:
             gym_system.enter_gym(game_state, output, trigger_trainer_battle_callback)
         else:
-            output.write("")
-            output.write("[yellow]⚠ Gym battles are not available in this context[/yellow]")
-            output.write("")
+            write_lines(output, T.GYM_NOT_AVAILABLE_CONTEXT)
     elif ("player" in matching_building.lower() and "house" in matching_building.lower()) or (
         player_name.lower() in matching_building.lower() and "house" in matching_building.lower()
     ):
@@ -183,7 +184,7 @@ def enter_building(
             game_state, output, set_pending_command_callback, show_starter_panel_callback
         )
     elif "museum" in matching_building.lower():
-        enter_museum(game_state, output)
+        enter_museum(game_state, output, set_pending_command_callback)
     elif "bill" in matching_building.lower():
         enter_bills_house(game_state, output)
     elif "bike" in matching_building.lower():
@@ -207,10 +208,7 @@ def enter_building(
     elif "safari zone" in matching_building.lower() or "safari" in matching_building.lower():
         enter_safari_zone(game_state, output)
     else:
-        output.write("")
-        output.write(f"[yellow]You entered {matching_building}[/yellow]")
-        output.write("[dim]This building is not yet implemented[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.BUILDING_NOT_IMPLEMENTED, building_name=matching_building)
 
 
 def enter_pokemon_center(
@@ -230,15 +228,12 @@ def enter_pokemon_center(
     pokemon = game_state.game_data.get("pokemon", [])
 
     if not pokemon:
-        output.write("[magenta]   But it seems you don't have any Pokemon yet![/magenta]")
-        output.write("")
-        output.write("[dim]You leave the Pokemon Center[/dim]")
-        output.write("")
+        write_lines(output, T.POKEMON_CENTER_NO_POKEMON_LEAVE)
+        _clear_active_building(game_state)
         return
 
     # Show Pokemon Center lobby menu
-    output.write("[bold]Nurse Joy:[/bold] [magenta]How can I help you today?[/magenta]")
-    output.write("")
+    write_lines(output, T.POKEMON_CENTER_LOBBY_PROMPT)
 
     set_pending_command_callback("pokemon_center")
 
@@ -324,11 +319,8 @@ def process_shop_command(
         "no",
         "back",
     ):
-        output.write("")
-        output.write("[bold]Clerk:[/bold] [yellow]Thank you! Come again![/yellow]")
-        output.write("")
-        output.write("[dim]You leave the Pokemart[/dim]")
-        output.write("")
+        write_lines(output, T.SHOP_LEAVE_THANK_YOU)
+        _clear_active_building(game_state)
         return  # Don't set pending_command — exits the shop
 
     if cmd.startswith("sell "):
@@ -369,9 +361,7 @@ def process_shop_command(
                     break
 
         if sell_item_name is None:
-            output.write("")
-            output.write("[red]❌ That item has no resale value[/red]")
-            output.write("")
+            write_lines(output, T.SHOP_NO_RESALE_VALUE)
             set_pending_command_callback("shop")
             return
 
@@ -379,9 +369,7 @@ def process_shop_command(
         items = game_state.game_data.setdefault("items", {})
         owned_qty = items.get(sell_item_name, 0)
         if owned_qty <= 0:
-            output.write("")
-            output.write(f"[red]❌ You don't have any {sell_item_name}![/red]")
-            output.write("")
+            write_lines_fmt(output, T.SHOP_DO_NOT_HAVE_ITEM, item_name=sell_item_name)
             set_pending_command_callback("shop")
             return
 
@@ -398,22 +386,21 @@ def process_shop_command(
             items[sell_item_name] = new_qty
 
         new_balance = game_state.game_data["money"]
-        output.write("")
-        output.write(
-            f"[bold green]✓ Sold {sale_qty}x {sell_item_name} for ₽{total_earned}![/bold green]"
+        write_lines_fmt(
+            output,
+            T.SHOP_SELL_SUCCESS,
+            qty=sale_qty,
+            item_name=sell_item_name,
+            total_earned=total_earned,
+            money=new_balance,
         )
-        output.write(f"   [dim]Money: ₽{new_balance}[/dim]")
-        output.write("")
 
         show_shop_menu(game_state, output)
         set_pending_command_callback("shop")
         return
 
     if not cmd.startswith("buy "):
-        output.write("")
-        output.write("[yellow]?[/yellow] [dim]I don't understand that.[/dim]")
-        output.write("[dim]Type 'buy <item>', 'sell <item>' or 'leave'[/dim]")
-        output.write("")
+        write_lines(output, T.SHOP_UNKNOWN_COMMAND)
         set_pending_command_callback("shop")
         return
 
@@ -440,10 +427,7 @@ def process_shop_command(
             break
 
     if not matched_item:
-        output.write("")
-        output.write(f"[red]❌ '{command[4:].strip()}' is not sold here[/red]")
-        output.write("[dim]Check the item list above[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.SHOP_ITEM_NOT_SOLD, item_name=command[4:].strip())
         set_pending_command_callback("shop")
         return
 
@@ -452,9 +436,7 @@ def process_shop_command(
     money = game_state.game_data.get("money", 0)
 
     if money < total_cost:
-        output.write("")
-        output.write(f"[red]❌ Not enough money! Need ₽{total_cost}, have ₽{money}[/red]")
-        output.write("")
+        write_lines_fmt(output, T.SHOP_NOT_ENOUGH_MONEY, total_cost=total_cost, money=money)
         set_pending_command_callback("shop")
         return
 
@@ -463,10 +445,14 @@ def process_shop_command(
     items = game_state.game_data.setdefault("items", {})
     items[matched_item] = items.get(matched_item, 0) + qty
 
-    output.write("")
-    output.write(f"[bold green]✓ Bought {qty}x {matched_item} for ₽{total_cost}![/bold green]")
-    output.write(f"   [dim]Remaining money: ₽{game_state.game_data['money']}[/dim]")
-    output.write("")
+    write_lines_fmt(
+        output,
+        T.SHOP_BUY_SUCCESS,
+        qty=qty,
+        item_name=matched_item,
+        total_cost=total_cost,
+        money=game_state.game_data["money"],
+    )
 
     show_shop_menu(game_state, output)
     set_pending_command_callback("shop")
@@ -475,13 +461,14 @@ def process_shop_command(
 # Note: enter_gym has been moved to gym_system.py
 
 
-def enter_museum(game_state: "GameState", output: RichLog) -> None:
+def enter_museum(game_state: "GameState", output: RichLog, set_pending_command_callback) -> None:
     """
     Enter the Pewter City Natural Science Museum.
 
     Args:
         game_state: The game state object
         output: The RichLog widget to write to
+        set_pending_command_callback: Callback to set pending command
     """
     write_lines(output, T.MUSEUM_HEADER)
     write_lines(output, T.MUSEUM_FOSSIL_EXHIBIT)
@@ -558,6 +545,7 @@ def enter_museum(game_state: "GameState", output: RichLog) -> None:
             )
         output.write("")
     write_lines(output, T.MUSEUM_FOOTER)
+    set_pending_command_callback("museum")
 
 
 def enter_bills_house(game_state: "GameState", output: RichLog) -> None:
@@ -665,75 +653,30 @@ def enter_ss_anne(game_state: "GameState", output: RichLog) -> None:
     write_lines(output, T.SS_ANNE_HEADER)
 
     if story_flags.get("ss_anne_departed"):
-        output.write("[dim]The dock is empty — the S.S. Anne has already set sail.[/dim]")
-        output.write(
-            "[dim]You watch the faint outline of the ship disappear over the horizon.[/dim]"
-        )
-        output.write("")
+        write_lines(output, T.SS_ANNE_ALREADY_DEPARTED)
         return
 
     # Check for ticket
     has_ticket = bag.get("S.S. Anne Ticket", 0) > 0 or items.get("S.S. Anne Ticket", 0) > 0
     if not has_ticket:
-        output.write(
-            "[bold]Guard:[/bold] [yellow]Hey! You can't board without an S.S. Anne Ticket![/yellow]"
-        )
-        output.write("[yellow]   Talk to Bill on Route 24 — he might be able to help.[/yellow]")
-        output.write("")
-        output.write("[dim]The guard blocks your path to the gangplank.[/dim]")
-        output.write("")
+        write_lines(output, T.SS_ANNE_NO_TICKET)
         return
 
     if story_flags.get("received_hm01_cut"):
         # Already visited — ship departs
-        output.write("[bold]Guard:[/bold] [yellow]The Captain thanks you for visiting![/yellow]")
-        output.write("[yellow]   The S.S. Anne is preparing to depart now.[/yellow]")
-        output.write("")
-        output.write(
-            "[dim]The crew cast off the moorings and the great ship slowly pulls away.[/dim]"
-        )
         story_flags["ss_anne_departed"] = True
-        output.write("[dim]The S.S. Anne has departed from Vermillion City.[/dim]")
-        output.write("")
+        write_lines(output, T.SS_ANNE_DEPARTING_AFTER_VISIT)
         return
 
     # First visit with ticket
-    output.write("[bold]Guard:[/bold] [yellow]Welcome aboard the S.S. Anne![/yellow]")
-    output.write("[yellow]   Present your ticket — step right this way![/yellow]")
-    output.write("")
-    output.write("[dim]You step onto the luxurious ocean liner. The polished decks gleam,[/dim]")
-    output.write("[dim]and trainers from all over the world have gathered here.[/dim]")
-    output.write("")
-    output.write("[cyan]After exploring the cabins and battling a few trainers...[/cyan]")
-    output.write("")
-    output.write(
-        "[bold]Sailor:[/bold] [yellow]The Captain's cabin is at the bow of the ship![/yellow]"
-    )
-    output.write("[yellow]   He's been a bit seasick, but he loves meeting trainers.[/yellow]")
-    output.write("")
-    output.write("[italic]You find the Captain slumped over his charts...[/italic]")
-    output.write("")
-    output.write("[bold]Captain:[/bold] [green]Ugh... I'm not feeling well.[/green]")
-    output.write("[green]   But you remind me of a trainer from my youth![/green]")
-    output.write("[green]   Take this HM — you've earned it just by making the trip![/green]")
-    output.write("")
+    write_lines(output, T.SS_ANNE_FIRST_VISIT_STORY)
 
     # Award HM01 Cut
     items["HM01 Cut"] = items.get("HM01 Cut", 0) + 1
     story_flags["received_hm01_cut"] = True
 
-    output.write("[bold yellow]★ Received HM01 Cut! ★[/bold yellow]")
-    output.write("")
-    output.write(
-        "[bold]Captain:[/bold] [green]Cut can be used to clear small trees blocking your path.[/green]"
-    )
-    output.write("[green]   You'll need a Pokemon that can learn it,[/green]")
-    output.write(
-        "[green]   and the [bold]Cascade Badge[/bold] to use it outside of battle.[/green]"
-    )
-    output.write("")
-    output.write("[dim]You bid the Captain farewell and make your way back to the dock.[/dim]")
-    output.write("")
+    write_lines(output, T.SS_ANNE_RECEIVED_HM01_CUT)
+    write_lines(output, T.SS_ANNE_HM01_EXPLANATION)
 
 
 def enter_pokemon_tower(game_state: "GameState", output: RichLog) -> None:
@@ -750,64 +693,26 @@ def enter_pokemon_tower(game_state: "GameState", output: RichLog) -> None:
     story_flags = game_state.game_data.setdefault("story_flags", {})
 
     write_lines(output, T.POKEMON_TOWER_HEADER)
-    output.write("[dim]An eerie chill passes over you as you push open the heavy doors.[/dim]")
-    output.write(
-        "[dim]The air inside smells of incense and old stone. Flowers line the walls[/dim]"
-    )
-    output.write("[dim]beside small placards bearing the names of beloved Pokemon.[/dim]")
-    output.write("")
+    write_lines(output, T.POKEMON_TOWER_AMBIENCE)
 
     if story_flags.get("pokemon_tower_mr_fuji_rescued"):
-        output.write("[bold]Mr. Fuji:[/bold] [cyan]Ah, my young friend! Thank you again.[/cyan]")
-        output.write(
-            "[cyan]   The spirits of this tower have grown calmer since you helped.[/cyan]"
-        )
-        output.write("[cyan]   Please, take this — a small token of my gratitude.[/cyan]")
-        output.write("")
+        write_lines(output, T.POKEMON_TOWER_RESCUED_DIALOGUE)
         items = game_state.game_data.setdefault("items", {})
         if not story_flags.get("received_poke_flute"):
             items["Poke Flute"] = items.get("Poke Flute", 0) + 1
             story_flags["received_poke_flute"] = True
-            output.write("[bold yellow]★ Received the Poke Flute! ★[/bold yellow]")
-            output.write(
-                "[dim]   Use the Poke Flute to wake sleeping Pokemon — including Snorlax![/dim]"
-            )
-            output.write("")
+            write_lines(output, T.POKEMON_TOWER_RESCUED_REWARD)
         else:
-            output.write("[cyan]   You've already received everything I can give.[/cyan]")
-            output.write("[cyan]   Safe travels on your journey.[/cyan]")
-            output.write("")
+            write_lines(output, T.POKEMON_TOWER_RESCUED_ALREADY_REWARDED)
         return
 
     if story_flags.get("pokemon_tower_ghost_appeared"):
-        output.write("[bold]Mr. Fuji:[/bold] [cyan]The ghost on the third floor...[/cyan]")
-        output.write("[cyan]   It is a Marowak — the mother of a Cubone who lives here.[/cyan]")
-        output.write("[cyan]   She cannot rest until those who wronged her are punished.[/cyan]")
-        output.write("")
-        output.write(
-            "[dim]You feel a presence on the upper floors — something is waiting for you.[/dim]"
-        )
-        output.write("[dim]Type 'explore' to climb deeper into the tower.[/dim]")
-        output.write("")
+        write_lines(output, T.POKEMON_TOWER_GHOST_APPEARED_DIALOGUE)
         return
 
     # First visit
-    output.write("[bold]Mr. Fuji:[/bold] [cyan]Welcome to the Pokemon Tower.[/cyan]")
-    output.write("[cyan]   This is a place of rest for Pokemon who have passed on.[/cyan]")
-    output.write("[cyan]   Trainers come here to pay their respects.[/cyan]")
-    output.write("")
-    output.write("[bold]Mr. Fuji:[/bold] [cyan]But something is wrong...[/cyan]")
-    output.write("[cyan]   A spirit on the upper floors has grown restless.[/cyan]")
-    output.write("[cyan]   It fills the trainers here with sorrow and unease.[/cyan]")
-    output.write("[cyan]   I pray someone brave will help calm it.[/cyan]")
-    output.write("")
-    output.write(
-        "[dim]Channelers wander the upper floors, their eyes glazed over with grief.[/dim]"
-    )
-    output.write("[dim]Type 'explore' to climb the tower and face what awaits.[/dim]")
-
+    write_lines(output, T.POKEMON_TOWER_FIRST_VISIT_DIALOGUE)
     story_flags["pokemon_tower_visited"] = True
-    output.write("")
 
 
 def enter_bike_shop(game_state: "GameState", output: RichLog) -> None:
@@ -822,42 +727,17 @@ def enter_bike_shop(game_state: "GameState", output: RichLog) -> None:
         output: The RichLog widget to write to
     """
     write_lines(output, T.BIKE_SHOP_HEADER)
-    output.write("[bold]Owner:[/bold] [yellow]Welcome to the Cerulean Bike Shop![/yellow]")
-    output.write("[yellow]   We carry the finest bikes in Kanto![/yellow]")
-    output.write("")
+    write_lines(output, T.BIKE_SHOP_WELCOME)
     story_flags = game_state.game_data.setdefault("story_flags", {})
     if not story_flags.get("received_bicycle"):
-        output.write(
-            "[bold]Owner:[/bold] [yellow]Hey! You look like a real trainer on the go![/yellow]"
-        )
-        output.write("")
-        output.write("[yellow]   As a one-time promotional gift, I'd like to give you[/yellow]")
-        output.write("[yellow]   a [bold]Bicycle[/bold] — absolutely free![/yellow]")
-        output.write("[yellow]   Just spread the word and tell your friends about us![/yellow]")
-        output.write("")
-        output.write("[yellow]   With a Bicycle you can zip through routes at high speed[/yellow]")
-        output.write("[yellow]   and encounter fewer wild Pokemon while riding![/yellow]")
-        output.write("")
+        write_lines(output, T.BIKE_SHOP_FIRST_VISIT_DIALOGUE)
         items = game_state.game_data.setdefault("items", {})
         items["Bicycle"] = 1
         story_flags["received_bicycle"] = True
-        output.write("[bold green]✓ Received a Bicycle![/bold green]")
-        output.write("   [dim]Use 'ride bike' or 'use bicycle' on a route to cycle faster![/dim]")
-        output.write("   [dim](Halves wild encounter rate while cycling)[/dim]")
-        output.write("")
+        write_lines(output, T.BIKE_SHOP_RECEIVED_BICYCLE)
     else:
-        output.write("[bold]Owner:[/bold] [yellow]Still enjoying that bike we gave you?[/yellow]")
-        output.write("[yellow]   Great! Nothing beats a Cerulean Bike![/yellow]")
-        output.write("")
-        output.write(
-            "[bold yellow]🚲 Premium models on display (definitely not affordable):[/bold yellow]"
-        )
-        output.write("   • [cyan]Mach Bike[/cyan]  ₽1,000,000 — Blazing fast")
-        output.write("   • [cyan]Acro Bike[/cyan]  ₽1,000,000 — Perfect for stunts")
-        output.write("   [dim](One bike is definitely enough for your journey...)[/dim]")
-        output.write("")
-    output.write("[dim]You leave the Bike Shop[/dim]")
-    output.write("")
+        write_lines(output, T.BIKE_SHOP_REPEAT_DIALOGUE)
+    write_lines(output, T.BIKE_SHOP_EXIT)
 
 
 def enter_nugget_bridge(
@@ -879,19 +759,9 @@ def enter_nugget_bridge(
         trigger_trainer_battle_callback: Optional callback for triggering trainer battles
     """
     story_flags = game_state.game_data.setdefault("story_flags", {})
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]          🌉 NUGGET BRIDGE 🌉              [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.NUGGET_BRIDGE_HEADER)
     if story_flags.get("nugget_bridge_complete"):
-        output.write(
-            "[bold]Bridge Patron:[/bold] [yellow]You're the champ who beat all five![/yellow]"
-        )
-        output.write("[yellow]   The bridge is open to you whenever you like![/yellow]")
-        output.write("")
-        output.write("[dim]You stroll across Nugget Bridge[/dim]")
-        output.write("")
+        write_lines(output, T.NUGGET_BRIDGE_ALREADY_COMPLETE)
         return
     nugget_trainers = [
         "nugget_trainer_1",
@@ -907,19 +777,7 @@ def enter_nugget_bridge(
         story_flags["nugget_bridge_complete"] = True
         items = game_state.game_data.setdefault("items", {})
         items["Nugget"] = items.get("Nugget", 0) + 1
-        output.write("[bold yellow]🏆 You defeated all five Nugget Bridge trainers![/bold yellow]")
-        output.write("")
-        output.write(
-            "[bold]Bridge Patron:[/bold] [yellow]Astounding! You beat every single one![/yellow]"
-        )
-        output.write("[yellow]   As promised — here's your Nugget![/yellow]")
-        output.write("[yellow]   You can sell it at any Pokemart for a whopping ₽5000![/yellow]")
-        output.write("")
-        output.write("[bold green]✓ Received a Nugget![/bold green]")
-        output.write("   [dim](Worth ₽5000 — sell at any Pokemart)[/dim]")
-        output.write("")
-        output.write("[dim]You cross Nugget Bridge triumphantly![/dim]")
-        output.write("")
+        write_lines(output, T.NUGGET_BRIDGE_ALL_TRAINERS_BEATEN)
         # ---- Rival battle after Nugget Bridge ----
         if not story_flags.get("rival_cerulean_beaten") and trigger_trainer_battle_callback:
             rival_trainer = copy.deepcopy(TRAINERS.get("rival_cerulean"))
@@ -934,26 +792,20 @@ def enter_nugget_bridge(
                 evolved = rival_starter_map.get(raw_starter, "CHARMELEON")
                 rival_trainer.pokemon[0].species = evolved
                 rival_trainer.name = game_state.game_data.get("rival_name", "Rival")
-                output.write("")
-                output.write("[dim]As you claim the Nugget, a familiar voice calls out...[/dim]")
-                output.write("")
+                write_lines(output, T.NUGGET_BRIDGE_RIVAL_CALL_OUT)
                 trigger_trainer_battle_callback(rival_trainer)
                 return  # Battle takes over
         return
     if defeated_count == 0:
-        output.write("[dim]A long bridge stretches north over the river...[/dim]")
-        output.write("[dim]Five trainers line the path, staring you down![/dim]")
-        output.write("")
-        output.write("[bold]Trainer:[/bold] [yellow]Welcome to Nugget Bridge![/yellow]")
-        output.write(
-            "[yellow]   Defeat all five of us to claim the legendary Nugget prize![/yellow]"
-        )
-        output.write("")
+        write_lines(output, T.NUGGET_BRIDGE_FIRST_CHALLENGE)
     else:
         remaining = 5 - defeated_count
-        output.write(f"[dim]Progress: {defeated_count}/5 bridge trainers defeated[/dim]")
-        output.write(f"[dim]{remaining} trainer(s) remain on the bridge![/dim]")
-        output.write("")
+        write_lines_fmt(
+            output,
+            T.NUGGET_BRIDGE_PROGRESS,
+            defeated_count=defeated_count,
+            remaining=remaining,
+        )
     # Find and trigger the next undefeated trainer
     next_trainer_id = next((t for t in nugget_trainers if t not in defeated), None)
     if next_trainer_id and trigger_trainer_battle_callback:
@@ -961,9 +813,7 @@ def enter_nugget_bridge(
         if trainer:
             trigger_trainer_battle_callback(trainer)
             return
-    output.write("[yellow]   Prepare your team, then step onto the bridge![/yellow]")
-    output.write("[dim]You hesitate at the bridge entrance[/dim]")
-    output.write("")
+    write_lines(output, T.NUGGET_BRIDGE_WAITING_PROMPT)
 
 
 def enter_players_house(
@@ -1031,13 +881,19 @@ def enter_players_house(
     output.write("")
 
 
-def perform_pokemon_center_heal(game_state: "GameState", output: RichLog) -> None:
+def perform_pokemon_center_heal(
+    game_state: "GameState",
+    output: RichLog,
+    line_writer: Optional[Callable[[RichLog, list[str]], None]] = None,
+) -> None:
     """
     Actually perform the Pokemon Center healing.
 
     Args:
-        game_state: The game state object
-        output: The RichLog widget to write to
+        game_state: The game state object.
+        output: The RichLog widget to write to.
+        line_writer: Optional callback to write all produced lines. If omitted,
+            lines are written instantly in order.
     """
     pokemon = game_state.game_data.get("pokemon", [])
 
@@ -1046,11 +902,13 @@ def perform_pokemon_center_heal(game_state: "GameState", output: RichLog) -> Non
     if current_location:
         game_state.game_data["last_pokemon_center"] = current_location
 
-    output.write("")
-    output.write("[magenta]   Let me heal your Pokemon...[/magenta]")
-    output.write("")
-    output.write("[cyan]   ♪ Healing sound ♪[/cyan]")
-    output.write("")
+    heal_lines: list[str] = [
+        "",
+        "[magenta]   Let me heal your Pokemon...[/magenta]",
+        "",
+        "[cyan]   ♪ Healing sound ♪[/cyan]",
+        "",
+    ]
 
     # Show healed Pokemon and restore HP + PP + status
     for p in pokemon:
@@ -1062,17 +920,28 @@ def perform_pokemon_center_heal(game_state: "GameState", output: RichLog) -> Non
             p["status"] = None
             name = p["name"]
             if had_status:
-                output.write(f"   [green]✓ {name} restored to full health and cured![/green]")
+                heal_lines.append(f"   [green]✓ {name} restored to full health and cured![/green]")
             else:
-                output.write(f"   [green]✓ {name} restored to full health![/green]")
+                heal_lines.append(f"   [green]✓ {name} restored to full health![/green]")
         else:
-            output.write(f"   [green]✓ {p} restored to full health![/green]")
+            heal_lines.append(f"   [green]✓ {p} restored to full health![/green]")
 
-    output.write("")
-    output.write("[bold]Nurse Joy:[/bold] [magenta]Your Pokemon are now fully healed![/magenta]")
-    output.write("[magenta]   All HP, PP, and status conditions restored![/magenta]")
-    output.write("[magenta]   Is there anything else I can do for you?[/magenta]")
-    output.write("")
+    heal_lines.extend(
+        [
+            "",
+            "[bold]Nurse Joy:[/bold] [magenta]Your Pokemon are now fully healed![/magenta]",
+            "[magenta]   All HP, PP, and status conditions restored![/magenta]",
+            "[magenta]   Is there anything else I can do for you?[/magenta]",
+            "",
+        ]
+    )
+
+    if line_writer is None:
+        for line in heal_lines:
+            output.write(line)
+        return
+
+    line_writer(output, heal_lines)
 
 
 def perform_mom_heal(game_state: "GameState", output: RichLog) -> None:
@@ -1115,33 +984,17 @@ def enter_rivals_house(game_state: "GameState", output: RichLog) -> None:
         output: The RichLog widget to write to
     """
     rival_name = game_state.game_data.get("rival_name", "Rival")
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write(
-        f"[bold cyan]          🏠 {rival_name.upper()}'S HOUSE 🏠             [/bold cyan]"
-    )
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.RIVALS_HOUSE_HEADER, rival_name_upper=rival_name.upper())
 
     # Check if player has Pokemon yet
     pokemon = game_state.game_data.get("pokemon", [])
 
     if not pokemon:
-        output.write(
-            f"[bold]{rival_name}'s Sister:[/bold] [yellow]Oh! You're going to see Professor Oak?[/yellow]"
-        )
-        output.write(f"[yellow]   {rival_name} already left. He's always so impatient![/yellow]")
+        write_lines_fmt(output, T.RIVALS_HOUSE_NO_POKEMON, rival_name=rival_name)
     else:
-        output.write(
-            f"[bold]{rival_name}'s Sister:[/bold] [yellow]{rival_name} is on his Pokemon journey too![/yellow]"
-        )
-        output.write(
-            "[yellow]   I hope you two can be good rivals and help each other grow![/yellow]"
-        )
+        write_lines_fmt(output, T.RIVALS_HOUSE_WITH_POKEMON, rival_name=rival_name)
 
-    output.write("")
-    output.write("[dim]You leave the house[/dim]")
-    output.write("")
+    write_lines(output, T.RIVALS_HOUSE_EXIT)
 
 
 def enter_oaks_lab(
@@ -1159,11 +1012,7 @@ def enter_oaks_lab(
         set_pending_command_callback: Callback to set pending command
         show_starter_panel_callback: Optional callback to show starter selection panel
     """
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]      🔬 PROFESSOR OAK'S LAB 🔬          [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.OAKS_LAB_HEADER)
 
     # Check if player has Pokemon yet
     pokemon = game_state.game_data.get("pokemon", [])
@@ -1171,81 +1020,35 @@ def enter_oaks_lab(
     if not pokemon:
         # Check if Pikachu mode (Pokemon Yellow Easter egg)
         if game_state.pikachu_mode:
-            output.write("[bold]Professor Oak:[/bold] [cyan]Oh! You're finally here![/cyan]")
-            output.write("")
-            output.write("[cyan]   I was about to head out looking for you![/cyan]")
-            output.write(
-                "[cyan]   I have a special Pokemon that's been waiting for a trainer...[/cyan]"
-            )
-            output.write("")
-            output.write("[bold yellow]The last remaining Pokemon:[/bold yellow]")
-            output.write("")
-            output.write("  ⚡ [yellow]Pikachu[/yellow] - Electric type")
-            output.write(
-                "     [dim]An energetic Pokemon that refuses to stay in its Pokeball![/dim]"
-            )
-            output.write("")
+            write_lines(output, T.OAKS_LAB_PIKACHU_INTRO)
 
             # Show button panel if callback provided
             if show_starter_panel_callback:
-                output.write(
-                    "[dim]Click the button or type 'Choose Pikachu' to begin your journey:[/dim]"
-                )
+                write_lines(output, T.OAKS_LAB_PIKACHU_PROMPT_PANEL)
                 show_starter_panel_callback(game_state.pikachu_mode)
             else:
-                output.write("[yellow]Type 'Choose Pikachu' to begin your journey:[/yellow]")
+                write_lines(output, T.OAKS_LAB_PIKACHU_PROMPT_TEXT)
 
             output.write("")
         else:
-            output.write("[bold]Professor Oak:[/bold] [cyan]Ah! Welcome to my laboratory![/cyan]")
-            output.write("")
-            output.write("[cyan]   I study Pokemon as my life's work![/cyan]")
-            output.write("[cyan]   Now, it's time for you to choose your first Pokemon![/cyan]")
-            output.write("")
-            output.write("[bold yellow]Choose your starter Pokemon:[/bold yellow]")
-            output.write("")
-            output.write("  🌿 [green]Bulbasaur[/green] - Grass/Poison type")
-            output.write("     [dim]A tough Pokemon with great defensive abilities[/dim]")
-            output.write("")
-            output.write("  🔥 [red]Charmander[/red] - Fire type")
-            output.write("     [dim]A fiery Pokemon that will become a powerful dragon[/dim]")
-            output.write("")
-            output.write("  💧 [blue]Squirtle[/blue] - Water type")
-            output.write("     [dim]A cool Pokemon with strong water attacks[/dim]")
-            output.write("")
+            write_lines(output, T.OAKS_LAB_STARTER_INTRO)
 
             # Show button panel if callback provided
             if show_starter_panel_callback:
-                output.write(
-                    "[dim]Click a button or type 'Choose' followed by the Pokemon name:[/dim]"
-                )
-                output.write("[dim]Example: Choose Bulbasaur[/dim]")
+                write_lines(output, T.OAKS_LAB_STARTER_PROMPT_PANEL)
                 show_starter_panel_callback(game_state.pikachu_mode)
             else:
-                output.write("[yellow]Type 'Choose' followed by the Pokemon name:[/yellow]")
-                output.write("[dim]Example: Choose Bulbasaur[/dim]")
+                write_lines(output, T.OAKS_LAB_STARTER_PROMPT_TEXT)
 
             output.write("")
 
         # Set pending command
         set_pending_command_callback("choose_starter")
     else:
-        output.write(
-            "[bold]Professor Oak:[/bold] [cyan]Hello! How is your Pokedex coming along?[/cyan]"
-        )
-        output.write("")
-        output.write("[cyan]   Remember, to make a complete guide of all Pokemon[/cyan]")
-        output.write("[cyan]   in the world... That is my dream![/cyan]")
-        output.write("")
+        write_lines(output, T.OAKS_LAB_PROGRESS_DIALOGUE)
+        write_lines_fmt(output, T.OAKS_LAB_CAUGHT_COUNT, caught_count=len(pokemon))
 
-        # Show research information
-        output.write("[bold]Research Data:[/bold]")
-        output.write("   • Pokemon seen: [dim]Coming soon[/dim]")
-        output.write(f"   • Pokemon caught: [green]{len(pokemon)}[/green]")
-        output.write("")
-
-    output.write("[dim]You leave the laboratory[/dim]")
-    output.write("")
+    write_lines(output, T.OAKS_LAB_EXIT)
 
 
 def choose_starter_pokemon(
@@ -1277,10 +1080,7 @@ def choose_starter_pokemon(
     if "pikachu" in choice:
         if not game_state.pikachu_mode:
             # Pikachu is not available in normal mode
-            output.write("")
-            output.write("[red]❌ Pikachu is not an available starter Pokemon![/red]")
-            output.write("[dim]Please choose: Bulbasaur, Charmander, or Squirtle[/dim]")
-            output.write("")
+            write_lines(output, T.STARTER_INVALID_NOT_AVAILABLE)
             set_pending_command_callback("choose_starter")
             return
         else:
@@ -1290,33 +1090,14 @@ def choose_starter_pokemon(
             pikachu_data = _bs.generate_wild_pokemon("PIKACHU", 5)
             pikachu_data["no_evolve"] = True  # This Pikachu refuses to evolve!
             game_state.game_data["pokemon"].append(pikachu_data)
+            pokedex.mark_as_caught(game_state, str(pikachu_data.get("name", "PIKACHU")).upper())
             # Rival gets Eevee in Pikachu mode
             game_state.game_data["rival_pokemon"] = ["Eevee (Lv. 5)"]
 
-            output.write("")
-            output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-            output.write("[bold yellow]⚡ You chose Pikachu! ⚡[/bold yellow]")
-            output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-            output.write("")
-            output.write("[bold]Professor Oak:[/bold] [cyan]Wonderful![/cyan]")
-            output.write("")
-            output.write(
-                "[cyan]   Pikachu is very special - it loves to stay outside its Pokeball![/cyan]"
-            )
-            output.write("[cyan]   I'm sure you two will become great friends![/cyan]")
-            output.write("")
-            output.write("[green]✓ Pikachu (Lv. 5) was added to your party![/green]")
-            output.write("[dim]   (This Pikachu refuses to evolve)[/dim]")
-            output.write("")
+            write_lines(output, T.STARTER_PIKACHU_SELECTED)
             # Give starter Potions
             items = game_state.game_data.setdefault("items", {})
             items["Potion"] = items.get("Potion", 0) + 5
-            output.write("[green]✓ Received 5 Potions![/green]")
-            output.write("")
-            output.write(
-                "[bold]Professor Oak:[/bold] [cyan]By the way, your rival already took Eevee![/cyan]"
-            )
-            output.write("")
 
             # Trigger rival battle for Pikachu mode!
             rival_trainer = copy.deepcopy(TRAINERS.get("rival_oaks_lab"))
@@ -1329,8 +1110,7 @@ def choose_starter_pokemon(
 
                 # Only battle if we haven't already defeated them here
                 if "rival_oaks_lab" not in defeated_trainers:
-                    output.write("[dim]As you turn to leave...[/dim]")
-                    output.write("")
+                    write_lines(output, T.STARTER_TURN_TO_LEAVE)
                     # Trigger the battle
                     if trigger_trainer_battle_callback:
                         trigger_trainer_battle_callback(rival_trainer)
@@ -1341,16 +1121,7 @@ def choose_starter_pokemon(
                     return  # Battle takes over, function will be called again after battle
 
             # This part runs after the battle (or if battle was skipped)
-            output.write("")
-            output.write(
-                "[bold]Professor Oak:[/bold] [cyan]Now you're ready to begin your Pokemon journey![/cyan]"
-            )
-            output.write(
-                "[cyan]   Be sure to visit the Pokemon Center if your Pokemon get hurt![/cyan]"
-            )
-            output.write("")
-            output.write("[dim]You leave the laboratory with your electric companion![/dim]")
-            output.write("")
+            write_lines(output, T.STARTER_JOURNEY_READY_PIKACHU)
             return
 
     # Map of valid starters (normal mode)
@@ -1373,24 +1144,17 @@ def choose_starter_pokemon(
             break
 
     if not selected_starter:
-        output.write("")
         if game_state.pikachu_mode:
-            output.write("[red]❌ That's not the right Pokemon![/red]")
-            output.write("[dim]Please choose: Pikachu[/dim]")
+            write_lines(output, T.STARTER_SELECTION_INVALID_PIKACHU_MODE)
         else:
-            output.write("[red]❌ That's not one of the starter Pokemon![/red]")
-            output.write("[dim]Please choose: Bulbasaur, Charmander, or Squirtle[/dim]")
-        output.write("")
+            write_lines(output, T.STARTER_SELECTION_INVALID_NORMAL_MODE)
         # Set pending command again to wait for valid input
         set_pending_command_callback("choose_starter")
         return
 
     # Pikachu mode only allows Pikachu
     if game_state.pikachu_mode:
-        output.write("")
-        output.write("[red]❌ That Pokemon is not available![/red]")
-        output.write("[dim]Please choose: Pikachu[/dim]")
-        output.write("")
+        write_lines(output, T.STARTER_SELECTION_PIKACHU_ONLY)
         set_pending_command_callback("choose_starter")
         return
 
@@ -1400,36 +1164,23 @@ def choose_starter_pokemon(
     starter_data = _bs.generate_wild_pokemon(selected_starter["name"].upper(), 5)
     starter_data["no_evolve"] = False
     game_state.game_data["pokemon"].append(starter_data)
+    pokedex.mark_as_caught(game_state, str(starter_data.get("name", "")).upper())
 
     # Rival gets the Pokemon with type advantage
     rival_pokemon = selected_starter["rival"]
     game_state.game_data["rival_pokemon"] = [f"{rival_pokemon} (Lv. 5)"]
 
     # Show selection confirmation
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write(
-        f"[bold green]{selected_starter['emoji']} You chose {selected_starter['name']}! {selected_starter['emoji']}[/bold green]"
+    write_lines_fmt(
+        output,
+        T.STARTER_SELECTION_CONFIRMED,
+        emoji=selected_starter["emoji"],
+        starter_name=selected_starter["name"],
+        rival_pokemon=rival_pokemon,
     )
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
-    output.write("[bold]Professor Oak:[/bold] [cyan]Excellent choice![/cyan]")
-    output.write("")
-    output.write(f"[cyan]   {selected_starter['name']} is a wonderful Pokemon![/cyan]")
-    output.write("[cyan]   Treat it with love and kindness, and it will grow strong![/cyan]")
-    output.write("")
-    output.write(f"[green]✓ {selected_starter['name']} (Lv. 5) was added to your party![/green]")
-    output.write("")
     # Give starter Potions
     items = game_state.game_data.setdefault("items", {})
     items["Potion"] = items.get("Potion", 0) + 5
-    output.write("[green]✓ Received 5 Potions![/green]")
-    output.write("")
-    output.write(
-        f"[bold]Professor Oak:[/bold] [cyan]Oh! Your rival already chose {rival_pokemon}![/cyan]"
-    )
-    output.write("[cyan]   It seems he wanted to have an advantage over you![/cyan]")
-    output.write("")
 
     # Trigger rival battle!
     rival_trainer = copy.deepcopy(TRAINERS.get("rival_oaks_lab"))
@@ -1442,8 +1193,7 @@ def choose_starter_pokemon(
 
         # Only battle if we haven't already defeated them here
         if "rival_oaks_lab" not in defeated_trainers:
-            output.write("[dim]As you turn to leave...[/dim]")
-            output.write("")
+            write_lines(output, T.STARTER_TURN_TO_LEAVE)
             # Trigger the battle
             if trigger_trainer_battle_callback:
                 trigger_trainer_battle_callback(rival_trainer)
@@ -1454,14 +1204,7 @@ def choose_starter_pokemon(
             return  # Battle takes over, function will be called again after battle
 
     # This part runs after the battle (or if battle was skipped)
-    output.write("")
-    output.write(
-        "[bold]Professor Oak:[/bold] [cyan]Now you're ready to begin your Pokemon journey![/cyan]"
-    )
-    output.write("[cyan]   Be sure to visit the Pokemon Center if your Pokemon get hurt![/cyan]")
-    output.write("")
-    output.write("[dim]You leave the laboratory with your new partner![/dim]")
-    output.write("")
+    write_lines(output, T.STARTER_JOURNEY_READY)
 
 
 def enter_ss_anne_dock(game_state: "GameState", output: RichLog) -> None:
@@ -1474,38 +1217,21 @@ def enter_ss_anne_dock(game_state: "GameState", output: RichLog) -> None:
         game_state: The game state object
         output: The RichLog widget to write to
     """
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]           ⚓ S.S. ANNE DOCK ⚓            [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.SS_ANNE_DOCK_HEADER)
 
     bag = game_state.game_data.get("items", {})
     story_flags = game_state.game_data.setdefault("story_flags", {})
     has_ticket = bag.get("S.S. Anne Ticket", 0) > 0
     already_boarded = story_flags.get("boarded_ss_anne", False)
 
-    output.write(
-        "[bold]Dock Worker:[/bold] [cyan]Welcome to the Vermillion Harbour S.S. Anne Dock![/cyan]"
-    )
-    output.write("")
+    write_lines(output, T.SS_ANNE_DOCK_WELCOME)
 
     if has_ticket or already_boarded:
-        output.write("[cyan]   I can see you have a ticket — the ship is ready to board![/cyan]")
-        output.write("[cyan]   Head around to the gangplank and use 'Move to S.S. Anne'.[/cyan]")
-        output.write("")
-        output.write("[dim]   The S.S. Anne is filled with trainers from around the world.[/dim]")
-        output.write(
-            "[dim]   The captain's cabin is somewhere aboard — he may have a reward for you.[/dim]"
-        )
+        write_lines(output, T.SS_ANNE_DOCK_HAS_TICKET)
     else:
-        output.write("[cyan]   Sorry, I can't let you through without an S.S. Anne Ticket.[/cyan]")
-        output.write("[cyan]   Have you spoken to Bill north of Cerulean City?[/cyan]")
-        output.write("")
-        output.write("[dim]   Bill hands out tickets to trainers he trusts.[/dim]")
-        output.write("[dim]   Visit Bill's House on Route 24 to obtain an S.S. Anne Ticket.[/dim]")
+        write_lines(output, T.SS_ANNE_DOCK_NO_TICKET)
 
-    output.write("")
+    write_lines(output, T.SS_ANNE_DOCK_FOOTER)
 
 
 def enter_mr_fujis_house(game_state: "GameState", output: RichLog) -> None:
@@ -1523,26 +1249,15 @@ def enter_mr_fujis_house(game_state: "GameState", output: RichLog) -> None:
 
     if rescued:
         bag = game_state.game_data.setdefault("items", {})
-        output.write("[bold]Mr. Fuji:[/bold] [cyan]Ah, my young rescuer! Welcome back.[/cyan]")
-        output.write("[cyan]   I hope the Poke Flute serves you well on your journey.[/cyan]")
-        output.write("[cyan]   The Pokemon laid to rest in the tower deserve peace.[/cyan]")
-        output.write("[cyan]   Thank you for driving out Team Rocket.[/cyan]")
+        write_lines(output, T.MR_FUJIS_RESCUED_DIALOGUE)
         if not bag.get("Poke Flute"):
             # Give flute again if somehow lost
             bag["Poke Flute"] = 1
-            output.write("")
-            output.write("[bold yellow]★ Received Poke Flute! ★[/bold yellow]")
+            write_lines(output, T.MR_FUJIS_REWARD)
     else:
-        output.write("[bold]Old Woman:[/bold] [cyan]Mr. Fuji isn't here...[/cyan]")
-        output.write(
-            "[cyan]   He went up to Pokemon Tower as always, but he hasn't returned.[/cyan]"
-        )
-        output.write("[cyan]   We're all very worried.[/cyan]")
-        output.write("")
-        output.write("[dim]   The Pokemon Tower looms just east of town.[/dim]")
-        output.write("[dim]   If you're headed there, please see if Mr. Fuji is all right.[/dim]")
+        write_lines(output, T.MR_FUJIS_NOT_HOME_DIALOGUE)
 
-    output.write("")
+    write_lines(output, T.MR_FUJIS_HOUSE_FOOTER)
 
 
 def enter_game_corner(game_state: "GameState", output: RichLog) -> None:
@@ -1560,27 +1275,14 @@ def enter_game_corner(game_state: "GameState", output: RichLog) -> None:
     story_flags = game_state.game_data.setdefault("story_flags", {})
     hideout_cleared = story_flags.get("defeated_giovanni_hideout", False)
 
-    output.write("[bold]Attendant:[/bold] [yellow]Welcome to the Celadon Game Corner![/yellow]")
-    output.write("[yellow]   Try your luck on the slot machines![/yellow]")
-    output.write("")
+    write_lines(output, T.GAME_CORNER_ATTENDANT)
 
     if hideout_cleared:
-        output.write("[dim]   The suspicious poster on the back wall has been removed.[/dim]")
-        output.write("[dim]   Team Rocket's presence here seems to have faded.[/dim]")
+        write_lines(output, T.GAME_CORNER_AFTER_HIDEOUT)
     else:
-        output.write("[dim]   The machines chime and flash all around you.[/dim]")
-        output.write("[dim]   A suspicious-looking poster adorns the back wall...[/dim]")
-        output.write(
-            "[dim]   Something feels off about this place — "
-            "those men in black uniforms are everywhere.[/dim]"
-        )
-        output.write("")
-        output.write(
-            "[yellow]💡 Tip:[/yellow] [dim]Team Rocket's Hideout is accessible from Celadon City.[/dim]"
-        )
-        output.write("[dim]   Use 'Move to Team Rocket's Hideout' to investigate.[/dim]")
+        write_lines(output, T.GAME_CORNER_HIDEOUT_HINT)
 
-    output.write("")
+    write_lines(output, T.GAME_CORNER_FOOTER)
 
 
 def enter_department_store(game_state: "GameState", output: RichLog) -> None:
@@ -1594,14 +1296,10 @@ def enter_department_store(game_state: "GameState", output: RichLog) -> None:
         output: The RichLog widget to write to
     """
     write_lines(output, T.DEPARTMENT_STORE_HEADER)
-    output.write("[bold]Clerk:[/bold] [yellow]Welcome to the Celadon Department Store![/yellow]")
-    output.write("[yellow]   We have six floors of Pokemon goods![/yellow]")
-    output.write("")
-    output.write("[bold green]Available items (selection):[/bold green]")
+    write_lines(output, T.DEPARTMENT_STORE_WELCOME)
 
     money = game_state.game_data.get("money", 0)
-    output.write(f"   [bold]Your money:[/bold] [cyan]₽{money}[/cyan]")
-    output.write("")
+    write_lines_fmt(output, T.DEPARTMENT_STORE_MONEY, money=money)
 
     dept_items = [
         ("🔴", "Pokeball", 200),
@@ -1623,10 +1321,7 @@ def enter_department_store(game_state: "GameState", output: RichLog) -> None:
     for emoji, name, price in dept_items:
         output.write(f"   {emoji} [green]{name}[/green] - ₽{price}")
 
-    output.write("")
-    output.write("[dim]   This is a display only — use the Pokemart for purchases.[/dim]")
-    output.write("[dim]   Tip: The Pokemart in Celadon stocks the full advanced catalogue.[/dim]")
-    output.write("")
+    write_lines(output, T.DEPARTMENT_STORE_FOOTER)
 
 
 def enter_safari_zone(game_state: "GameState", output: RichLog) -> None:
@@ -1642,21 +1337,15 @@ def enter_safari_zone(game_state: "GameState", output: RichLog) -> None:
         output: The RichLog widget to write to
     """
     if not game_state.in_game:
-        output.write("[red]❌ Start a game first![/red]")
+        write_lines(output, T.SAFARI_START_GAME_FIRST)
         return
 
     write_lines(output, T.SAFARI_ZONE_HEADER)
-    output.write("[bold]Warden:[/bold] [green]Welcome, Trainer![/green]")
-    output.write("[green]   The Safari Zone is home to rare Pokemon found nowhere else![/green]")
-    output.write("[green]   The admission fee is ₽500 for 30 Safari Balls.[/green]")
-    output.write("")
+    write_lines(output, T.SAFARI_WARDEN_INTRO)
 
     money = game_state.game_data.get("money", 0)
     if money < 500:
-        output.write(
-            "[red]Warden: You don't have enough money for admission (₽500 required).[/red]"
-        )
-        output.write("")
+        write_lines(output, T.SAFARI_NOT_ENOUGH_MONEY)
         return
 
     game_state.game_data["money"] = money - 500
@@ -1675,20 +1364,8 @@ def enter_safari_zone(game_state: "GameState", output: RichLog) -> None:
         )
         game_state.current_location = safari_location
 
-    output.write("[green]   You paid ₽500 and received [bold]30 Safari Balls[/bold]![/green]")
-    output.write("")
-    output.write("[bold]Safari Zone Rules:[/bold]")
-    output.write("   🎯 [cyan]safari ball[/cyan] — throw a Safari Ball to catch")
-    output.write("   🥩 [cyan]bait[/cyan]        — toss bait to make Pokemon easier to catch")
-    output.write(
-        "   🪨 [cyan]rock[/cyan]        — throw a rock to anger Pokemon (boosts catch rate briefly)"
-    )
-    output.write("   🏃 [cyan]run[/cyan]         — flee from the wild Pokemon")
-    output.write("")
-    output.write("[yellow]⚠️  You cannot battle wild Pokemon in the Safari Zone![/yellow]")
-    output.write("[dim]   Explore to encounter wild Pokemon. You have 30 Safari Balls.[/dim]")
-    output.write("")
+    write_lines(output, T.SAFARI_ENTRY_SUCCESS)
+    write_lines(output, T.SAFARI_RULES)
 
     remaining = bag.get("Safari Ball", 0)
-    output.write(f"[dim]Safari Balls remaining: {remaining}[/dim]")
-    output.write("")
+    write_lines_fmt(output, T.SAFARI_BALLS_REMAINING, remaining=remaining)

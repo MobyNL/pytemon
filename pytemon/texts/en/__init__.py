@@ -14,7 +14,11 @@ Each module mirrors its source counterpart:
     texts/en/items.py           ← pytemon/items.py
     texts/en/displays.py        ← pytemon/ui/displays.py
     texts/en/menus.py           ← pytemon/ui/menus.py
+    texts/en/building_mixin.py  ← pytemon/ui/building_mixin.py
     texts/en/battle_ui.py       ← pytemon/battle/battle_ui.py
+    texts/en/battle_actions.py  ← pytemon/battle/battle_actions.py
+    texts/en/terminal.py        ← pytemon/terminal.py
+    texts/en/game_flow_mixin.py ← pytemon/ui/game_flow_mixin.py
 
 Each constant is a list[str] that can be passed directly to write_lines().
 Lines containing {placeholders} are used with write_dynamic_lines(data_dict)
