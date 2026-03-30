@@ -975,7 +975,9 @@ class TestBattleBannerVisibility:
         def _query_one(selector, *args, **kwargs):
             if selector == "#welcome":
                 return _BannerWidget()
-            return type("W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None})()
+            return type(
+                "W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None}
+            )()
 
         ext_term.query_one = _query_one
         BattleMixin.show_battle_options(ext_term, ext_output)
@@ -996,7 +998,9 @@ class TestBattleBannerVisibility:
         def _query_one(selector, *args, **kwargs):
             if selector == "#welcome":
                 return _BannerWidget()
-            return type("W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None})()
+            return type(
+                "W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None}
+            )()
 
         ext_term.query_one = _query_one
         ext_term.end_battle(ext_output)

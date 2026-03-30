@@ -811,7 +811,9 @@ def _use_hm_tm(
     else:
         actual_callback = queue_move_learn_callback
 
-    success = _hm_tm.teach_move(game_state, move_name, pokemon, name, is_hm, output, actual_callback)
+    success = _hm_tm.teach_move(
+        game_state, move_name, pokemon, name, is_hm, output, actual_callback
+    )
     if success and not is_hm:
         _consume(game_state, name)
     return success

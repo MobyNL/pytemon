@@ -1269,6 +1269,67 @@ def use_status_cure(
     pending_command_callback("battle")
 
 
+def use_full_restore(
+    game_state: "GameState",
+    output: RichLog,
+    pending_command_callback,
+    show_battle_options_callback,
+    handle_pokemon_fainted_callback,
+) -> None:
+    """
+    Use a Full Restore during battle.
+
+    Fully heals the player's active Pokemon and clears any status condition.
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+        pending_command_callback: Callback to set pending command
+        show_battle_options_callback: Callback to show battle options
+        handle_pokemon_fainted_callback: Callback to handle Pokemon fainted
+    """
+    item_name = "Full Restore"
+    items = game_state.game_data.get("items", {})
+    count = items.get(item_name, 0)
+    battle = game_state.battle_state
+    player = battle.player_pokemon
+
+    if count <= 0:
+        write_lines_fmt(output, T.NO_ITEM_LEFT, item_name=item_name)
+        show_battle_options_callback(output)
+        pending_command_callback("battle")
+        return
+
+    actual_heal = player["max_hp"] - player["hp"]
+    player["hp"] = player["max_hp"]
+    old_status = player.get("status")
+    player["status"] = None
+    player["sleep_count"] = 0
+    items[item_name] -= 1
+    if items[item_name] <= 0:
+        del items[item_name]
+
+    write_lines_fmt(
+        output,
+        T.HEAL_ITEM_USED,
+        player_name=player["name"],
+        heal_amount=actual_heal,
+    )
+    if old_status:
+        write_lines_fmt(
+            output, T.STATUS_CURED, player_name=player["name"], cure_msg="fully restored"
+        )
+
+    execute_wild_pokemon_turn(game_state, output)
+
+    if battle.player_pokemon["hp"] <= 0:
+        handle_pokemon_fainted_callback(output)
+        return
+
+    show_battle_options_callback(output)
+    pending_command_callback("battle")
+
+
 def end_battle(game_state: "GameState", output: RichLog, look_around_callback) -> None:
     """
     Clean up after a battle ends and return to exploration.

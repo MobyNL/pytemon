@@ -116,6 +116,8 @@ class BattleMixin:
         output.write(f"[dim]Enter a number (1-{len(non_fainted)}).[/dim]")
         if battle_type == "trainer":
             output.write("[dim]Trainer battles require you to choose a Pokemon.[/dim]")
+        else:
+            output.write("[dim]To flee instead, use 'run' after the battle starts.[/dim]")
         self.show_choose_lead_panel(non_fainted)
 
     def trigger_wild_encounter(self, output: RichLog) -> None:
@@ -354,6 +356,15 @@ class BattleMixin:
         elif cmd in ("use super potion", "super potion"):
             self._use_heal_item(output, "Super Potion", 50)
 
+        elif cmd in ("use hyper potion", "hyper potion"):
+            self._use_heal_item(output, "Hyper Potion", 200)
+
+        elif cmd in ("use max potion", "max potion"):
+            self._use_heal_item(output, "Max Potion", 9999)
+
+        elif cmd in ("use full restore", "full restore"):
+            self._use_full_restore(output)
+
         elif cmd in ("use antidote", "antidote"):
             self._use_status_cure(output, "Antidote", "POISON", "cured of poison")
 
@@ -383,6 +394,16 @@ class BattleMixin:
             output,
             item_name,
             heal_amount,
+            lambda cmd: setattr(self, "pending_command", cmd),
+            self.show_battle_options,
+            self.handle_pokemon_fainted,
+        )
+
+    def _use_full_restore(self, output: RichLog) -> None:
+        """Use a Full Restore during battle."""
+        battle_actions.use_full_restore(
+            self.game_state,
+            output,
             lambda cmd: setattr(self, "pending_command", cmd),
             self.show_battle_options,
             self.handle_pokemon_fainted,

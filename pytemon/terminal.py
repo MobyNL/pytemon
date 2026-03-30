@@ -192,17 +192,43 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             yield Static("🎒 Battle Bag", id="battle-bag-title")
             with Horizontal(id="battle-bag-row1", classes="button-row"):
                 yield Button(
-                    "🔴 Throw Pokeball",
+                    "🔴 Pokeball",
                     id="btn-bag-pokeball",
                     classes="bag-button bag-button-catch",
                 )
+                yield Button(
+                    "🔵 Great Ball",
+                    id="btn-bag-great-ball",
+                    classes="bag-button bag-button-catch",
+                )
+                yield Button(
+                    "🟡 Ultra Ball",
+                    id="btn-bag-ultra-ball",
+                    classes="bag-button bag-button-catch",
+                )
+                yield Button(
+                    "⚪ Master Ball",
+                    id="btn-bag-master-ball",
+                    classes="bag-button bag-button-catch",
+                )
+            with Horizontal(id="battle-bag-row2", classes="button-row"):
                 yield Button("💊 Potion", id="btn-bag-potion", classes="bag-button bag-button-heal")
                 yield Button(
                     "💊 Super Potion",
                     id="btn-bag-super-potion",
                     classes="bag-button bag-button-heal",
                 )
-            with Horizontal(id="battle-bag-row2", classes="button-row"):
+                yield Button(
+                    "💊 Hyper Potion",
+                    id="btn-bag-hyper-potion",
+                    classes="bag-button bag-button-heal",
+                )
+                yield Button(
+                    "✨ Full Restore",
+                    id="btn-bag-full-restore",
+                    classes="bag-button bag-button-heal",
+                )
+            with Horizontal(id="battle-bag-row3", classes="button-row"):
                 yield Button(
                     "💜 Antidote", id="btn-bag-antidote", classes="bag-button bag-button-status"
                 )
@@ -588,6 +614,18 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Throw Pokeball")
             self.hide_all_battle_panels()
             self.process_battle_command("throw pokeball", output)
+        elif button_id == "btn-bag-great-ball":
+            output.write("[bold yellow]🎮 >[/bold yellow] Throw Great Ball")
+            self.hide_all_battle_panels()
+            self.process_battle_command("throw great ball", output)
+        elif button_id == "btn-bag-ultra-ball":
+            output.write("[bold yellow]🎮 >[/bold yellow] Throw Ultra Ball")
+            self.hide_all_battle_panels()
+            self.process_battle_command("throw ultra ball", output)
+        elif button_id == "btn-bag-master-ball":
+            output.write("[bold yellow]🎮 >[/bold yellow] Throw Master Ball")
+            self.hide_all_battle_panels()
+            self.process_battle_command("throw master ball", output)
         elif button_id == "btn-bag-potion":
             output.write("[bold yellow]🎮 >[/bold yellow] Use Potion")
             self.hide_all_battle_panels()
@@ -596,6 +634,14 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Use Super Potion")
             self.hide_all_battle_panels()
             self.process_battle_command("use super potion", output)
+        elif button_id == "btn-bag-hyper-potion":
+            output.write("[bold yellow]🎮 >[/bold yellow] Use Hyper Potion")
+            self.hide_all_battle_panels()
+            self.process_battle_command("use hyper potion", output)
+        elif button_id == "btn-bag-full-restore":
+            output.write("[bold yellow]🎮 >[/bold yellow] Use Full Restore")
+            self.hide_all_battle_panels()
+            self.process_battle_command("use full restore", output)
         elif button_id == "btn-bag-antidote":
             output.write("[bold yellow]🎮 >[/bold yellow] Use Antidote")
             self.hide_all_battle_panels()

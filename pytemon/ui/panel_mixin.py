@@ -184,9 +184,20 @@ class PanelMixin:
                 except Exception:
                     pass
 
-            _setup("btn-bag-pokeball", "🔴 Throw Pokeball", items.get("Pokeball", 0))
+            player_hp = battle_state.player_pokemon.get("hp", 1) if battle_state else 1
+            player_max_hp = battle_state.player_pokemon.get("max_hp", 1) if battle_state else 1
+            needs_heal = player_hp < player_max_hp or player_status is not None
+
+            _setup("btn-bag-pokeball", "🔴 Pokeball", items.get("Pokeball", 0))
+            _setup("btn-bag-great-ball", "🔵 Great Ball", items.get("Great Ball", 0))
+            _setup("btn-bag-ultra-ball", "🟡 Ultra Ball", items.get("Ultra Ball", 0))
+            _setup("btn-bag-master-ball", "⚪ Master Ball", items.get("Master Ball", 0))
             _setup("btn-bag-potion", "💊 Potion", items.get("Potion", 0))
             _setup("btn-bag-super-potion", "💊 Super Potion", items.get("Super Potion", 0))
+            _setup("btn-bag-hyper-potion", "💊 Hyper Potion", items.get("Hyper Potion", 0))
+            _setup(
+                "btn-bag-full-restore", "✨ Full Restore", items.get("Full Restore", 0), needs_heal
+            )
             _setup(
                 "btn-bag-antidote",
                 "💜 Antidote",

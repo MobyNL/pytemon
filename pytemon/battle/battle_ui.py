@@ -279,9 +279,14 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
         output: The RichLog widget to write to
     """
     items = game_state.game_data.get("items", {})
+    pokeballs = items.get("Pokeball", 0)
+    great_balls = items.get("Great Ball", 0)
+    ultra_balls = items.get("Ultra Ball", 0)
+    master_balls = items.get("Master Ball", 0)
     potions = items.get("Potion", 0)
     super_potions = items.get("Super Potion", 0)
-    pokeballs = items.get("Pokeball", 0)
+    hyper_potions = items.get("Hyper Potion", 0)
+    full_restores = items.get("Full Restore", 0)
     antidotes = items.get("Antidote", 0)
     par_heals = items.get("Paralyze Heal", 0)
     awakenings = items.get("Awakening", 0)
@@ -298,6 +303,21 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
             f"  • [red]Pokeball[/red] x{pokeballs} - Catch wild Pokemon  [dim](type 'throw pokeball')[/dim]"
         )
         has_items = True
+    if great_balls > 0:
+        output.write(
+            f"  • [blue]Great Ball[/blue] x{great_balls} - Better catch rate  [dim](type 'throw great ball')[/dim]"
+        )
+        has_items = True
+    if ultra_balls > 0:
+        output.write(
+            f"  • [yellow]Ultra Ball[/yellow] x{ultra_balls} - High catch rate  [dim](type 'throw ultra ball')[/dim]"
+        )
+        has_items = True
+    if master_balls > 0:
+        output.write(
+            f"  • [magenta]Master Ball[/magenta] x{master_balls} - Never fails!  [dim](type 'throw master ball')[/dim]"
+        )
+        has_items = True
     if potions > 0:
         output.write(
             f"  • [green]Potion[/green] x{potions} - Restores 20 HP  [dim](type 'use potion')[/dim]"
@@ -306,6 +326,16 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
     if super_potions > 0:
         output.write(
             f"  • [green]Super Potion[/green] x{super_potions} - Restores 50 HP  [dim](type 'use super potion')[/dim]"
+        )
+        has_items = True
+    if hyper_potions > 0:
+        output.write(
+            f"  • [green]Hyper Potion[/green] x{hyper_potions} - Restores 200 HP  [dim](type 'use hyper potion')[/dim]"
+        )
+        has_items = True
+    if full_restores > 0:
+        output.write(
+            f"  • [bold green]Full Restore[/bold green] x{full_restores} - Fully heals + cures status  [dim](type 'use full restore')[/dim]"
         )
         has_items = True
     if antidotes > 0 and player_status == "POISON":
