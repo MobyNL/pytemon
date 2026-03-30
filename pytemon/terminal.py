@@ -88,10 +88,19 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     # ── Lifecycle ────────────────────────────────────────────────────────────
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        lock_file: Optional[str] = None,
+        command_file: Optional[str] = None,
+        text_file: Optional[str] = None,
+        **kwargs,
+    ):
         """Initialize the Pokemon Terminal."""
         super().__init__(*args, **kwargs)
-        self.lock_file_path = os.environ.get("POKEMON_LOCK_FILE")
+        self.lock_file_path = lock_file or os.environ.get("POKEMON_LOCK_FILE")
+        self.command_file_path = command_file or os.environ.get("POKEMON_COMMAND_FILE")
+        self.text_file_path = text_file or os.environ.get("POKEMON_TEXT_FILE")
         self.game_state = GameState()
         self.pending_command = None
         self.pending_command_data = {}
@@ -535,6 +544,55 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         output = self.query_one("#output", RichLog)
         self.show_main_menu(output)
         self.query_one("#command-input", Input).focus()
+        if self.command_file_path:
+            self.set_interval(0.5, self._poll_command_file)
+        if self.text_file_path:
+            self.set_interval(0.5, self._poll_text_file)
+
+    def _poll_text_file(self) -> None:
+        """Poll the text file for externally injected styled text."""
+        if not self.text_file_path:
+            return
+        txt_path = Path(self.text_file_path)
+        if not txt_path.exists():
+            return
+        try:
+            content = txt_path.read_text()
+            txt_path.write_text("")  # clear after reading
+        except Exception:
+            return
+        if not content.strip():
+            return
+        output = self.query_one("#output", RichLog)
+        for line in content.split("\n"):
+            output.write(line)
+
+    def _poll_command_file(self) -> None:
+        """Poll the command file for externally injected commands."""
+        if not self.command_file_path:
+            return
+        cmd_path = Path(self.command_file_path)
+        if not cmd_path.exists():
+            return
+        try:
+            command = cmd_path.read_text().strip()
+            cmd_path.write_text("")  # clear after reading
+        except Exception:
+            return
+        if not command:
+            return
+        output = self.query_one("#output", RichLog)
+        input_field = self.query_one("#command-input", Input)
+        output.write(f"[bold yellow]🎮 >[/bold yellow] {command}")
+        if self.pending_command:
+            self.handle_pending_command(command, output)
+        elif self.game_state.in_menu:
+            self.process_menu_command(command, output)
+        else:
+            self.process_command(command, output)
+        self.command_count += 1
+        self._refresh_subtitle()
+        input_field.focus()
 
     def _refresh_subtitle(self) -> None:
         """Update the #welcome banner to show the current location and its description."""
@@ -1678,16 +1736,29 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 # ── Module entry point ───────────────────────────────────────────────────────
 
 
-def launch_terminal() -> None:
-    """Launch the Pokemon terminal application."""
-    app = PokemonTerminal()
+def launch_terminal(
+    lock_file: Optional[str] = None,
+    command_file: Optional[str] = None,
+    text_file: Optional[str] = None,
+) -> None:
+    """Launch the Pokemon terminal application.
+
+    File paths can be passed directly or via environment variables
+    (POKEMON_LOCK_FILE, POKEMON_COMMAND_FILE, POKEMON_TEXT_FILE).
+    Direct arguments take precedence over env vars.
+    """
+    app = PokemonTerminal(
+        lock_file=lock_file,
+        command_file=command_file,
+        text_file=text_file,
+    )
     try:
         app.run()
     finally:
-        lock_file = os.environ.get("POKEMON_LOCK_FILE")
-        if lock_file:
+        resolved_lock = lock_file or os.environ.get("POKEMON_LOCK_FILE")
+        if resolved_lock:
             try:
-                Path(lock_file).unlink()
+                Path(resolved_lock).unlink()
             except Exception:
                 pass
 

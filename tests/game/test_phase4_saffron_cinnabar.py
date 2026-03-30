@@ -445,26 +445,26 @@ class TestPokemonMansion:
 
 class TestPokemonLab:
     def test_lab_revives_dome_fossil_to_kabuto(self, gs, log):
-        gs.game_data["bag"] = {"Dome Fossil": 1}
+        gs.game_data["items"] = {"Dome Fossil": 1}
         enter_pokemon_lab(gs, log)
         party = gs.game_data.get("pokemon", [])
         assert any(p.name == "KABUTO" for p in party)
         assert gs.game_data["story_flags"]["revived_dome_fossil"] is True
 
     def test_lab_revives_helix_fossil_to_omanyte(self, gs, log):
-        gs.game_data["bag"] = {"Helix Fossil": 1}
+        gs.game_data["items"] = {"Helix Fossil": 1}
         enter_pokemon_lab(gs, log)
         party = gs.game_data.get("pokemon", [])
         assert any(p.name == "OMANYTE" for p in party)
         assert gs.game_data["story_flags"]["revived_helix_fossil"] is True
 
     def test_lab_no_fossils_message(self, gs, log):
-        gs.game_data["bag"] = {}
+        gs.game_data["items"] = {}
         enter_pokemon_lab(gs, log)
         assert "fossil" in log.combined.lower()
 
     def test_lab_revives_both_fossils(self, gs, log):
-        gs.game_data["bag"] = {"Dome Fossil": 1, "Helix Fossil": 1}
+        gs.game_data["items"] = {"Dome Fossil": 1, "Helix Fossil": 1}
         enter_pokemon_lab(gs, log)
         party = gs.game_data.get("pokemon", [])
         names = [p.name for p in party]
@@ -472,7 +472,7 @@ class TestPokemonLab:
         assert "OMANYTE" in names
 
     def test_fossil_already_revived_not_duplicated(self, gs, log):
-        gs.game_data["bag"] = {"Dome Fossil": 1}
+        gs.game_data["items"] = {"Dome Fossil": 1}
         gs.game_data["story_flags"]["revived_dome_fossil"] = True
         enter_pokemon_lab(gs, log)
         party = gs.game_data.get("pokemon", [])
@@ -480,24 +480,24 @@ class TestPokemonLab:
         assert kabuto_count == 0
 
     def test_lab_removes_dome_fossil_from_bag_after_revival(self, gs, log):
-        gs.game_data["bag"] = {"Dome Fossil": 1}
+        gs.game_data["items"] = {"Dome Fossil": 1}
         enter_pokemon_lab(gs, log)
-        assert gs.game_data["bag"].get("Dome Fossil", 0) == 0
+        assert gs.game_data["items"].get("Dome Fossil", 0) == 0
 
     def test_lab_removes_helix_fossil_from_bag_after_revival(self, gs, log):
-        gs.game_data["bag"] = {"Helix Fossil": 1}
+        gs.game_data["items"] = {"Helix Fossil": 1}
         enter_pokemon_lab(gs, log)
-        assert gs.game_data["bag"].get("Helix Fossil", 0) == 0
+        assert gs.game_data["items"].get("Helix Fossil", 0) == 0
 
     def test_lab_kabuto_is_level_5(self, gs, log):
-        gs.game_data["bag"] = {"Dome Fossil": 1}
+        gs.game_data["items"] = {"Dome Fossil": 1}
         enter_pokemon_lab(gs, log)
         party = gs.game_data.get("pokemon", [])
         kabuto = next(p for p in party if p.name == "KABUTO")
         assert kabuto.level == 5
 
     def test_lab_omanyte_is_level_5(self, gs, log):
-        gs.game_data["bag"] = {"Helix Fossil": 1}
+        gs.game_data["items"] = {"Helix Fossil": 1}
         enter_pokemon_lab(gs, log)
         party = gs.game_data.get("pokemon", [])
         omanyte = next(p for p in party if p.name == "OMANYTE")

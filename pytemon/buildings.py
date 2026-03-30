@@ -1597,9 +1597,9 @@ def enter_pokemon_lab(
     output.write("[cyan]   If you have a Dome Fossil or Helix Fossil, we can help![/cyan]")
     output.write("")
 
-    bag = game_state.game_data.get("bag", {})
-    has_dome = bag.get("Dome Fossil", 0) > 0
-    has_helix = bag.get("Helix Fossil", 0) > 0
+    items = game_state.game_data.setdefault("items", {})
+    has_dome = items.get("Dome Fossil", 0) > 0
+    has_helix = items.get("Helix Fossil", 0) > 0
 
     if not has_dome and not has_helix:
         output.write("[dim]   You don't have any fossils to revive right now.[/dim]")
@@ -1610,10 +1610,9 @@ def enter_pokemon_lab(
     party = game_state.game_data.get("pokemon", [])
 
     if has_dome and not story_flags.get("revived_dome_fossil"):
-        bag["Dome Fossil"] -= 1
-        if bag["Dome Fossil"] <= 0:
-            del bag["Dome Fossil"]
-        game_state.game_data["bag"] = bag
+        items["Dome Fossil"] -= 1
+        if items["Dome Fossil"] <= 0:
+            del items["Dome Fossil"]
 
         story_flags["revived_dome_fossil"] = True
         story_flags["fossil_revived"] = True
@@ -1643,10 +1642,9 @@ def enter_pokemon_lab(
         output.write("")
 
     if has_helix and not story_flags.get("revived_helix_fossil"):
-        bag["Helix Fossil"] -= 1
-        if bag["Helix Fossil"] <= 0:
-            del bag["Helix Fossil"]
-        game_state.game_data["bag"] = bag
+        items["Helix Fossil"] -= 1
+        if items["Helix Fossil"] <= 0:
+            del items["Helix Fossil"]
 
         story_flags["revived_helix_fossil"] = True
         story_flags["fossil_revived"] = True
@@ -1796,8 +1794,7 @@ def enter_elite_four(
         return
 
     badge_count = gym_system.get_badge_count(game_state)
-    cheat_mode = getattr(game_state, "cheat_mode", False)
-    if badge_count < 8 and not cheat_mode:
+    if badge_count < 8:
         output.write("[yellow]⚠ You need all 8 Gym Badges to challenge the Elite Four![/yellow]")
         output.write(f"[dim]   You have {badge_count}/8 badges.[/dim]")
         output.write("[dim]   Travel Kanto and defeat all 8 Gym Leaders first.[/dim]")
