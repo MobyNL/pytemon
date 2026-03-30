@@ -41,6 +41,20 @@ EXIT_BLOCKED_REASON: list[str] = [
     "",
 ]
 
+SAFARI_ZONE_ENTER_BUILDING: list[str] = [
+    "",
+    "[yellow]⚠  The Safari Zone has a gatehouse — you can't just walk in![/yellow]",
+    "[cyan]   Type 'enter safari zone reception' to visit the gatehouse and pay the entry fee.[/cyan]",
+    "",
+]
+
+SAFARI_ZONE_EXIT_COMMAND: list[str] = [
+    "",
+    "[yellow]⚠  You're inside the Safari Zone — you can't leave this way![/yellow]",
+    "[cyan]   Type 'exit safari zone' to leave through the gatehouse.[/cyan]",
+    "",
+]
+
 LOCATION_NOT_FOUND: list[str] = [
     "[red]❌ Error: Location '{location_name}' not found[/red]",
 ]

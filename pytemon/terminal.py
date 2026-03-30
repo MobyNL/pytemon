@@ -1356,6 +1356,29 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             else:
                 self._handle_hm_field(output, "FLY")
 
+        elif cmd in ("exit safari zone", "leave safari zone"):
+            if (
+                self.game_state.current_location
+                and self.game_state.current_location.name == "Safari Zone"
+            ):
+                from .locations import get_location
+
+                fuchsia = get_location("Fuchsia City")
+                if fuchsia:
+                    self.game_state.game_data["previous_location"] = "Safari Zone"
+                    self.game_state.current_location = fuchsia
+                    self.game_state.game_data["location"] = "Fuchsia City"
+                    output.write("")
+                    output.write(
+                        "[bold cyan]➜ You leave the Safari Zone through the gatehouse...[/bold cyan]"
+                    )
+                    output.write("")
+                    self.show_location_arrival(output)
+            else:
+                output.write("")
+                output.write("[yellow]⚠  You're not in the Safari Zone.[/yellow]")
+                output.write("")
+
         elif cmd in ("exit", "exit building", "leave building"):
             write_lines(output, terminal_text.NOT_INSIDE_BUILDING)
             return

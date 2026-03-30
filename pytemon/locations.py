@@ -822,7 +822,7 @@ LOCATIONS: Dict[str, Location] = {
                 "reason": "You need HM Surf to cross the water — defeat Koga and teach Surf to a Pokemon",
             },
         },
-        buildings=["Pokemon Center", "Pokemart", "Gym", "Safari Zone"],
+        buildings=["Pokemon Center", "Pokemart", "Gym", "Safari Zone Reception"],
     ),
     # ── Safari Zone ───────────────────────────────────────────────────────────
     "Safari Zone": Location(

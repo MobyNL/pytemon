@@ -59,6 +59,17 @@ def move_to_location(
     # Check if the exit is blocked
     exit_data = current.exits[matching_exit]
 
+    # Safari Zone can only be entered via the building ("enter safari zone reception"),
+    # not via "move to".
+    if matching_exit == "Safari Zone":
+        write_lines(output, T.SAFARI_ZONE_ENTER_BUILDING)
+        return
+
+    # Safari Zone can only be left via "exit safari zone", not via "move to".
+    if current.name == "Safari Zone":
+        write_lines(output, T.SAFARI_ZONE_EXIT_COMMAND)
+        return
+
     # Special check: Unblock Route 24 from Cerulean City once player has Cascade Badge
     if matching_exit == "Route 24" and current.name == "Cerulean City":
         badges = game_state.game_data.get("badges", [])
