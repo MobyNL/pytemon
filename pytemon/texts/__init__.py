@@ -7,5 +7,6 @@ Import them like:
     from .texts.en import cheat_commands as T
     write_lines(output, T.CHEAT_ACTIVATED)
 
-For dynamic lines use write_lines_fmt() and {placeholder} format strings.
+For dynamic lines use write_dynamic_lines() with a dict, or write_lines_fmt()
+with keyword arguments, and {placeholder} format strings in the constants.
 """

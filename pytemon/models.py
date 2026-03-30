@@ -51,10 +51,7 @@ class PartyPokemon:
                 speed=self.stats.get("speed", 50),
             )
         # Normalize moves: list of dicts → list of MoveSlot
-        self.moves = [
-            MoveSlot(**m) if isinstance(m, dict) else m
-            for m in self.moves
-        ]
+        self.moves = [MoveSlot(**m) if isinstance(m, dict) else m for m in self.moves]
 
     def is_fainted(self) -> bool:
         """Return True if this Pokemon has 0 or fewer HP."""

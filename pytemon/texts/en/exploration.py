@@ -4,10 +4,10 @@ Text constants for pytemon/exploration.py.
 
 # ── move_to_location ──────────────────────────────────────────────────────────
 
-# Dynamic: "[red]❌ You can't go to '{destination}' from {location}[/red]"
+# Dynamic: use write_lines_fmt(output, CANT_GO_THERE, destination=..., location=...)
 CANT_GO_THERE: list[str] = [
     "",
-    # dynamic line here
+    "[red]❌ You can't go to '{destination}' from {location}[/red]",
     "[dim]Type 'Look Around' to see available exits[/dim]",
     "",
 ]
@@ -21,11 +21,13 @@ OAK_NO_POKEMON_WARNING: list[str] = [
     "",
 ]
 
+# Dynamic: use write_lines_fmt(output, NOT_ENOUGH_EXPLORES,
+#          location=..., remaining=..., destination=..., done=..., required=...)
 NOT_ENOUGH_EXPLORES: list[str] = [
     "",
-    # dynamic: "[yellow]⚠ You haven't fully explored {location} yet![/yellow]"
-    # dynamic: "[dim]Explore the area {remaining} more time(s) before heading to {destination}.[/dim]"
-    # dynamic: "[dim]Progress: {done}/{required} — use 'Explore' to continue searching[/dim]"
+    "[yellow]⚠ You haven't fully explored {location} yet![/yellow]",
+    "[dim]Explore the area {remaining} more time(s) before heading to {destination}.[/dim]",
+    "[dim]Progress: {done}/{required} — use 'Explore' to continue searching[/dim]",
     "",
 ]
 

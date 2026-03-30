@@ -17,7 +17,13 @@ from pytemon.data.trainer_data import TRAINER_CLASSES, TRAINERS
 from pytemon.exploration import explore_area
 from pytemon.game_state import GameState
 from pytemon.gym_system import GYMS, can_challenge_gym, get_gym_trainers
-from pytemon.locations import LOCATIONS, TYPE_DUNGEON, TYPE_FOREST, TYPE_ROUTE, TYPE_TOWN, get_location
+from pytemon.locations import (
+    LOCATIONS,
+    TYPE_DUNGEON,
+    TYPE_ROUTE,
+    TYPE_TOWN,
+    get_location,
+)
 
 
 class MockRichLog:
