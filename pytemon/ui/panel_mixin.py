@@ -12,6 +12,11 @@ from typing import TYPE_CHECKING, List
 
 from textual.widgets import Button, DataTable, Input, RichLog, Select, Static, TabbedContent
 
+from .. import gym_system, pc_system, pokedex
+from ..buildings import SHOP_CATALOG
+from ..data import POKEMON, get_move, get_trainer
+from .displays import populate_party_detail, populate_party_overview, show_party
+
 if TYPE_CHECKING:
     pass  # Avoid circular imports — self is always a PokemonTerminal at runtime
 
@@ -188,8 +193,6 @@ class PanelMixin:
 
     def show_move_selection_panel(self) -> None:
         """Show the move selection button panel and update button labels."""
-        from ..data import get_move
-
         battle_panel = self.query_one("#battle-actions")
         move_panel = self.query_one("#move-selection")
         battle_panel.add_class("hidden")
@@ -335,6 +338,48 @@ class PanelMixin:
         except Exception:
             pass
 
+    def show_choose_lead_panel(self, non_fainted: list) -> None:
+        """Show the choose-lead panel with a 2×3 grid of Pokemon buttons.
+
+        Populates each button from ``non_fainted`` (a list of party Pokemon that
+        are alive and eligible to be sent first).  Slots beyond the party size are
+        hidden and disabled.
+
+        Args:
+            non_fainted: Ordered list of non-fainted party Pokemon dicts / PartyPokemon objects.
+        """
+        try:
+            # Lead selection cannot be canceled; hide the cancel button for this panel.
+            self.query_one("#btn-lead-cancel", Button).display = False
+
+            for i in range(6):
+                btn = self.query_one(f"#btn-lead-slot-{i}", Button)
+                if i < len(non_fainted):
+                    p = non_fainted[i]
+                    hp = p.get("hp", 0)
+                    max_hp = p.get("max_hp", 1)
+                    status = p.get("status") or ""
+                    status_str = f" [{status}]" if status else ""
+                    hp_str = f" {hp}/{max_hp}HP"
+                    btn.label = f"{p['name']} Lv.{p.get('level', 5)}{status_str}{hp_str}"
+                    btn.disabled = False
+                    btn.remove_class("hidden")
+                else:
+                    btn.label = f"--- Empty ---"
+                    btn.disabled = True
+                    btn.add_class("hidden")
+
+            self.query_one("#choose-lead-panel").remove_class("hidden")
+        except Exception:
+            pass
+
+    def hide_choose_lead_panel(self) -> None:
+        """Hide the choose-lead panel."""
+        try:
+            self.query_one("#choose-lead-panel").add_class("hidden")
+        except Exception:
+            pass
+
     def hide_all_battle_panels(self) -> None:
         """Hide all battle-related button panels and the battle HUD."""
         try:
@@ -343,6 +388,7 @@ class PanelMixin:
             self.query_one("#battle-bag").add_class("hidden")
             self.query_one("#pokemon-switch").add_class("hidden")
             self.query_one("#faint-switch").add_class("hidden")
+            self.query_one("#choose-lead-panel").add_class("hidden")
             self.query_one("#hud-player").add_class("hidden")
             self.query_one("#hud-enemy").add_class("hidden")
             self.hide_battle_loading()
@@ -450,15 +496,32 @@ class PanelMixin:
         starter_panel.remove_class("hidden")
         try:
             if pikachu_mode:
-                self.query_one("#btn-starter-bulbasaur", Button).disabled = True
-                self.query_one("#btn-starter-charmander", Button).disabled = True
-                self.query_one("#btn-starter-squirtle", Button).disabled = True
-                self.query_one("#btn-starter-pikachu", Button).disabled = False
+                taken = " — chosen by another trainer"
+                bulb_btn = self.query_one("#btn-starter-bulbasaur", Button)
+                bulb_btn.label = f"🌿 Bulbasaur{taken}"
+                bulb_btn.disabled = True
+                char_btn = self.query_one("#btn-starter-charmander", Button)
+                char_btn.label = f"🔥 Charmander{taken}"
+                char_btn.disabled = True
+                squi_btn = self.query_one("#btn-starter-squirtle", Button)
+                squi_btn.label = f"💧 Squirtle{taken}"
+                squi_btn.disabled = True
+                pika_btn = self.query_one("#btn-starter-pikachu", Button)
+                pika_btn.label = "⚡ Pikachu"
+                pika_btn.disabled = False
             else:
-                self.query_one("#btn-starter-bulbasaur", Button).disabled = False
-                self.query_one("#btn-starter-charmander", Button).disabled = False
-                self.query_one("#btn-starter-squirtle", Button).disabled = False
-                self.query_one("#btn-starter-pikachu", Button).disabled = True
+                bulb_btn = self.query_one("#btn-starter-bulbasaur", Button)
+                bulb_btn.label = "🌿 Bulbasaur"
+                bulb_btn.disabled = False
+                char_btn = self.query_one("#btn-starter-charmander", Button)
+                char_btn.label = "🔥 Charmander"
+                char_btn.disabled = False
+                squi_btn = self.query_one("#btn-starter-squirtle", Button)
+                squi_btn.label = "💧 Squirtle"
+                squi_btn.disabled = False
+                pika_btn = self.query_one("#btn-starter-pikachu", Button)
+                pika_btn.label = ""
+                pika_btn.disabled = True
         except Exception:
             pass
 
@@ -518,6 +581,7 @@ class PanelMixin:
             self.query_one("#pokedex-navigation").add_class("hidden")
             self.query_one("#nurse-joy-panel").add_class("hidden")
             self.query_one("#pokemon-center-panel").add_class("hidden")
+            self.query_one("#pokemon-center-loading").add_class("hidden")
             self.query_one("#pc-panel").add_class("hidden")
             self.query_one("#pc-deposit-panel").add_class("hidden")
             self.query_one("#pc-withdraw-panel").add_class("hidden")
@@ -528,6 +592,7 @@ class PanelMixin:
             self.query_one("#gym-panel").add_class("hidden")
             self.query_one("#pokemon-switch").add_class("hidden")
             self.query_one("#faint-switch").add_class("hidden")
+            self.query_one("#choose-lead-panel").add_class("hidden")
         except Exception:
             pass
         self.hide_battle_loading()
@@ -536,9 +601,6 @@ class PanelMixin:
 
     def show_gym_panel(self) -> None:
         """Show the gym lobby panel, updating dynamic content and button states."""
-        from .. import gym_system
-        from ..data import get_trainer
-
         self.hide_all_panels()
 
         location_name = (
@@ -655,13 +717,9 @@ class PanelMixin:
             panel = self.query_one("#pokedex-navigation")
             panel.remove_class("hidden")
 
-            from .. import pokedex
-
             view_state = pokedex.get_pokedex_state(self.game_state)
             current_page = view_state.get("current_page", 1)
             filter_mode = view_state.get("filter_mode", "all")
-
-            from ..data import POKEMON
 
             pokedex_data = self.game_state.game_data.get("pokedex", {})
             seen = set(pokedex_data.get("seen", []))
@@ -813,7 +871,24 @@ class PanelMixin:
     def show_pokemon_center_panel(self) -> None:
         """Show the Pokemon Center lobby panel."""
         try:
+            self.hide_pokemon_center_loading()
             self.query_one("#pokemon-center-panel").remove_class("hidden")
+        except Exception:
+            pass
+
+    def show_pokemon_center_loading(self) -> None:
+        """Show Pokemon Center loading state while healing is in progress."""
+        try:
+            self.query_one("#pokemon-center-buttons").add_class("hidden")
+            self.query_one("#pokemon-center-loading").remove_class("hidden")
+        except Exception:
+            pass
+
+    def hide_pokemon_center_loading(self) -> None:
+        """Hide Pokemon Center loading state and restore lobby buttons."""
+        try:
+            self.query_one("#pokemon-center-loading").add_class("hidden")
+            self.query_one("#pokemon-center-buttons").remove_class("hidden")
         except Exception:
             pass
 
@@ -821,8 +896,6 @@ class PanelMixin:
 
     def show_pc_main_panel(self) -> None:
         """Show the PC main hub panel, updating box summary and button labels."""
-        from .. import pc_system
-
         try:
             storage = pc_system.get_pc_storage(self.game_state)
             total = pc_system.get_total_in_pc(self.game_state)
@@ -865,8 +938,6 @@ class PanelMixin:
 
     def show_pc_withdraw_panel(self, box_num: int) -> None:
         """Show the withdraw panel for the given box number."""
-        from .. import pc_system
-
         try:
             storage = pc_system.get_pc_storage(self.game_state)
             box_key = f"Box {box_num}"
@@ -889,10 +960,6 @@ class PanelMixin:
     def show_pokemart_panel(self) -> None:
         """Show the Pokemart shop panel and populate the item Select with current catalog."""
         try:
-            from textual.widgets import Select, Static
-
-            from ..buildings import SHOP_CATALOG
-
             money = self.game_state.game_data.get("money", 0)
             self.query_one("#pokemart-money", Static).update(f"Your money:  ₽{money}")
 
@@ -917,8 +984,6 @@ class PanelMixin:
         Tabs for empty slots are hidden.
         """
         try:
-            from .displays import populate_party_detail, populate_party_overview
-
             pokemon = self.game_state.game_data.get("pokemon", [])
             real_pokemon = [p for p in pokemon if not isinstance(p, str)]
             party_size = len(real_pokemon)
@@ -969,11 +1034,7 @@ class PanelMixin:
         except Exception:
             # Fallback: write to main output log
             try:
-                from textual.widgets import RichLog as _RichLog
-
-                output = self.query_one("#output", _RichLog)
-                from .displays import show_party
-
+                output = self.query_one("#output", RichLog)
                 show_party(self.game_state, output, self.ensure_battle_ready)
             except Exception:
                 pass

@@ -8,10 +8,19 @@ catch attempts) stays in battle_actions.py.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog
+
+from . import evolution as _evo
+from . import hm_tm_system as _hm_tm
+from .engine import BattleState as _BattleState
+from .locations import get_location
+from .models import PartyPokemon as _PartyPokemon
+from .texts.en import items as T
+from .ui.formatters import write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -363,18 +372,21 @@ def use_item_outside_battle(
     item_name: str,
     target: Optional[str],
     output: RichLog,
+    queue_move_learn_callback=None,
 ) -> bool:
     """
     Use an item outside of battle.
 
     Args:
-        game_state: Current game state.
-        item_name:  Canonical item name (e.g. ``"Rare Candy"``).
-        target:     Optional Pokemon name or slot number (e.g. ``"Charmander"``
-                    or ``"1"``).  Required for stones, stat boosters, Rare
-                    Candy, and Revive.  For plain healing items the active
-                    (first non-fainted) Pokemon is used when target is None.
-        output:     RichLog widget to write results to.
+        game_state:               Current game state.
+        item_name:                Canonical item name (e.g. ``"Rare Candy"``).
+        target:                   Optional Pokemon name or slot number (e.g. ``"Charmander"``
+                                  or ``"1"``).  Required for stones, stat boosters, Rare
+                                  Candy, and Revive.  For plain healing items the active
+                                  (first non-fainted) Pokemon is used when target is None.
+        output:                   RichLog widget to write results to.
+        queue_move_learn_callback: Optional callback for the interactive move-replacement
+                                  flow when a Pokemon's moveset is already full.
 
     Returns:
         True if the item was consumed successfully.
@@ -389,7 +401,7 @@ def use_item_outside_battle(
         return False  # guard: keeps canonical as str below
     items = game_state.game_data.get("items", {})
     if items.get(canonical, 0) <= 0:
-        output.write(f"[red]❌ You have no {canonical}![/red]")
+        write_lines_fmt(output, T.ITEM_NOT_OWNED, item_name=canonical)
         return False
 
     cat = data["cat"]
@@ -411,7 +423,7 @@ def use_item_outside_battle(
 
     # ── HM / TM — teach move to Pokemon ─────────────────────────────────
     if cat in (CAT_HM, CAT_TM):
-        return _use_hm_tm(game_state, canonical, data, target, output)
+        return _use_hm_tm(game_state, canonical, data, target, output, queue_move_learn_callback)
 
     # ── Fishing Rod ──────────────────────────────────────────────────────
     if cat == CAT_ROD:
@@ -512,8 +524,6 @@ def _consume(game_state: GameState, item_name: str) -> None:
 
 
 def _first_fainted(game_state: GameState) -> Optional[PartyPokemon]:
-    from .models import PartyPokemon as _PartyPokemon
-
     for p in game_state.game_data.get("pokemon", []):
         if isinstance(p, _PartyPokemon) and p.hp <= 0:
             return p
@@ -630,9 +640,6 @@ def _use_stat_booster(
 def _use_rare_candy(
     game_state: GameState, name: str, pokemon: PartyPokemon, output: RichLog
 ) -> bool:
-    from . import evolution as _evo
-    from .engine import BattleState as _BattleState
-
     old_level = pokemon.get("level", 1)
     if old_level >= 100:
         output.write("")
@@ -662,8 +669,6 @@ def _use_rare_candy(
 
 
 def _use_stone(game_state: GameState, name: str, pokemon: PartyPokemon, output: RichLog) -> bool:
-    from . import evolution as _evo
-
     pokemon_name = pokemon.get("name", "POKÉMON")
     evo_target = _evo.get_stone_evolution(pokemon, name)
     if not evo_target:
@@ -681,9 +686,27 @@ def _use_stone(game_state: GameState, name: str, pokemon: PartyPokemon, output: 
     return success
 
 
-def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
-    from .locations import get_location
+def _find_nearest_town(start_name: str) -> str | None:
+    """BFS through the location graph to find the name of the nearest reachable town."""
+    visited: set[str] = {start_name}
+    queue: deque[str] = deque([start_name])
+    while queue:
+        loc_name = queue.popleft()
+        loc = get_location(loc_name)
+        if loc is None:
+            continue
+        for exit_name in loc.exits:
+            if exit_name in visited:
+                continue
+            visited.add(exit_name)
+            dest = get_location(exit_name)
+            if dest and dest.type == "town":
+                return exit_name
+            queue.append(exit_name)
+    return None
 
+
+def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
     location = game_state.current_location
     if not location:
         output.write("[red]❌ No current location![/red]")
@@ -695,10 +718,11 @@ def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
         output.write("")
         return False
 
-    # Find the nearest town exit
-    for exit_name, _ in location.exits.items():
-        dest = get_location(exit_name)
-        if dest and dest.type == "town":
+    # BFS to find the nearest town (works even when no town is a direct exit)
+    town_name = _find_nearest_town(location.name)
+    if town_name:
+        dest = get_location(town_name)
+        if dest:
             _consume(game_state, name)
             game_state.game_data["previous_location"] = location.name
             game_state.current_location = dest
@@ -737,23 +761,25 @@ def _use_hm_tm(
     data: ItemData,
     target: Optional[str],
     output: RichLog,
+    queue_move_learn_callback=None,
 ) -> bool:
     """Teach the move from an HM or TM to a target Pokemon.
 
     HMs are never consumed; TMs are consumed on successful use.
+    When the target's moveset is full and *queue_move_learn_callback* is
+    provided, the interactive replacement flow is started instead.
 
     Args:
-        game_state: Current game state.
-        name:       Canonical item name (e.g. ``"HM03 Surf"``).
-        data:       ItemData for this item.
-        target:     Pokemon name or slot to teach the move to.
-        output:     RichLog widget.
+        game_state:               Current game state.
+        name:                     Canonical item name (e.g. ``"HM03 Surf"``).
+        data:                     ItemData for this item.
+        target:                   Pokemon name or slot to teach the move to.
+        output:                   RichLog widget.
+        queue_move_learn_callback: Optional callback for the move-replacement flow.
 
     Returns:
         True if the move was successfully taught.
     """
-    from . import hm_tm_system as _hm_tm
-
     move_name = data.get("move", "")
     if not move_name:
         output.write(f"[red]❌ {name} has no move data.[/red]")
@@ -764,10 +790,7 @@ def _use_hm_tm(
     if not target:
         party = game_state.game_data.get("pokemon", [])
         example_name = party[0].get("name", "Pikachu") if party else "Pikachu"
-        output.write("")
-        output.write(f"[yellow]⚠ Usage: use {name} on <Pokemon name or slot>[/yellow]")
-        output.write(f"[dim]Example: 'use {name} on {example_name}'[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.ITEM_HM_USE_HINT, hm_name=name, example_name=example_name)
         return False
 
     pokemon, _ = game_state.find_pokemon(target)
@@ -775,7 +798,20 @@ def _use_hm_tm(
         output.write(f"[red]❌ Pokemon not found: {target}[/red]")
         return False
 
-    success = _hm_tm.teach_move(game_state, move_name, pokemon, name, is_hm, output)
+    # For TMs: wrap the callback so the item is consumed once the player
+    # successfully replaces a move via the interactive flow.
+    if queue_move_learn_callback is not None and not is_hm:
+        tm_name = name
+        _raw_cb = queue_move_learn_callback
+
+        def _tm_callback(p, moves, action, out, _tm=tm_name, _cb=_raw_cb):
+            _cb(p, moves, action, out, consume_item=_tm)
+
+        actual_callback = _tm_callback
+    else:
+        actual_callback = queue_move_learn_callback
+
+    success = _hm_tm.teach_move(game_state, move_name, pokemon, name, is_hm, output, actual_callback)
     if success and not is_hm:
         _consume(game_state, name)
     return success

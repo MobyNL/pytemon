@@ -4,10 +4,13 @@ Game state management for Pokemon Terminal.
 This module handles save/load functionality and game state tracking.
 """
 
+import datetime
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from . import pokedex
+from .battle.battle_actions import ensure_battle_ready
 from .engine import BattleState
 from .locations import Location, get_location, get_starting_location
 from .models import PartyPokemon
@@ -150,8 +153,6 @@ class GameState:
     def _migrate_pokedex(self) -> None:
         """Migrate existing saves to include Pokedex data for party Pokemon."""
         try:
-            from . import pokedex
-
             # This will initialize Pokedex and register all party Pokemon as caught
             registered = pokedex.migrate_existing_save(self)
             # Note: We don't output messages here since this runs silently on load
@@ -217,8 +218,6 @@ class GameState:
             save_file = self.current_save
         else:
             # Generate default name with timestamp
-            import datetime
-
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             save_file = self.saves_dir / f"save_{timestamp}.json"
 
@@ -305,8 +304,6 @@ class GameState:
         Returns:
             PartyPokemon, or None if the party is empty or all have fainted.
         """
-        from .battle.battle_actions import ensure_battle_ready
-
         for p in self.game_data.get("pokemon", []):
             if isinstance(p, dict):
                 ensure_battle_ready(p)

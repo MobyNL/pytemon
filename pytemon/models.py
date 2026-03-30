@@ -40,6 +40,19 @@ class PartyPokemon:
     special_bonus: int = 0
     speed_bonus: int = 0
 
+    def __post_init__(self) -> None:
+        # Normalize stats: dict → StatsData
+        if isinstance(self.stats, dict):
+            self.stats = StatsData(
+                hp=self.stats.get("hp", self.max_hp),
+                attack=self.stats.get("attack", 50),
+                defense=self.stats.get("defense", 50),
+                special=self.stats.get("special", 50),
+                speed=self.stats.get("speed", 50),
+            )
+        # Normalize moves: list of dicts → list of MoveSlot
+        self.moves = [MoveSlot(**m) if isinstance(m, dict) else m for m in self.moves]
+
     def is_fainted(self) -> bool:
         """Return True if this Pokemon has 0 or fewer HP."""
         return self.hp <= 0

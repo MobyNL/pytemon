@@ -11,15 +11,61 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog, Static
 
+from .. import evolution as _evo_module
+from .. import gym_system
 from ..battle import battle_actions, battle_ui
+from ..data import get_trainer
+from ..data.pokemon_data import POKEMON as _POKEMON
 from ..ui.formatters import format_hp_bar
 
 if TYPE_CHECKING:
     pass  # Avoid circular imports — self is always a PokemonTerminal at runtime
 
 
+# Flavor hint shown before battle, keyed by the Pokemon's primary type.
+_TYPE_ENCOUNTER_HINTS: dict = {
+    "Normal": "Something darts between the tall grass...",
+    "Fire": "You feel a sudden wave of heat...",
+    "Water": "You hear a splash nearby...",
+    "Electric": "Your hair stands on end...",
+    "Grass": "The leaves rustle in an unusual way...",
+    "Ice": "The air around you grows cold...",
+    "Fighting": "Something charges toward you!",
+    "Poison": "You catch a strange, acrid smell...",
+    "Ground": "The ground trembles slightly...",
+    "Flying": "A shadow sweeps overhead...",
+    "Psychic": "Your mind feels fuzzy for a moment...",
+    "Bug": "You hear an unsettling chittering...",
+    "Rock": "Loose stones clatter underfoot...",
+    "Ghost": "A chill runs down your spine...",
+    "Dragon": "An overwhelming presence looms nearby...",
+    "Steel": "You hear a faint metallic scraping...",
+    "Dark": "The shadows seem to shift and move...",
+}
+
+
 class BattleMixin:
     """Mixin providing the full battle system for PokemonTerminal."""
+
+    FAILED_CATCH_PAUSE_SECONDS = 0.6
+
+    def _hide_location_banner_for_battle(self) -> None:
+        """Hide the top location banner while battle UI is active."""
+        try:
+            self.query_one("#welcome").add_class("hidden")
+        except Exception:
+            pass
+
+    def _restore_location_banner_after_battle(self) -> None:
+        """Restore the top location banner after battle flow is finished."""
+        try:
+            self.query_one("#welcome").remove_class("hidden")
+        except Exception:
+            pass
+        try:
+            self._refresh_subtitle()
+        except Exception:
+            pass
 
     # ── Battle init helpers ──────────────────────────────────────────────────
 
@@ -27,8 +73,91 @@ class BattleMixin:
         """Ensure a Pokemon dict has full battle stats."""
         battle_actions.ensure_battle_ready(pokemon)
 
+    # ── Lead-Pokemon selection ───────────────────────────────────────────────
+
+    def _show_lead_selection_prompt(
+        self, output: RichLog, battle_type: str, trainer: Optional[dict] = None
+    ) -> None:
+        """
+        Prompt the player to pick their lead Pokemon before a battle.
+
+        If only one Pokemon is able to fight, the prompt is skipped and the
+        appropriate trigger is called immediately.
+
+        Args:
+            output: The RichLog widget to write to.
+            battle_type: ``"wild"`` or ``"trainer"``.
+            trainer: Trainer data dict (only required when ``battle_type="trainer"``).
+        """
+        party = self.game_state.game_data.get("pokemon", [])
+        non_fainted = [p for p in party if not isinstance(p, str) and p.get("hp", 0) > 0]
+
+        # Only one fighter — skip selection entirely
+        if len(non_fainted) <= 1:
+            if battle_type == "wild":
+                self._do_trigger_wild_encounter(output)
+            else:
+                self._do_trigger_trainer_encounter(output, trainer)
+            return
+
+        self.pending_command = "choose_lead"
+        self.pending_command_data = {"battle_type": battle_type}
+        if trainer is not None:
+            self.pending_command_data["trainer"] = trainer
+
+        output.write("[bold cyan]🎮 Who do you choose?[/bold cyan]")
+        choices: list[str] = []
+        for slot, p in enumerate(non_fainted, 1):
+            status = p.get("status") or ""
+            status_str = f" [red]{status}[/red]" if status else ""
+            choices.append(f"[bold]{slot}.[/bold] {p['name']} Lv.{p.get('level', 5)}{status_str}")
+
+        output.write("  " + " [dim]|[/dim] ".join(choices))
+        output.write(f"[dim]Enter a number (1-{len(non_fainted)}).[/dim]")
+        if battle_type == "trainer":
+            output.write("[dim]Trainer battles require you to choose a Pokemon.[/dim]")
+        self.show_choose_lead_panel(non_fainted)
+
     def trigger_wild_encounter(self, output: RichLog) -> None:
-        """Trigger a wild Pokemon battle at the current location."""
+        """Trigger a wild Pokemon battle, prompting the player to choose their lead first."""
+        # Pre-generate the encounter if not already set (fishing sets it before calling us).
+        # Storing it as _fishing_encounter means battle_actions re-uses the same species.
+        if "_fishing_encounter" not in self.game_state.game_data:
+            location = self.game_state.current_location
+            if location and location.wild_pokemon:
+                wild_species = random.choice(location.wild_pokemon)
+                min_lvl, max_lvl = location.wild_level_range
+                wild_level = random.randint(min_lvl, max_lvl)
+                self.game_state.game_data["_fishing_encounter"] = {
+                    "species": wild_species,
+                    "level": wild_level,
+                }
+
+        # Build the pre-battle announcement with a type-based flavor hint.
+        enc = self.game_state.game_data.get("_fishing_encounter", {})
+        wild_species = enc.get("species")
+        species_types: list = []
+        if wild_species:
+            for _spec in _POKEMON.values():
+                if _spec["name"] == wild_species.upper():
+                    species_types = _spec.get("types", [])
+                    break
+        primary_type = species_types[0] if species_types else "Normal"
+        flavor = _TYPE_ENCOUNTER_HINTS.get(primary_type, "Something is lurking nearby...")
+
+        output.write(f"[bold red]A wild Pokémon appeared![/bold red] [dim]{flavor}[/dim]")
+
+        self._show_lead_selection_prompt(output, battle_type="wild")
+
+    def trigger_trainer_encounter(self, output: RichLog, trainer: dict) -> None:
+        """Trigger a trainer battle, prompting the player to choose their lead first."""
+        trainer_class = trainer.get("trainer_class", "Trainer")
+        trainer_name = trainer.get("name", "???")
+        output.write(f"[bold yellow]{trainer_class} {trainer_name} wants to battle![/bold yellow]")
+        self._show_lead_selection_prompt(output, battle_type="trainer", trainer=trainer)
+
+    def _do_trigger_wild_encounter(self, output: RichLog) -> None:
+        """Execute the wild encounter after lead selection (or immediately if only 1 fighter)."""
 
         def animated_battle_start(out: RichLog, on_ready) -> None:
             lines = battle_ui.get_battle_start_lines(self.game_state)
@@ -42,11 +171,12 @@ class BattleMixin:
             show_battle_start_callback=animated_battle_start,
         )
         if self.game_state.battle_state:
+            self._hide_location_banner_for_battle()
             self.show_battle_hud()
             self.update_battle_hud()
 
-    def trigger_trainer_encounter(self, output: RichLog, trainer: dict) -> None:
-        """Trigger a trainer battle."""
+    def _do_trigger_trainer_encounter(self, output: RichLog, trainer: Optional[dict]) -> None:
+        """Execute the trainer encounter after lead selection (or immediately if only 1 fighter)."""
 
         def animated_trainer_start(out: RichLog, on_ready) -> None:
             lines = battle_ui.get_trainer_battle_start_lines(self.game_state)
@@ -61,6 +191,7 @@ class BattleMixin:
             show_battle_start_callback=animated_trainer_start,
         )
         if self.game_state.battle_state:
+            self._hide_location_banner_for_battle()
             self.show_battle_hud()
             self.update_battle_hud()
 
@@ -68,8 +199,6 @@ class BattleMixin:
         self, trainer_id: str, output: RichLog, is_gym_battle: bool = False
     ) -> None:
         """Trigger a gym leader battle."""
-        from ..data import get_trainer
-
         trainer = get_trainer(trainer_id)
         if not trainer:
             output.write(f"[red]❌ Error: Trainer '{trainer_id}' not found[/red]")
@@ -94,6 +223,7 @@ class BattleMixin:
 
     def show_battle_options(self, output: RichLog) -> None:
         """Display the main battle menu with HP bars."""
+        self._hide_location_banner_for_battle()
         battle_ui.show_battle_options(self.game_state, output)
         self.show_battle_action_panel()
         self.show_battle_hud()
@@ -138,11 +268,38 @@ class BattleMixin:
             return
 
         if cmd in ("fight", "attack", "f"):
-            self.show_move_selection(output)
-            self.pending_command = "select_move"
+            # Block fight in Safari Zone
+            battle = self.game_state.battle_state
+            if battle and battle.is_safari:
+                output.write("")
+                output.write("[yellow]⚠ You can't battle in the Safari Zone![/yellow]")
+                output.write("[dim]Use Bait, Rock, Safari Ball, or Run.[/dim]")
+                output.write("")
+                self.show_battle_options(output)
+                self.pending_command = "battle"
+            else:
+                self.show_move_selection(output)
+                self.pending_command = "select_move"
+
+        elif cmd in ("bait",):
+            self._handle_safari_action(output, "bait")
+
+        elif cmd in ("rock",):
+            self._handle_safari_action(output, "rock")
+
+        elif cmd in (
+            "safari ball",
+            "throw safari ball",
+            "safari",
+        ):
+            self._handle_safari_action(output, "ball")
 
         elif cmd in ("run", "flee", "r"):
-            self.attempt_flee(output)
+            battle = self.game_state.battle_state
+            if battle and battle.is_safari:
+                self._handle_safari_action(output, "run")
+            else:
+                self.attempt_flee(output)
 
         elif cmd in ("bag",):
             self.hide_all_battle_panels()
@@ -254,7 +411,10 @@ class BattleMixin:
                 return player["moves"][idx]
             return None
         for move in player["moves"]:
-            if move["name"].lower() == cmd or cmd in move["name"].lower():
+            if move["name"].lower() == cmd:
+                return move
+        for move in player["moves"]:
+            if cmd in move["name"].lower():
                 return move
         return None
 
@@ -502,6 +662,17 @@ class BattleMixin:
 
     # ── Flee / catch / switch ────────────────────────────────────────────────
 
+    def _handle_safari_action(self, output: RichLog, action: str) -> None:
+        """Dispatch a Safari Zone action (bait/rock/ball/run)."""
+        battle_actions.handle_safari_action(
+            self.game_state,
+            output,
+            action,
+            lambda cmd: setattr(self, "pending_command", cmd),
+            self.show_battle_options,
+            self.end_battle,
+        )
+
     def attempt_flee(self, output: RichLog) -> None:
         """Attempt to flee from a battle."""
         battle_actions.attempt_flee(
@@ -524,6 +695,14 @@ class BattleMixin:
         def _animate_shake(out: RichLog, lines: list, on_complete) -> None:
             self.text_animator.write_slow(out, lines, on_complete=on_complete)
 
+        def _delay_after_failed_catch(on_complete) -> None:
+            """Pause briefly so failed-catch feedback remains readable."""
+            set_timer = getattr(self, "set_timer", None)
+            if callable(set_timer):
+                set_timer(self.FAILED_CATCH_PAUSE_SECONDS, on_complete)
+            else:
+                on_complete()
+
         battle_actions.attempt_catch_pokemon(
             self.game_state,
             output,
@@ -533,6 +712,7 @@ class BattleMixin:
             self.handle_pokemon_fainted,
             ball_type=ball_type,
             animate_shake_callback=_animate_shake,
+            post_fail_delay_callback=_delay_after_failed_catch,
         )
 
     def show_pokemon_switch_menu(self, output: RichLog) -> None:
@@ -722,6 +902,7 @@ class BattleMixin:
         """Clean up after a battle ends and return to exploration (or gym lobby)."""
         # Capture gym context BEFORE pending_command_data is cleared
         in_gym = self.pending_command_data.get("in_gym_lobby", False)
+        self._restore_location_banner_after_battle()
 
         if in_gym:
             # Manually mirror battle_actions.end_battle then re-open gym lobby
@@ -732,8 +913,6 @@ class BattleMixin:
             self.pending_command = None
             self.pending_command_data = {}
             self.hide_all_battle_panels()
-            from .. import gym_system
-
             gym_system.enter_gym_lobby(self.game_state, output, self.show_gym_panel)
         else:
             battle_actions.end_battle(self.game_state, output, self.look_around)
@@ -749,8 +928,20 @@ class BattleMixin:
         new_moves: list,
         post_action: str,
         output: RichLog,
+        consume_item: Optional[str] = None,
     ) -> None:
-        """Queue an interactive 'which move to forget?' prompt."""
+        """Queue an interactive 'which move to forget?' prompt.
+
+        Args:
+            pokemon:      The Pokemon that is trying to learn new moves.
+            new_moves:    List of move names still to be learned.
+            post_action:  Token describing what to do when all learns are done
+                          (``"wild_end"``, ``"trainer_next"``, ``"trainer_defeated"``,
+                          or ``"field"`` for outside-battle TM/HM use).
+            output:       RichLog to write prompts to.
+            consume_item: Optional canonical TM item name to remove from the bag
+                          once the player successfully replaces a move.
+        """
         if not new_moves:
             self._resume_after_move_learn(post_action, output)
             return
@@ -762,6 +953,7 @@ class BattleMixin:
         self.pending_command_data["learn_move_name"] = move_name
         self.pending_command_data["learn_remaining"] = remaining
         self.pending_command_data["learn_post_action"] = post_action
+        self.pending_command_data["learn_consume_item"] = consume_item
 
         pokemon_name = pokemon.get("name", "POKÉMON")
         current_moves = pokemon.get("moves", [])
@@ -772,8 +964,14 @@ class BattleMixin:
         output.write(f"  [dim]Delete a move to make room for {move_name}?[/dim]")
         output.write("")
         for i, m in enumerate(current_moves, 1):
-            pp_info = f" ({m['pp']}/{m.get('max_pp', m['pp'])} PP)" if "pp" in m else ""
-            output.write(f"  [cyan]{i}.[/cyan] {m['name']}{pp_info}")
+            if hasattr(m, "pp"):
+                pp_info = f" ({m.pp}/{m.max_pp} PP)"
+            elif isinstance(m, dict) and "pp" in m:
+                pp_info = f" ({m['pp']}/{m.get('max_pp', m['pp'])} PP)"
+            else:
+                pp_info = ""
+            name = m.name if hasattr(m, "name") else m.get("name", "?")
+            output.write(f"  [cyan]{i}.[/cyan] {name}{pp_info}")
         output.write("")
         output.write(
             "  [dim]Type [bold]1-4[/bold] to forget that move, or [bold]no[/bold] to skip.[/dim]"
@@ -784,14 +982,17 @@ class BattleMixin:
 
     def _resume_after_move_learn(self, post_action: str, output: RichLog) -> None:
         """Resume battle resolution after all move-learn prompts are resolved."""
-        from .. import evolution as _evo_module
-
         # Clear learn state
         pokemon = self.pending_command_data.pop("learn_pokemon", None)
         self.pending_command_data.pop("learn_move_name", None)
         self.pending_command_data.pop("learn_remaining", None)
         self.pending_command_data.pop("learn_post_action", None)
+        self.pending_command_data.pop("learn_consume_item", None)
         self.pending_command = None
+
+        # Field TM/HM: no battle to resume
+        if post_action == "field":
+            return
 
         # Check for evolution (mirrors the logic in battle_actions.handle_battle_victory)
         if pokemon:

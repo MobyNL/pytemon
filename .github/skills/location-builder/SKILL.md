@@ -95,9 +95,9 @@ connected_to=["Route 3", "Route 4"],   # was: ["Route 4"]
 ```
 
 ## Dependencies
-- `PokemonLibrary/locations.py` — `LOCATIONS` dict and `Location` dataclass
-- `PokemonLibrary/data/pokemon_data.py` — validate wild species
-- `PokemonLibrary/gym_system.py` — if adding a city with a gym
+- `pytemon/locations.py` — `LOCATIONS` dict and `Location` dataclass
+- `pytemon/data/pokemon_data.py` — validate wild species
+- `pytemon/gym_system.py` — if adding a city with a gym
 
 ## Error Handling
 - **Missing neighbour**: if a connected location doesn't exist yet, add it in the same batch

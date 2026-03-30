@@ -203,23 +203,42 @@ multiple named floors/rooms, each with their own wild Pokemon, trainers, and exi
 (ladders, stairs, warps). This requires a `DungeonDefinition` data model and a
 `current_floor` field in `GameState`.
 
-### Flash darkness penalty (Rock Tunnel)
-The Rock Tunnel description mentions darkness, and `HM05 Flash` is implemented as an HM.
-But there is no actual in-game penalty for exploring Rock Tunnel without Flash.
-The intended mechanic: without Flash active, wild encounter rate is greatly increased
-and all trainer names/descriptions are hidden.
+---
 
-### Silph Scope gating (Pokemon Tower)
-Currently any player can reach all floors of the Pokemon Tower.
-The intended mechanic: ghost Pokemon on floors 3+ require the Silph Scope item to
-encounter (without it, the ghost just blocks the path).
+## 11. Recently Implemented
 
-### Safari Zone catch mechanics
-`enter_safari_zone()` gives the player Safari Balls and sets them in the Safari Zone
-location, but the battle engine doesn't yet distinguish Safari mode from normal battles.
-Intended: no HP damage, only Bait/Rock/Safari Ball/Run options, with modified catch
-probability based on Bait/Rock state.
+### Mt. Moon registered as dungeon ✅
+Mt. Moon was previously registered as `TYPE_FOREST`. It is now `TYPE_DUNGEON`, matching
+its description as a cave system.
 
-### Escape Rope dungeon restriction
-The Escape Rope exits to the nearest town — but currently it works from any location
-including towns. Intended: only works from routes, forests, and dungeons.
+### Flash darkness penalty (Rock Tunnel) ✅
+Without Flash active, Rock Tunnel's wild encounter rate is tripled (capped at 100%) and
+all trainer names/descriptions are hidden (`"???"` / `"Trainer"`). Using `HM05 Flash`
+(via the `use flash` field command) stores the lit state in
+`game_state.game_data["flash_lit_locations"]` and resets when the player leaves the
+location. The tip to use Flash is shown on every dark-tunnel explore.
+
+### Silph Scope gating (Pokemon Tower) ✅
+Without the Silph Scope, 70 % of wild encounters in Pokemon Tower resolve as a ghost
+blocking message instead of a battle. The remaining 30 % still reach Cubone (a non-ghost
+species) normally. With the Silph Scope all wild encounters proceed as usual.
+
+### Safari Zone catch mechanics ✅
+Wild encounters in the Safari Zone now start in Safari mode (`BattleState.is_safari = True`).
+The normal battle options are replaced with:
+
+| Command | Effect |
+|---|---|
+| `safari ball` | Throw a Safari Ball (same catch modifier as Ultra Ball); bait halves catch rate, rock raises it 1.5× |
+| `bait` | 3-turn bait active: flee chance drops to 2 %, catch rate halved |
+| `rock` | 2-turn rock active: flee chance rises to 35 %, catch rate ×1.5 |
+| `run` | Flee safely with no penalty |
+
+Safari Balls are now stored in the standard `game_data["items"]` dict (fixed the
+previous bug where they were written to `game_data["bag"]`).
+
+### Escape Rope dungeon restriction ✅
+The Escape Rope now performs a BFS over the location graph to find the nearest reachable
+town, so it works correctly from deep dungeons (e.g. Diglett's Cave) that have no direct
+town exit. It still refuses to activate from inside a town.
+

@@ -12,6 +12,9 @@ from textual.widgets import RichLog
 if TYPE_CHECKING:
     from .game_state import GameState
 
+from .texts.en import pc_system as T
+from .ui.formatters import write_lines
+
 # ── Constants ───────────────────────────────────────────────────────
 BOXES_COUNT = 3
 BOX_CAPACITY = 20
@@ -130,16 +133,10 @@ def show_pc_menu(game_state: "GameState", output: RichLog) -> None:
     total = get_total_in_pc(game_state)
     party_count = len(game_state.game_data.get("pokemon", []))
 
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]          💾 BILL'S PC SYSTEM 💾            [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
-    output.write("  [dim]Storage System v2.0[/dim]")
+    write_lines(output, T.PC_MENU_HEADER)
     output.write(f"  [cyan]Party:[/cyan]   {party_count}/6 Pokemon")
     output.write(f"  [cyan]Stored:[/cyan]  {total} Pokemon in PC")
-    output.write("")
-    output.write("[bold green]📦 Box Overview:[/bold green]")
+    write_lines(output, T.PC_BOX_OVERVIEW_HEADER)
 
     for i in range(1, BOXES_COUNT + 1):
         box_key = f"Box {i}"
@@ -155,13 +152,7 @@ def show_pc_menu(game_state: "GameState", output: RichLog) -> None:
                 preview += f" +{count - 4} more"
             output.write(f"  {i}. [cyan]{box_key}[/cyan]  [{count}/{BOX_CAPACITY}]  {preview}")
 
-    output.write("")
-    output.write("[bold green]Commands:[/bold green]")
-    output.write("  [cyan]box <n>[/cyan]                - View box contents (e.g. 'box 1')")
-    output.write("  [cyan]deposit <party slot>[/cyan]   - Store a party Pokemon (e.g. 'deposit 2')")
-    output.write("  [cyan]withdraw <box> <slot>[/cyan]  - Retrieve from PC   (e.g. 'withdraw 1 3')")
-    output.write("  [cyan]leave[/cyan]                  - Log out of PC")
-    output.write("")
+    write_lines(output, T.PC_COMMANDS_BLOCK)
 
 
 def show_pc_box(game_state: "GameState", box_num: int, output: RichLog) -> None:

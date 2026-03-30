@@ -13,6 +13,9 @@ from typing import TYPE_CHECKING
 
 from textual.widgets import RichLog
 
+from .data.move_data import MOVES, MoveSlot
+from .locations import LOCATIONS, TYPE_TOWN, get_location
+
 if TYPE_CHECKING:
     from .game_state import GameState
     from .models import PartyPokemon
@@ -58,26 +61,31 @@ def teach_move(
     item_name: str,
     is_hm: bool,
     output: RichLog,
+    queue_move_learn_callback=None,
 ) -> bool:
     """
     Teach *move_name* to *pokemon*.
 
-    If the Pokemon already knows 4 moves the player is informed; no move is
-    replaced automatically (a future improvement could add a replacement UI).
+    If the Pokemon already knows 4 moves and *queue_move_learn_callback* is
+    provided, the interactive "which move to forget?" flow is triggered via
+    the callback and ``False`` is returned immediately (the callback owns the
+    rest of the interaction).  Without a callback the player is simply told
+    the moveset is full.
 
     Args:
-        game_state: Current game state (used for Pokedex checks etc.).
-        move_name:  Upper-case move name (e.g. ``"SURF"``).
-        pokemon:    Target PartyPokemon dict.
-        item_name:  Display name of the teaching item (e.g. ``"HM03 Surf"``).
-        is_hm:      True for HMs (not consumed), False for TMs (consumed).
-        output:     RichLog widget.
+        game_state:               Current game state (used for Pokedex checks etc.).
+        move_name:                Upper-case move name (e.g. ``"SURF"``).
+        pokemon:                  Target PartyPokemon dict.
+        item_name:                Display name of the teaching item (e.g. ``"HM03 Surf"``).
+        is_hm:                    True for HMs (not consumed), False for TMs (consumed).
+        output:                   RichLog widget.
+        queue_move_learn_callback: Optional callable ``(pokemon, [move_name], post_action,
+                                   output, *, consume_item)`` that starts the interactive
+                                   move-replacement flow.
 
     Returns:
         True if the move was taught (or already known).
     """
-    from .data.move_data import MOVES, MoveSlot
-
     poke_name = pokemon.get("name", "POKÉMON")
     move_upper = move_name.upper()
 
@@ -129,11 +137,16 @@ def teach_move(
         output.write("")
         return True
 
-    # Movepool is full — inform the player
+    # Movepool is full — trigger interactive replacement flow if available
+    if queue_move_learn_callback is not None:
+        queue_move_learn_callback(pokemon, [move_upper], "field", output)
+        return False  # callback owns the rest of the interaction
+
+    # No interactive callback — inform the player
     output.write("")
     output.write(f"[yellow]⚠ {poke_name} already knows 4 moves![/yellow]")
     output.write("[dim]  A Pokemon can only know 4 moves at a time.[/dim]")
-    output.write("[dim]  Future update: move replacement will be added.[/dim]")
+    output.write("[dim]  Use 'use <TM> on <pokemon>' to replace a move interactively.[/dim]")
     output.write("")
     return False
 
@@ -229,8 +242,6 @@ def _field_surf(
     show_location_callback=None,
 ) -> bool:
     """Surf — unlock water routes that require HM Surf."""
-    from .locations import get_location
-
     location = game_state.current_location
     if not location:
         output.write("[red]❌ No current location![/red]")
@@ -294,8 +305,6 @@ def _field_fly(
     current = game_state.current_location
 
     # Collect fly-able towns (visited towns, excluding current)
-    from .locations import LOCATIONS, TYPE_TOWN
-
     flyable = [
         loc_name
         for loc_name in visited
@@ -340,8 +349,6 @@ def fly_to_town(
     Returns:
         True if teleportation was successful.
     """
-    from .locations import LOCATIONS, TYPE_TOWN
-
     visited: list[str] = game_state.game_data.get("visited_locations", [])
     dest_lower = destination.lower()
 
@@ -424,8 +431,17 @@ def _field_flash(
 ) -> bool:
     """Flash — illuminate dark areas (e.g. caves)."""
     poke_name = pokemon["name"] if pokemon else "your Pokemon"
+    location = game_state.current_location
     output.write("")
     output.write(f"[bold yellow]💡 {poke_name} used FLASH![/bold yellow]")
-    output.write("[yellow]   The area is now lit up![/yellow]")
+    if location and location.type in ("dungeon", "forest"):
+        lit: list[str] = game_state.game_data.setdefault("flash_lit_locations", [])
+        if location.name not in lit:
+            lit.append(location.name)
+        output.write(
+            "[yellow]   The cave is now illuminated — wild encounter rate is reduced![/yellow]"
+        )
+    else:
+        output.write("[yellow]   The area is now lit up![/yellow]")
     output.write("")
     return True

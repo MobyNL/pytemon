@@ -33,7 +33,7 @@ Project skills live in `.github/skills/`. **Invoke the relevant skill at the sta
 
 ## Data Layer Overview
 
-All static game data lives in `PokemonLibrary/data/`:
+All static game data lives in `pytemon/data/`:
 
 | File | Contents |
 |---|---|
@@ -45,7 +45,7 @@ All static game data lives in `PokemonLibrary/data/`:
 Helper accessors live in `data/__init__.py`:
 
 ```python
-from PokemonLibrary.data import get_pokemon, get_move, get_trainer
+from pytemon.data import get_pokemon, get_move, get_trainer
 ```
 
 ## Pokemon Data Structure (`POKEMON`)
@@ -203,18 +203,18 @@ Evolution conditions supported:
 
 ```python
 # Check if a pokemon can evolve
-from PokemonLibrary.evolution import check_evolution
+from pytemon.evolution import check_evolution
 can, into, method = check_evolution(pokemon)
 
 # Check if a location exists
-from PokemonLibrary.locations import get_location
+from pytemon.locations import get_location
 loc = get_location("Cerulean City")   # None if not found
 
 # Check if a move exists
-from PokemonLibrary.data import get_move
+from pytemon.data import get_move
 move = get_move("SURF")   # None if not in MOVES
 
 # Check if a trainer exists
-from PokemonLibrary.data import get_trainer
+from pytemon.data import get_trainer
 trainer = get_trainer("brock")
 ```

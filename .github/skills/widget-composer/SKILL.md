@@ -85,8 +85,8 @@ with Grid(id="move-grid", classes="hidden"):
 ```
 
 ## Dependencies
-- `PokemonLibrary/terminal.py` — compose tree lives here
-- `PokemonLibrary/terminal.tcss` — layout sizing and positioning
+- `pytemon/terminal.py` — compose tree lives here
+- `pytemon/terminal.tcss` — layout sizing and positioning
 - `textual.containers` — `Vertical`, `Horizontal`, `ScrollableContainer`
 - `textual.widgets` — `Grid`, `Static`, `Input`, `Button`, `RichLog`
 

@@ -960,6 +960,50 @@ class TestEndBattleExtra:
         assert ext_term.game_state.battle_state is None
 
 
+class TestBattleBannerVisibility:
+    def test_show_battle_options_hides_location_banner(self, ext_term, ext_output):
+        setup_wild_ext(ext_term)
+        calls = []
+
+        class _BannerWidget:
+            def add_class(self, cls):
+                calls.append(("add", cls))
+
+            def remove_class(self, cls):
+                calls.append(("remove", cls))
+
+        def _query_one(selector, *args, **kwargs):
+            if selector == "#welcome":
+                return _BannerWidget()
+            return type("W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None})()
+
+        ext_term.query_one = _query_one
+        BattleMixin.show_battle_options(ext_term, ext_output)
+
+        assert ("add", "hidden") in calls
+
+    def test_end_battle_restores_location_banner(self, ext_term, ext_output):
+        setup_wild_ext(ext_term)
+        calls = []
+
+        class _BannerWidget:
+            def add_class(self, cls):
+                calls.append(("add", cls))
+
+            def remove_class(self, cls):
+                calls.append(("remove", cls))
+
+        def _query_one(selector, *args, **kwargs):
+            if selector == "#welcome":
+                return _BannerWidget()
+            return type("W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None})()
+
+        ext_term.query_one = _query_one
+        ext_term.end_battle(ext_output)
+
+        assert ("remove", "hidden") in calls
+
+
 # ===========================================================================
 # _queue_evolution_pending
 # ===========================================================================
@@ -1786,6 +1830,34 @@ class TestCatchAnimation:
         assert (
             "●" in combined or "○" in combined
         ), f"Expected wiggle dots in animated lines: {combined}"
+
+    def test_failed_catch_uses_short_pause_before_followup(self, ext_term, ext_output):
+        """Failed catches should pause briefly before enemy follow-up text."""
+        setup_wild_ext(ext_term)
+        self._give_pokeballs(ext_term)
+
+        timer_delays: list[float] = []
+
+        class _FakeTimer:
+            def stop(self) -> None:
+                return
+
+        def fake_set_timer(delay, callback):
+            timer_delays.append(delay)
+            callback()
+            return _FakeTimer()
+
+        ext_term.set_timer = fake_set_timer
+
+        original_randint = random.randint
+        try:
+            random.randint = lambda a, b: b  # Force failed catch checks
+            ext_term.attempt_catch_pokemon(ext_output)
+        finally:
+            random.randint = original_randint
+
+        assert timer_delays, "Expected a post-failure pause timer to be used"
+        assert ext_term.FAILED_CATCH_PAUSE_SECONDS in timer_delays
 
     def test_no_catch_animation_without_pokeballs(self, ext_term, ext_output):
         """No animation should fire when there are no Pokeballs."""

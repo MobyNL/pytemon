@@ -88,10 +88,10 @@ Trainer(id="lass_dana",     ..., pokemon=[TrainerPokemon("JIGGLYPUFF", 13)], pri
 ```
 
 ## Dependencies
-- `PokemonLibrary/data/trainer_data.py` — trainer levels and prize money
-- `PokemonLibrary/locations.py` — wild encounter tables
-- `PokemonLibrary/data/pokemon_data.py` — base catch rates
-- `PokemonLibrary/buildings.py` — `SHOP_CATALOG_BASIC` / `SHOP_CATALOG_ADVANCED` prices
+- `pytemon/data/trainer_data.py` — trainer levels and prize money
+- `pytemon/locations.py` — wild encounter tables
+- `pytemon/data/pokemon_data.py` — base catch rates
+- `pytemon/buildings.py` — `SHOP_CATALOG_BASIC` / `SHOP_CATALOG_ADVANCED` prices
 
 ## Error Handling
 - **Prize money feels random**: recalculate as `highest_level * class_multiplier * 4`

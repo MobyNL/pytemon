@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from textual.widgets import RichLog
 
+from .data import get_trainer
+from .texts.en import gym_system as T
+from .ui.formatters import write_lines, write_lines_fmt
+
 if TYPE_CHECKING:
     from .game_state import GameState
 
@@ -264,9 +268,7 @@ def enter_gym_lobby(game_state: "GameState", output: RichLog, show_gym_panel_cal
     gym_data = get_gym_data(location_name)
 
     if not gym_data:
-        output.write("")
-        output.write("[yellow]⚠ There is no Pokemon Gym here[/yellow]")
-        output.write("")
+        write_lines(output, T.GYM_LOBBY_NO_GYM)
         return
 
     badge_name = gym_data["badge"]
@@ -275,10 +277,7 @@ def enter_gym_lobby(game_state: "GameState", output: RichLog, show_gym_panel_cal
     leader_name = badge_data["leader"] if badge_data else "Gym Leader"
 
     output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write(f"[bold cyan]     ⚔️  {gym_data['name'].upper()} ⚔️      [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.GYM_LOBBY_HEADER, gym_name=gym_data["name"].upper())
     output.write(f"[bold]Official Pokemon Gym[/bold]  [dim]{gym_data['specialty']}[/dim]")
     output.write("")
 
@@ -294,23 +293,13 @@ def enter_gym_lobby(game_state: "GameState", output: RichLog, show_gym_panel_cal
     can_challenge, reason = can_challenge_gym(game_state, location_name)
     if not can_challenge:
         if location_name == "Viridian City":
-            output.write(
-                "[bold]Gym Assistant:[/bold] [yellow]The Gym Leader isn't in right now.[/yellow]"
-            )
-            output.write("[yellow]               He seems to be away on... business.[/yellow]")
-            output.write("")
-            output.write("[dim]Rumour has it he won't return until you've proven your worth[/dim]")
-            output.write("[dim]with all 7 other badges.[/dim]")
+            write_lines(output, T.GYM_LOBBY_VIRIDIAN_CLOSED)
         else:
             output.write(f"[yellow]⚠ {reason}[/yellow]")
-        output.write("")
-        output.write("[dim]You leave the Gym[/dim]")
-        output.write("")
+        write_lines(output, T.GYM_LOBBY_LEAVE)
         return
 
     # Show gym trainer overview
-    from .data import get_trainer
-
     gym_trainers = get_gym_trainers(location_name)
     defeated = set(game_state.game_data.get("defeated_trainers", []))
 
@@ -443,11 +432,7 @@ def award_badge(game_state: "GameState", badge_name: str, output: RichLog) -> No
     badges.append(badge_id)
 
     # Display badge award ceremony
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold yellow]★ ★ ★  BADGE EARNED!  ★ ★ ★[/bold yellow]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.BADGE_EARNED_HEADER)
     output.write(
         f"[bold {badge_data['color']}]{badge_data['emoji']} {badge_name} {badge_data['emoji']}[/bold {badge_data['color']}]"
     )
@@ -528,15 +513,10 @@ def show_badge_case(game_state: "GameState", output: RichLog) -> None:
     """
     badges = game_state.game_data.get("badges", [])
 
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]             🏆 BADGE CASE 🏆              [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.BADGE_CASE_HEADER)
 
     if not badges:
-        output.write("[dim]No badges yet. Challenge Pokemon Gyms to earn badges![/dim]")
-        output.write("")
+        write_lines(output, T.BADGE_CASE_EMPTY)
         return
 
     output.write(f"[bold]Badges Collected: {len(badges)}/8[/bold]")
@@ -579,16 +559,11 @@ def enter_gym(game_state: "GameState", output: RichLog, trigger_trainer_battle_c
     gym_data = get_gym_data(location_name)
 
     if not gym_data:
-        output.write("")
-        output.write("[yellow]⚠ There is no Pokemon Gym here[/yellow]")
-        output.write("")
+        write_lines(output, T.GYM_LOBBY_NO_GYM)
         return
 
     output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write(f"[bold cyan]     ⚔️  {gym_data['name'].upper()} ⚔️      [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.GYM_LOBBY_HEADER, gym_name=gym_data["name"].upper())
     output.write("[bold]Official Pokemon Gym[/bold]")
     output.write(f"[dim]Specialty: {gym_data['specialty']}[/dim]")
     output.write("")
@@ -599,18 +574,10 @@ def enter_gym(game_state: "GameState", output: RichLog, trigger_trainer_battle_c
     if not can_challenge:
         # Viridian City Gym has special flavour — Giovanni is absent until late game
         if location_name == "Viridian City":
-            output.write(
-                "[bold]Gym Assistant:[/bold] [yellow]The Gym Leader isn't in right now.[/yellow]"
-            )
-            output.write("[yellow]               He seems to be away on... business.[/yellow]")
-            output.write("")
-            output.write("[dim]Rumour has it he won't return until you've proven your worth[/dim]")
-            output.write("[dim]with all 7 other badges.[/dim]")
+            write_lines(output, T.GYM_LOBBY_VIRIDIAN_CLOSED)
         else:
             output.write(f"[yellow]⚠ {reason}[/yellow]")
-        output.write("")
-        output.write("[dim]You leave the Gym[/dim]")
-        output.write("")
+        write_lines(output, T.GYM_LOBBY_LEAVE)
         return
 
     # Start gym battle

@@ -62,7 +62,7 @@ def gs_in_cerulean(gs):
 **Add a party Pokemon:**
 ```python
 def add_pokemon_to_party(gs, species="PIKACHU", level=20, hp=None):
-    from PokemonLibrary.data import get_pokemon
+    from pytemon.data import get_pokemon
     base = get_pokemon(species)
     max_hp = base["base_stats"]["hp"] + level * 2
     pkmn = {
@@ -108,7 +108,7 @@ gs.game_data["money"] = 5000
 ```python
 def setup_wild_battle(gs, species="PIDGEY", level=10):
     """Start a wild battle; returns BattleState."""
-    from PokemonLibrary.engine.battle_engine import BattleState
+    from pytemon.engine.battle_engine import BattleState
     return BattleState(gs, species, level, is_wild=True)
 ```
 
@@ -147,9 +147,9 @@ def gs_cerulean_ready(gs):
 
 ## Dependencies
 - `tests/conftest.py` — standard fixtures
-- `PokemonLibrary/game_state.py` — `GameState`, `start_new_game`
-- `PokemonLibrary/data/__init__.py` — `get_pokemon`
-- `PokemonLibrary/engine/battle_engine.py` — `BattleState`
+- `pytemon/game_state.py` — `GameState`, `start_new_game`
+- `pytemon/data/__init__.py` — `get_pokemon`
+- `pytemon/engine/battle_engine.py` — `BattleState`
 
 ## Error Handling
 - **`KeyError` on `game_data`**: always call `start_new_game()` before customising state; it initialises all keys

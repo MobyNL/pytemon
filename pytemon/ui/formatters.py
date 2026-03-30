@@ -2,12 +2,62 @@
 UI formatting utilities for Pokemon Terminal.
 
 This module provides helper functions for formatting HP bars, experience bars,
-and other UI elements.
+and other UI elements, plus write_lines helpers for text-constant blocks.
 """
 
-from typing import List
+from typing import Any, List
+
+from textual.widgets import RichLog
 
 from ..locations import Location
+
+
+def write_lines(output: RichLog, lines: list[str]) -> None:
+    """Write a list of pre-formatted Rich-markup lines to a RichLog.
+
+    Use with text constants from ``pytemon.texts.en.*``:
+
+        from ..texts.en import menus as T
+        write_lines(output, T.MAIN_MENU)
+    """
+    for line in lines:
+        output.write(line)
+
+
+def write_dynamic_lines(output: RichLog, lines: list[str], data: dict) -> None:
+    """Write lines to a RichLog, substituting ``{key}`` placeholders from *data*.
+
+    Any line containing ``{`` is formatted with *data* using
+    ``str.format_map``; lines without placeholders are written as-is.
+
+    Args:
+        output: The RichLog widget to write to.
+        lines: List of Rich-markup strings, optionally containing
+            ``{key}`` placeholders.
+        data: Dictionary whose keys map to placeholder values in *lines*.
+
+    Example::
+
+        write_dynamic_lines(output, T.WARP_SUCCESS, {"location": "Cerulean City"})
+    """
+    for line in lines:
+        output.write(line.format_map(data) if "{" in line else line)
+
+
+def write_lines_fmt(output: RichLog, lines: list[str], **kwargs: Any) -> None:
+    """Write lines to a RichLog, substituting ``{placeholder}`` values.
+
+    Any line containing ``{`` is formatted with *kwargs* using
+    ``str.format_map``; lines without placeholders are written as-is.
+
+    This is a convenience wrapper around :func:`write_dynamic_lines` that
+    accepts keyword arguments instead of a dictionary.
+
+    Example::
+
+        write_lines_fmt(output, T.WARP_SUCCESS, location="Cerulean City")
+    """
+    write_dynamic_lines(output, lines, kwargs)
 
 
 def format_hp_bar(current: int, max_hp: int, width: int = 18) -> str:

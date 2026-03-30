@@ -80,17 +80,21 @@ def on_key(self, event: Key) -> None:
 
 **Output:**
 ```python
-# In BuildingMixin or buildings.py callback:
-await reveal_lines(output, [
+# texts/en/buildings.py
+BICYCLE_RECEIVED: list[str] = [
     "",
     "[bold cyan]★  The researcher hands you something...[/bold cyan]",
     "[bold yellow]You received a BICYCLE![/bold yellow]",
     "",
-], delay=0.5)
+]
+
+# In BuildingMixin or buildings.py callback:
+from pytemon.texts.en import buildings as T
+await reveal_lines(output, T.BICYCLE_RECEIVED, delay=0.5)
 ```
 
 ## Dependencies
-- `PokemonLibrary/ui/text_animation.py` — animation helpers (excluded from coverage)
+- `pytemon/ui/text_animation.py` — animation helpers (excluded from coverage)
 - `asyncio` — required for non-blocking delays
 - Textual's async event system (`async def on_*`, `self.call_later()`)
 

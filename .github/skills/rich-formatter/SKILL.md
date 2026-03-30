@@ -32,6 +32,10 @@ Produces well-formatted Rich markup for game output. Ensures consistent colour c
 
 ### 3. Common Patterns
 
+> **Rule:** Any sequence of 2+ related static lines belongs in `texts/en/<module>.py` and is
+> emitted via `write_lines(output, T.CONSTANT)`. Placeholder-based dynamic lines should use
+> `write_lines_fmt(...)` or `write_dynamic_lines(...)` with `texts/en/` constants.
+
 **HP bar:**
 ```python
 # ui/formatters.py
@@ -45,8 +49,19 @@ def format_hp_bar(current: int, max_hp: int, width: int = 20) -> str:
 
 **Pokemon status line:**
 ```python
-output.write(f"[bold magenta]{pkmn['name']}[/bold magenta]  Lv.[cyan]{pkmn['level']}[/cyan]  "
-             f"HP: {format_hp_bar(pkmn['hp'], pkmn['max_hp'])}")
+# texts/en/displays.py:
+# PARTY_STATUS_LINE: list[str] = [
+#     "[bold magenta]{name}[/bold magenta]  Lv.[cyan]{level}[/cyan]  HP: {hp_bar}",
+# ]
+from pytemon.texts.en import displays as T
+from pytemon.ui.formatters import write_lines_fmt
+write_lines_fmt(
+    output,
+    T.PARTY_STATUS_LINE,
+    name=pkmn["name"],
+    level=pkmn["level"],
+    hp_bar=format_hp_bar(pkmn["hp"], pkmn["max_hp"]),
+)
 ```
 
 **Rich Table (party view):**
@@ -72,17 +87,22 @@ output.write(Panel(f"[bold]{location.name}[/bold]\n[italic]{location.description
 
 **Money / reward:**
 ```python
-output.write(f"[bold yellow]★  You received ₽{prize_money}![/bold yellow]")
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines_fmt
+write_lines_fmt(output, T.PRIZE_MONEY_WON, prize_money=prize_money)
 ```
 
 **Section separator:**
 ```python
-output.write("[dim]─" * 40 + "[/dim]")
+from pytemon.texts.en import displays as T
+from pytemon.ui.formatters import write_lines
+write_lines(output, T.SECTION_SEPARATOR)
 ```
 
 ### 4. Output
 - Working Rich markup strings or `Table`/`Panel` objects
-- Placement in `ui/displays.py` or the relevant mixin
+- Static multi-line blocks added to the correct `texts/en/<module>.py` constant and called via `write_lines()`
+- Placement of dynamic single-line helpers in `ui/displays.py` or the relevant mixin
 
 ## Examples
 
@@ -100,8 +120,9 @@ output.write(Panel(
 
 ## Dependencies
 - `rich.table.Table`, `rich.panel.Panel`, `rich.text.Text`
-- `PokemonLibrary/ui/formatters.py` — `format_hp_bar` and other helpers
-- `PokemonLibrary/ui/displays.py` — display functions that call formatters
+- `pytemon/ui/formatters.py` — `format_hp_bar`, `write_lines`, `write_lines_fmt`, `write_dynamic_lines`
+- `pytemon/texts/en/<module>.py` — all static/semi-static text constants
+- `pytemon/ui/displays.py` — display functions that call formatters
 
 ## Error Handling
 - **RichLog not accepting Table objects**: ensure `RichLog(markup=True)` in compose

@@ -13,6 +13,11 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from textual.widgets import RichLog
 
+from .. import exploration
+
+from ..texts.en import menus as T
+from .formatters import write_lines, write_lines_fmt
+
 if TYPE_CHECKING:
     from ..game_state import GameState
 
@@ -20,19 +25,7 @@ if TYPE_CHECKING:
 def show_main_menu(output: RichLog) -> None:
     """Display the main menu."""
     output.clear()
-    output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold cyan]        🎮 POKEMON TERMINAL GAME 🎮        [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
-    output.write("[bold green]MAIN MENU:[/bold green]")
-    output.write("")
-    output.write("  [cyan]Start New Game[/cyan] - Begin a new adventure")
-    output.write("  [cyan]Load Game[/cyan]      - Continue from a save")
-    output.write("  [cyan]Exit[/cyan]           - Quit the game")
-    output.write("")
-    output.write("[dim]Type a command to continue...[/dim]")
-    output.write("")
+    write_lines(output, T.MAIN_MENU)
 
 
 def process_menu_command(
@@ -79,9 +72,7 @@ def process_menu_command(
     elif "load" in cmd:
         show_load_menu_cb(output)
     elif cmd in ("exit", "quit", "stop", "stop playing", "q"):
-        output.write("")
-        output.write("[cyan]👋 Thanks for playing! Goodbye, Trainer![/cyan]")
-        output.write("")
+        write_lines(output, T.MENU_GOODBYE)
         exit_cb()
     else:
         output.write("")
@@ -96,23 +87,16 @@ def start_new_game(
     show_location_arrival_cb: Callable[[RichLog, bool], None],
 ) -> None:
     """Start a new game."""
-    output.write("")
-    output.write("[bold green]✓ Starting new game...[/bold green]")
-    output.write("")
+    write_lines(output, T.NEW_GAME_STARTING)
 
     game_state.start_new_game()
 
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("[bold green]🌟 Welcome to the Pokemon World! 🌟[/bold green]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines(output, T.NEW_GAME_WELCOME)
     output.write(f"💰 Money: [green]₽{game_state.game_data['money']}[/green]")
     output.write(f"🏆 Badges: [cyan]{game_state.game_data['badges']}[/cyan]")
     output.write("")
 
     # Show arrival at starting location (is_load=False)
-    from .. import exploration
-
     exploration.show_location_arrival(game_state, output)
 
 
@@ -120,18 +104,12 @@ def show_load_menu(
     game_state: "GameState", output: RichLog, set_temp_saves_list: Callable[[list], None]
 ) -> None:
     """Show the load game menu."""
-    output.write("")
-    output.write("[bold cyan]📂 Load Game[/bold cyan]")
-    output.write("")
+    write_lines(output, T.LOAD_MENU_HEADER)
 
     saves = game_state.get_available_saves()
 
     if not saves:
-        output.write("[yellow]⚠ No save files found![/yellow]")
-        output.write("")
-        output.write(f"[dim]Save files should be in: {game_state.saves_dir}[/dim]")
-        output.write("[dim]Type 'menu' to return to main menu[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.LOAD_MENU_NO_SAVES, saves_dir=game_state.saves_dir)
         return
 
     output.write("[green]Available saves:[/green]")
@@ -149,9 +127,7 @@ def show_load_menu(
         except:
             output.write(f"  [cyan]{save_file.stem}[/cyan]")
 
-    output.write("")
-    output.write("[dim]Type the save name to load, or 'menu' to go back[/dim]")
-    output.write("")
+    write_lines(output, T.LOAD_MENU_FOOTER)
 
     # Store saves list for selection
     set_temp_saves_list(saves)
@@ -198,10 +174,7 @@ def load_selected_save(
             output.write("")
             output.write(f"[bold green]✓ Loaded save:[/bold green] {save_file.stem}")
             output.write("")
-            output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-            output.write("[bold green]🎮 Game Loaded! 🎮[/bold green]")
-            output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-            output.write("")
+            write_lines(output, T.GAME_LOADED_HEADER)
             output.write(f"💰 Money: [green]₽{game_state.game_data.get('money', 0)}[/green]")
             output.write(f"🏆 Badges: [cyan]{game_state.game_data.get('badges', 0)}[/cyan]")
             output.write("")
@@ -217,9 +190,7 @@ def load_selected_save(
             # Clean up temp list
             delete_temp_saves_list()
         else:
-            output.write("")
-            output.write("[red]❌ Failed to load save file[/red]")
-            output.write("")
+            write_lines(output, T.LOAD_FAILED)
     else:
         output.write("")
         output.write(f"[red]❌ Save not found:[/red] {save_name}")

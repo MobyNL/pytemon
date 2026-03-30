@@ -16,19 +16,19 @@ Executes every CI quality gate in sequence and confirms the feature is ready to 
 
 ```bash
 # 1. Format check (hard fail)
-poetry run ruff format --check PokemonLibrary/ tests/
+poetry run ruff format --check pytemon/ tests/
 
 # 2. Lint tests (hard fail)
 poetry run ruff check tests/
 
 # 3. Lint source (informational — fix if possible)
-poetry run ruff check PokemonLibrary/
+poetry run ruff check pytemon/
 
 # 4. Type check (informational)
-poetry run mypy PokemonLibrary/
+poetry run mypy pytemon/
 
 # 5. Unit tests + coverage (hard fail — must be ≥80%)
-poetry run pytest tests/ --tb=short -v --cov=PokemonLibrary --cov-report=term-missing
+poetry run pytest tests/ --tb=short -v --cov=pytemon --cov-report=term-missing
 
 # 6. Robot Framework smoke test (game launches without crash)
 poetry run robot test.robot
@@ -37,12 +37,12 @@ poetry run robot test.robot
 ### 2. Auto-Fix Workflow (if steps 1-3 fail)
 
 ```bash
-poetry run ruff format PokemonLibrary/ tests/
+poetry run ruff format pytemon/ tests/
 poetry run ruff check tests/ --fix
-poetry run ruff check PokemonLibrary/ --fix
+poetry run ruff check pytemon/ --fix
 
 # Re-run checks to confirm clean
-poetry run ruff format --check PokemonLibrary/ tests/
+poetry run ruff format --check pytemon/ tests/
 poetry run ruff check tests/
 ```
 
@@ -59,8 +59,8 @@ poetry run ruff check tests/
 
 | Check | Notes |
 |---|---|
-| `ruff check PokemonLibrary/` | Fix obvious violations; N999 and RUF012 are whitelisted |
-| `mypy PokemonLibrary/` | Fix type errors where possible; `Any` annotations are acceptable |
+| `ruff check pytemon/` | Fix obvious violations; N999 and RUF012 are whitelisted |
+| `mypy pytemon/` | Fix type errors where possible; `Any` annotations are acceptable |
 
 ### 5. Coverage Shortfall Response
 
