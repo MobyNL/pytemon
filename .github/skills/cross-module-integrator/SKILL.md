@@ -81,11 +81,11 @@ poetry run python run_terminal.py
 
 ## Dependencies
 - All feature layers already implemented
-- `PokemonLibrary/ui/building_mixin.py` — building routing
-- `PokemonLibrary/terminal.py` — command routing
-- `PokemonLibrary/ui/game_flow_mixin.py` — pending_command handler
-- `PokemonLibrary/exploration.py` — movement gates
+- `pytemon/ui/building_mixin.py` — building routing
+- `pytemon/terminal.py` — command routing
+- `pytemon/ui/game_flow_mixin.py` — pending_command handler
+- `pytemon/exploration.py` — movement gates
 
 ## Error Handling
-- **Import error at integration**: a circular import was likely introduced — check that `terminal.py` is not imported from any `PokemonLibrary/` module
+- **Import error at integration**: a circular import was likely introduced — check that `terminal.py` is not imported from any `pytemon/` module
 - **Feature worked in isolation but not end-to-end**: trace the call path from `process_command` or `on_button_pressed` through to the affected module; one link in the chain is missing

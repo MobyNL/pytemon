@@ -233,6 +233,17 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             yield Button("Slot 6", id="btn-faint-slot-5", classes="switch-slot-button")
             yield Button("🏃 Run Away", id="btn-faint-run", classes="faint-run-button")
 
+        with Container(id="choose-lead-panel", classes="hidden"):
+            yield Static("👥 Choose your lead Pokemon!", id="choose-lead-title")
+            with Grid(id="choose-lead-grid"):
+                yield Button("Slot 1", id="btn-lead-slot-0", classes="lead-slot-button")
+                yield Button("Slot 2", id="btn-lead-slot-1", classes="lead-slot-button")
+                yield Button("Slot 3", id="btn-lead-slot-2", classes="lead-slot-button")
+                yield Button("Slot 4", id="btn-lead-slot-3", classes="lead-slot-button")
+                yield Button("Slot 5", id="btn-lead-slot-4", classes="lead-slot-button")
+                yield Button("Slot 6", id="btn-lead-slot-5", classes="lead-slot-button")
+            yield Button("← Cancel", id="btn-lead-cancel", classes="lead-cancel-button")
+
         with Container(id="location-selection", classes="hidden"):
             yield Static("🗺️  Where would you like to go?", id="location-selection-title")
             yield Select([("Choose a destination...", "")], id="location-select", allow_blank=False)
@@ -603,6 +614,16 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Run Away")
             self.hide_all_battle_panels()
             self.end_battle(output)
+
+        # Choose-lead slot buttons (pre-battle lead selection)
+        elif button_id.startswith("btn-lead-slot-"):
+            slot_idx = int(button_id.split("-")[-1])
+            self.hide_choose_lead_panel()
+            self.handle_pending_command(str(slot_idx + 1), output)
+        elif button_id == "btn-lead-cancel":
+            output.write("[bold yellow]🎮 >[/bold yellow] Cancel")
+            self.hide_choose_lead_panel()
+            self.handle_pending_command("cancel", output)
 
         elif button_id == "btn-run":
             output.write("[bold yellow]🎮 >[/bold yellow] Run")
@@ -1361,7 +1382,10 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             return
 
         # Delegate all logic (including error messages) to items module
-        _items.use_item_outside_battle(self.game_state, item_name_raw, target_raw, output)
+        _items.use_item_outside_battle(
+            self.game_state, item_name_raw, target_raw, output,
+            queue_move_learn_callback=self._queue_move_learn,
+        )
 
     def show_badge_case(self, output: RichLog) -> None:
         """Display the badge case."""

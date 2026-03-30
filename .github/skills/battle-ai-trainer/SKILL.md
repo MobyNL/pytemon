@@ -27,7 +27,7 @@ Replace random selection with a scoring function:
 ```python
 def ai_select_move(trainer_pokemon: dict, player_pokemon: dict, available_moves: list) -> dict:
     """Select the best move based on type effectiveness."""
-    from PokemonLibrary.data.type_chart import TYPE_CHART
+    from pytemon.data.type_chart import TYPE_CHART
 
     def move_score(move: dict) -> float:
         if move.get("power", 0) == 0:
@@ -92,9 +92,9 @@ else:
 - Updated `resolve_trainer_turn` dispatch
 
 ## Dependencies
-- `PokemonLibrary/engine/battle_engine.py` — `BattleState`, turn resolution
-- `PokemonLibrary/data/type_chart.py` — `TYPE_CHART`
-- `PokemonLibrary/data/trainer_data.py` — `Trainer.trainer_class`
+- `pytemon/engine/battle_engine.py` — `BattleState`, turn resolution
+- `pytemon/data/type_chart.py` — `TYPE_CHART`
+- `pytemon/data/trainer_data.py` — `Trainer.trainer_class`
 
 ## Error Handling
 - **All scores equal**: AI falls back to `random.choice` when all moves score the same — this is correct

@@ -51,27 +51,41 @@ Trainer(
 )
 ```
 
-**Building NPC text** (`buildings.py` function):
+**Building NPC text** (`texts/en/buildings.py` + `buildings.py`):
 ```python
+# texts/en/buildings.py
+BIKE_SHOP_FIRST_VISIT: list[str] = [
+    "[italic]\"We're running a promotion today...[/italic]",
+    "[italic]\"Here, take this BICYCLE on the house!\"[/italic]",
+    "",
+    "[bold cyan]You received a BICYCLE![/bold cyan]",
+]
+BIKE_SHOP_REPEAT: list[str] = [
+    "[italic]\"Take good care of that Bicycle!\"[/italic]",
+]
+
+# buildings.py
+from .texts.en import buildings as T
+from .ui.formatters import write_lines
+
 def enter_bike_shop(game_state, output):
     if game_state.game_data["story_flags"].get("received_bicycle"):
-        output.write("[italic]\"Take good care of that Bicycle!\"[/italic]")
+        write_lines(output, T.BIKE_SHOP_REPEAT)
         return
-    output.write("[italic]\"We're running a promotion today...\"[/italic]")
-    output.write("[italic]\"Here, take this BICYCLE on the house!\"[/italic]")
-    output.write("")
-    output.write("[bold cyan]You received a BICYCLE![/bold cyan]")
+    write_lines(output, T.BIKE_SHOP_FIRST_VISIT)
 ```
 
-**Story event flavour (one-time):**
+**Story event flavour (one-time) in `texts/en/buildings.py`:**
 ```python
-output.write("[bold yellow]★  A glittering stone catches your eye...[/bold yellow]")
-output.write("[italic]It's a Moon Stone! It pulses with mysterious energy.[/italic]")
-output.write("[bold yellow]You picked up a MOON STONE![/bold yellow]")
-```
+MOON_STONE_FOUND: list[str] = [
+    "[bold yellow]★  A glittering stone catches your eye...[/bold yellow]",
+    "[italic]It's a Moon Stone! It pulses with mysterious energy.[/italic]",
+    "[bold yellow]You picked up a MOON STONE![/bold yellow]",
+]
 
 ### 4. Rules
-- Keep `intro_text` to 2–3 short lines (each line is its own `output.write()` beat)
+- Keep `intro_text` to 2–3 short lines; each line maps to a string in the `list[str]` block in `texts/en/trainer_data.py` (or similar)
+- All spoken NPC dialogue lives in `texts/en/<module>.py`; the source module only calls `write_lines(output, T.CONSTANT)`
 - Never spoil gym puzzle or story ahead of time in random trainer text
 - Item giver NPCs should acknowledge repeat visits with a short line (story flag check)
 - Use Rich italic for spoken dialogue: `[italic]"..."[/italic]`
@@ -98,11 +112,14 @@ victory_text=[
 ```
 
 ## Dependencies
-- `PokemonLibrary/data/trainer_data.py` — Trainer / TrainerPokemon dataclasses
-- `PokemonLibrary/buildings.py` — building handler functions
+- `pytemon/data/trainer_data.py` — Trainer / TrainerPokemon dataclasses
+- `pytemon/buildings.py` — building handler functions
+- `pytemon/texts/en/buildings.py` (and other `texts/en/` modules) — **all dialog strings live here**
+- `pytemon/ui/formatters.py` — `write_lines`, `write_lines_fmt`, `write_dynamic_lines`
 - Rich markup for styled output
 
 ## Error Handling
-- **Text too long**: split into multiple short lines; each line = one `output.write()` call
+- **Text too long**: split into multiple short lines in the `list[str]` constant; each element is one beat
 - **Spoiler risk**: re-read the text from a new player's perspective before committing
 - **Repeat-visit missing**: always add a `story_flags` check so NPCs acknowledge they've been seen before
+- **Inline NPC lines in source modules**: move the strings to `texts/en/<module>.py` and call `write_lines(output, T.CONSTANT)`

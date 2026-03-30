@@ -40,7 +40,7 @@ poetry run pytest tests/test_buildings.py::TestBikeShop::test_gives_bicycle -v -
 
 **Import error from new file:**
 ```python
-# Ensure PokemonLibrary/new_module.py has no circular imports
+# Ensure pytemon/new_module.py has no circular imports
 # Check: does import of new_module trigger an import of terminal.py? (banned — circular)
 ```
 
@@ -92,7 +92,7 @@ If many tests fail after a single change:
 
 ## Dependencies
 - `pytest` with `--tb=short` / `--tb=long`
-- `PokemonLibrary/` — source under test
+- `pytemon/` — source under test
 - `tests/conftest.py` — shared fixtures
 
 ## Error Handling

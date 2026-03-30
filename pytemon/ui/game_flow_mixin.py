@@ -195,6 +195,14 @@ class GameFlowMixin:
                     f"[red]{old_move}[/red] and learned [green]{move_name}[/green]![/bold cyan]"
                 )
                 output.write("")
+                # Consume TM from the bag for field TM teaches
+                consume_tm = self.pending_command_data.pop("learn_consume_item", None)
+                if consume_tm:
+                    bag = self.game_state.game_data.get("items", {})
+                    if bag.get(consume_tm, 0) > 0:
+                        bag[consume_tm] -= 1
+                        if bag[consume_tm] <= 0:
+                            del bag[consume_tm]
                 if remaining:
                     self._queue_move_learn(pokemon, remaining, post_action, output)
                 else:
@@ -205,6 +213,9 @@ class GameFlowMixin:
                     f"to forget, or 'no' to skip.[/yellow]"
                 )
                 self.pending_command = "learn_move_choice"
+
+        elif cmd_type == "choose_lead":
+            self._handle_choose_lead(user_input, output)
 
         elif cmd_type == "confirm_evolution":
             inp = user_input.lower().strip()
@@ -236,6 +247,7 @@ class GameFlowMixin:
             "pc",
             "confirm_evolution",
             "learn_move_choice",
+            "choose_lead",
         }
         if cmd_type not in persisted or self.pending_command is None:
             if cmd_type not in {"battle", "select_move"}:
@@ -338,6 +350,71 @@ class GameFlowMixin:
         else:
             output.write("[cyan]👋 Goodbye, Trainer![/cyan]")
             self.safe_exit()
+
+    # ── Lead-Pokemon selection ───────────────────────────────────────────────
+
+    def _handle_choose_lead(self, user_input: str, output: RichLog) -> None:
+        """
+        Handle the player's Pokemon selection before a battle begins.
+
+        Swaps the chosen Pokemon to the lead (first non-fainted) position
+        and then triggers the appropriate battle.
+
+        Args:
+            user_input: Player's choice — a number 1-N or "cancel".
+            output: The RichLog widget to write to.
+        """
+        battle_type = self.pending_command_data.get("battle_type", "wild")
+        trainer = self.pending_command_data.get("trainer")
+
+        party = self.game_state.game_data.get("pokemon", [])
+        non_fainted_indices = [
+            i for i, p in enumerate(party) if not isinstance(p, str) and p.get("hp", 0) > 0
+        ]
+
+        if user_input.lower().strip() in ("cancel", "back"):
+            output.write("")
+            output.write("[dim]You hesitated… the moment passed.[/dim]")
+            output.write("")
+            self.hide_choose_lead_panel()
+            self.pending_command_data = {}
+            return
+
+        if not user_input.strip().isdigit():
+            output.write("[red]❌ Please enter a number to choose your Pokemon.[/red]")
+            self.pending_command = "choose_lead"
+            return
+
+        slot = int(user_input.strip()) - 1  # 0-based index into non_fainted_indices
+        if slot < 0 or slot >= len(non_fainted_indices):
+            output.write(
+                f"[red]❌ Please enter a number between 1 and {len(non_fainted_indices)}.[/red]"
+            )
+            self.pending_command = "choose_lead"
+            return
+
+        chosen_party_idx = non_fainted_indices[slot]
+        lead_party_idx = non_fainted_indices[0]
+
+        # Swap chosen Pokemon into the lead slot when a different one was picked
+        if chosen_party_idx != lead_party_idx:
+            party[lead_party_idx], party[chosen_party_idx] = (
+                party[chosen_party_idx],
+                party[lead_party_idx],
+            )
+
+        chosen = party[lead_party_idx]
+        output.write("")
+        output.write(f"[bold green]Go, {chosen['name']}![/bold green]")
+        output.write("")
+
+        self.hide_choose_lead_panel()
+        self.pending_command_data = {}
+
+        if battle_type == "wild":
+            self._do_trigger_wild_encounter(output)
+        else:
+            self._do_trigger_trainer_encounter(output, trainer)
 
     def _go_to_main_menu(self, output: RichLog) -> None:
         """Reset game state and return to the main menu screen."""

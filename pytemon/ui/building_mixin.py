@@ -629,4 +629,7 @@ class BuildingMixin:
             pokemon_name,
             output,
             lambda cmd: setattr(self, "pending_command", cmd),
+            trigger_trainer_battle_callback=lambda trainer: self.trigger_trainer_encounter(
+                output, trainer
+            ),
         )

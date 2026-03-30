@@ -101,10 +101,10 @@ Adds well-formed entries to `POKEMON` in `data/pokemon_data.py`, ensuring stats,
 ```
 
 ## Dependencies
-- `PokemonLibrary/data/pokemon_data.py` — `POKEMON` dict
-- `PokemonLibrary/data/move_data.py` — `MOVES` dict (validate move names)
-- `PokemonLibrary/data/type_chart.py` — valid type strings
-- `PokemonLibrary/evolution.py` — `check_evolution`, `get_stone_evolution`
+- `pytemon/data/pokemon_data.py` — `POKEMON` dict
+- `pytemon/data/move_data.py` — `MOVES` dict (validate move names)
+- `pytemon/data/type_chart.py` — valid type strings
+- `pytemon/evolution.py` — `check_evolution`, `get_stone_evolution`
 
 ## Error Handling
 - **Move not in MOVES**: add the move to `move_data.py` first, or choose an existing move

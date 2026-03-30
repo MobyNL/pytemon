@@ -892,15 +892,12 @@ def get_explore_hint(game_state: "GameState") -> str:
         dest_name, done, required, ready = lines[0]
         if required == 0:
             return f"[dim]The path to [cyan]{dest_name}[/cyan] is open — move ahead when you're ready.[/dim]"
+        if ready:
+            return f"[dim][cyan]{dest_name}[/cyan] is within reach! Move ahead or linger a while longer.[/dim]"
         remaining = required - done
         bar_filled = int((done / required) * 8)
         bar = "█" * bar_filled + "░" * (8 - bar_filled)
-        if ready:
-            return (
-                f"[dim][cyan]{dest_name}[/cyan] is within reach! "
-                f"Move ahead or linger a while longer. [{bar}][/dim]"
-            )
-        elif remaining == 1:
+        if remaining == 1:
             return (
                 f"[dim]You can almost see [cyan]{dest_name}[/cyan] — "
                 f"one last look around should do it. [{bar}][/dim]"
@@ -931,6 +928,6 @@ def get_explore_hint(game_state: "GameState") -> str:
                     parts.append(f"[cyan]{dest_name}[/cyan] (getting close)")
         dest_list = " and ".join(parts)
         if all_ready:
-            return f"[dim]The paths ahead are clear — {dest_list}. Move when ready.[/dim]"
+            return f"[dim]Paths ahead are clear — {dest_list}. Move when ready.[/dim]"
         else:
             return f"[dim]Paths ahead: {dest_list}. Keep exploring to advance.[/dim]"

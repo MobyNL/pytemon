@@ -70,7 +70,7 @@ def move_to_location(
 | Constant | UPPER_UNDERSCORE | `SHOP_CATALOG_BASIC` |
 | Private method | `_prefix` | `_do_quit_action` |
 
-**Ruff N999 exception**: `PokemonLibrary/` package dir is intentionally PascalCase — don't rename it.
+**Ruff N999 exception**: `pytemon/` package dir is intentionally PascalCase — don't rename it.
 
 ### 5. Import Order (isort enforced by ruff)
 
@@ -86,8 +86,8 @@ from rich.table import Table
 from textual.app import App
 
 # 3. Local
-from PokemonLibrary.game_state import GameState
-from PokemonLibrary.data import get_pokemon
+from pytemon.game_state import GameState
+from pytemon.data import get_pokemon
 ```
 
 ### 6. Output

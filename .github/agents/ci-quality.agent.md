@@ -37,26 +37,26 @@ Defined in `.github/workflows/ci.yml`. Hard failures block merging:
 
 | Step | Command | Hard fail? |
 |---|---|---|
-| Format check | `ruff format --check PokemonLibrary/ tests/` | Yes |
+| Format check | `ruff format --check pytemon/ tests/` | Yes |
 | Lint tests | `ruff check tests/` | Yes |
-| Lint source | `ruff check PokemonLibrary/` | Informational only |
-| Type check | `mypy PokemonLibrary/` | Informational only |
-| Unit tests | `pytest tests/ --tb=short -v --cov=PokemonLibrary --cov-report=term-missing` | Yes |
+| Lint source | `ruff check pytemon/` | Informational only |
+| Type check | `mypy pytemon/` | Informational only |
+| Unit tests | `pytest tests/ --tb=short -v --cov=pytemon --cov-report=term-missing` | Yes |
 
 ## Running CI Locally
 
 ```bash
 # Run exactly as CI does (all steps)
-ruff format --check PokemonLibrary/ tests/
+ruff format --check pytemon/ tests/
 ruff check tests/
-ruff check PokemonLibrary/
-mypy PokemonLibrary/
-poetry run pytest tests/ --tb=short -v --cov=PokemonLibrary --cov-report=term-missing
+ruff check pytemon/
+mypy pytemon/
+poetry run pytest tests/ --tb=short -v --cov=pytemon --cov-report=term-missing
 
 # Quick fix: auto-format and auto-fix imports
-ruff format PokemonLibrary/ tests/
+ruff format pytemon/ tests/
 ruff check tests/ --fix
-ruff check PokemonLibrary/ --fix
+ruff check pytemon/ --fix
 ```
 
 ## Ruff Configuration (`pyproject.toml`)
@@ -153,13 +153,13 @@ for _ in locations:
 ## Coverage Configuration
 
 Excluded files (too tightly coupled to Textual's display to unit test):
-- `PokemonLibrary/terminal.py`
-- `PokemonLibrary/library.py`
-- `PokemonLibrary/ui/text_animation.py`
+- `pytemon/terminal.py`
+- `pytemon/library.py`
+- `pytemon/ui/text_animation.py`
 
 Coverage settings in `pyproject.toml` under `[tool.coverage]`.
 
-When adding new source files, add corresponding tests. Mirror structure: `PokemonLibrary/foo.py` → `tests/test_foo.py`.
+When adding new source files, add corresponding tests. Mirror structure: `pytemon/foo.py` → `tests/test_foo.py`.
 
 ## Mypy Settings
 
@@ -174,8 +174,8 @@ Mypy is informational only — failures do not block CI, but should be addressed
 ## Fixing a CI Failure Workflow
 
 1. Pull the error output from CI
-2. Auto-fix what ruff can: `ruff format PokemonLibrary/ tests/ && ruff check tests/ --fix`
+2. Auto-fix what ruff can: `ruff format pytemon/ tests/ && ruff check tests/ --fix`
 3. Manually fix remaining issues (F841, RUF059, RUF003, B007)
-4. Run `ruff format --check PokemonLibrary/ tests/` and `ruff check tests/` — both must exit 0
+4. Run `ruff format --check pytemon/ tests/` and `ruff check tests/` — both must exit 0
 5. Run `poetry run pytest tests/ -q` — must exit 0
 6. Only then commit

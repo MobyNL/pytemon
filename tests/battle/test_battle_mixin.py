@@ -1693,9 +1693,9 @@ class TestFightMoveAnimation:
         for _, _, lines in ext_term.text_animator.recorded_calls:
             all_lines.extend(lines)
         combined = " ".join(all_lines)
-        assert move_name.lower() in combined.lower(), (
-            f"Expected '{move_name}' in animated lines: {combined}"
-        )
+        assert (
+            move_name.lower() in combined.lower()
+        ), f"Expected '{move_name}' in animated lines: {combined}"
 
     def test_opponent_attack_triggers_animation(self, ext_term, ext_output):
         """Opponent counter-attack should also fire text_animator."""
@@ -1711,9 +1711,9 @@ class TestFightMoveAnimation:
 
         # At least 2 write_fast calls expected: player turn + opponent turn
         fast_calls = [c for c in ext_term.text_animator.recorded_calls if c[0] == "write_fast"]
-        assert len(fast_calls) >= 2, (
-            f"Expected >=2 write_fast calls (player+opp), got {len(fast_calls)}"
-        )
+        assert (
+            len(fast_calls) >= 2
+        ), f"Expected >=2 write_fast calls (player+opp), got {len(fast_calls)}"
 
     def test_no_animation_on_back_command(self, ext_term, ext_output):
         """Typing 'back' should not trigger any animation."""
@@ -1722,9 +1722,9 @@ class TestFightMoveAnimation:
 
         ext_term.execute_player_move("back", ext_output)
 
-        assert ext_term.text_animator.recorded_calls == [], (
-            "No animation expected for 'back' command"
-        )
+        assert (
+            ext_term.text_animator.recorded_calls == []
+        ), "No animation expected for 'back' command"
 
     def test_no_animation_on_unknown_move(self, ext_term, ext_output):
         """Unknown move name should not trigger animation."""
@@ -1783,9 +1783,9 @@ class TestCatchAnimation:
         for _, _, lines in ext_term.text_animator.recorded_calls:
             all_lines.extend(lines)
         combined = " ".join(str(line) for line in all_lines)
-        assert "●" in combined or "○" in combined, (
-            f"Expected wiggle dots in animated lines: {combined}"
-        )
+        assert (
+            "●" in combined or "○" in combined
+        ), f"Expected wiggle dots in animated lines: {combined}"
 
     def test_no_catch_animation_without_pokeballs(self, ext_term, ext_output):
         """No animation should fire when there are no Pokeballs."""
@@ -1795,9 +1795,9 @@ class TestCatchAnimation:
 
         ext_term.attempt_catch_pokemon(ext_output)
 
-        assert ext_term.text_animator.recorded_calls == [], (
-            "No animation expected when Pokeballs are missing"
-        )
+        assert (
+            ext_term.text_animator.recorded_calls == []
+        ), "No animation expected when Pokeballs are missing"
 
     def test_great_ball_also_animated(self, ext_term, ext_output):
         """Great Ball throw should also trigger animation with delay > 0."""
@@ -1819,6 +1819,6 @@ class TestCatchAnimation:
 
         ext_term.attempt_catch_pokemon(ext_output)
 
-        assert ext_term.text_animator.recorded_calls == [], (
-            "No animation expected for trainer battle catch attempt"
-        )
+        assert (
+            ext_term.text_animator.recorded_calls == []
+        ), "No animation expected for trainer battle catch attempt"

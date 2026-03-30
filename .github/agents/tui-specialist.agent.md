@@ -66,10 +66,13 @@ Multi-step flows (save name, move destination, heal confirm, battle input) use t
 
 ```python
 # Starting a pending flow
+from pytemon.texts.en import menus as T
+from pytemon.ui.formatters import write_lines
+
 def ask_for_name(self, output):
     self.pending_command = "save_name"
     self.pending_command_data = {}
-    output.write("[cyan]Enter a save name:[/cyan]")
+    write_lines(output, T.SAVE_NAME_PROMPT)  # "Enter a save name:"
 
 # Handling the response (in GameFlowMixin.handle_pending_command)
 elif self.pending_command == "save_name":
@@ -101,25 +104,41 @@ def hide_nickname_panel(self) -> None:
 
 ## Rich Text Markup
 
-Always use Rich markup for terminal output:
+> **Rule:** Static sequences of 2+ related lines belong in `texts/en/<module>.py` and are
+> emitted via `write_lines(output, T.CONSTANT)`. Placeholder-based dynamic lines should use
+> `write_lines_fmt(...)` or `write_dynamic_lines(...)` with `texts/en/` constants.
+
+Colour reference (for single computed or dynamic lines):
+
+| Colour | Use for |
+|---|---|
+| `[green]` / `[bold green]` | Success, heal, gain, caught |
+| `[red]` / `[bold red]` | Damage, faint, error |
+| `[yellow]` / `[bold yellow]` | Items, warnings, money, level-up |
+| `[cyan]` | Info, location descriptions, prompts |
+| `[magenta]` | Pokemon names, special events |
+| `[dim]` | Already seen / inactive hints |
+| `[italic]` | NPC spoken dialogue |
+
+Quick markup examples:
 
 ```python
-# Colour
-output.write("[red]Error![/red]")
-output.write("[green]Success![/green]")
-output.write("[yellow]Warning[/yellow]")
-output.write("[cyan]Info[/cyan]")
-output.write("[dim]Subtle text[/dim]")
+# Dynamic placeholder line — use write_lines_fmt with a texts/en/ constant:
+# texts/en/battle_ui.py:
+# EXP_GAINED: list[str] = ["[bold green]You gained {exp} EXP![/bold green]"]
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines_fmt
+write_lines_fmt(output, T.EXP_GAINED, exp=exp)
 
-# Style
-output.write("[bold]Bold[/bold]")
-output.write("[bold green]✓ Done![/bold green]")
-output.write("[bold red]✗ Failed![/bold red]")
+# Dynamic multi-field line — use write_lines_fmt with a texts/en/ constant:
+# texts/en/battle_ui.py:
+# PRIZE_MONEY_WON: list[str] = ["[bold yellow]★  You received ₽{prize_money}![/bold yellow]"]
+write_lines_fmt(output, T.PRIZE_MONEY_WON, prize_money=prize_money)
 
-# Always add spacing around sections
-output.write("")
-output.write("[bold cyan]--- Section Header ---[/bold cyan]")
-output.write("")
+# Static multi-line block — use write_lines with a texts/en/ constant:
+from pytemon.texts.en import exploration as T
+from pytemon.ui.formatters import write_lines
+write_lines(output, T.WARP_ARRIVAL)
 ```
 
 ## CRITICAL: Rich Text Object Handling
@@ -195,13 +214,16 @@ def watch_player_location(self, new: str) -> None:
 
 ```python
 # In terminal.py process_command():
+from pytemon.texts.en import exploration as T
+from pytemon.ui.formatters import write_lines
+
 elif cmd.startswith("fish"):
     from . import fishing
     fishing.start_fishing(self.game_state, output)
 
-# Simple inline (only for trivial responses):
+# Trivial response — put the lines in texts/en/ and use write_lines:
+# texts/en/exploration.py
+# WAVE_RESPONSE: list[str] = ["", "[yellow]👋 You wave at nobody in particular.[/yellow]", ""]
 elif cmd in ("wave", "hello"):
-    output.write("")
-    output.write("[yellow]👋 You wave at nobody in particular.[/yellow]")
-    output.write("")
+    write_lines(output, T.WAVE_RESPONSE)
 ```

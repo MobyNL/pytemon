@@ -467,9 +467,9 @@ class TestHandleSaveName:
                 set_pending_data=noop,
             )
         assert "my_save" in saved_names
-        assert not any("overwrite" in str(n).lower() for n in saved_names if n), (
-            "Save name should not contain 'overwrite'"
-        )
+        assert not any(
+            "overwrite" in str(n).lower() for n in saved_names if n
+        ), "Save name should not contain 'overwrite'"
 
     def test_space_in_save_name_is_rejected(self, gs, output):
         """A save name with spaces must be rejected and pending command re-armed."""

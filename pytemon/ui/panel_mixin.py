@@ -338,6 +338,45 @@ class PanelMixin:
         except Exception:
             pass
 
+    def show_choose_lead_panel(self, non_fainted: list) -> None:
+        """Show the choose-lead panel with a 2×3 grid of Pokemon buttons.
+
+        Populates each button from ``non_fainted`` (a list of party Pokemon that
+        are alive and eligible to be sent first).  Slots beyond the party size are
+        hidden and disabled.
+
+        Args:
+            non_fainted: Ordered list of non-fainted party Pokemon dicts / PartyPokemon objects.
+        """
+        try:
+            for i in range(6):
+                btn = self.query_one(f"#btn-lead-slot-{i}", Button)
+                if i < len(non_fainted):
+                    p = non_fainted[i]
+                    hp = p.get("hp", 0)
+                    max_hp = p.get("max_hp", 1)
+                    status = p.get("status") or ""
+                    status_str = f" [{status}]" if status else ""
+                    hp_str = f" {hp}/{max_hp}HP"
+                    btn.label = f"{p['name']} Lv.{p.get('level', 5)}{status_str}{hp_str}"
+                    btn.disabled = False
+                    btn.remove_class("hidden")
+                else:
+                    btn.label = f"--- Empty ---"
+                    btn.disabled = True
+                    btn.add_class("hidden")
+
+            self.query_one("#choose-lead-panel").remove_class("hidden")
+        except Exception:
+            pass
+
+    def hide_choose_lead_panel(self) -> None:
+        """Hide the choose-lead panel."""
+        try:
+            self.query_one("#choose-lead-panel").add_class("hidden")
+        except Exception:
+            pass
+
     def hide_all_battle_panels(self) -> None:
         """Hide all battle-related button panels and the battle HUD."""
         try:
@@ -346,6 +385,7 @@ class PanelMixin:
             self.query_one("#battle-bag").add_class("hidden")
             self.query_one("#pokemon-switch").add_class("hidden")
             self.query_one("#faint-switch").add_class("hidden")
+            self.query_one("#choose-lead-panel").add_class("hidden")
             self.query_one("#hud-player").add_class("hidden")
             self.query_one("#hud-enemy").add_class("hidden")
             self.hide_battle_loading()
@@ -453,15 +493,32 @@ class PanelMixin:
         starter_panel.remove_class("hidden")
         try:
             if pikachu_mode:
-                self.query_one("#btn-starter-bulbasaur", Button).disabled = True
-                self.query_one("#btn-starter-charmander", Button).disabled = True
-                self.query_one("#btn-starter-squirtle", Button).disabled = True
-                self.query_one("#btn-starter-pikachu", Button).disabled = False
+                taken = " — chosen by another trainer"
+                bulb_btn = self.query_one("#btn-starter-bulbasaur", Button)
+                bulb_btn.label = f"🌿 Bulbasaur{taken}"
+                bulb_btn.disabled = True
+                char_btn = self.query_one("#btn-starter-charmander", Button)
+                char_btn.label = f"🔥 Charmander{taken}"
+                char_btn.disabled = True
+                squi_btn = self.query_one("#btn-starter-squirtle", Button)
+                squi_btn.label = f"💧 Squirtle{taken}"
+                squi_btn.disabled = True
+                pika_btn = self.query_one("#btn-starter-pikachu", Button)
+                pika_btn.label = "⚡ Pikachu"
+                pika_btn.disabled = False
             else:
-                self.query_one("#btn-starter-bulbasaur", Button).disabled = False
-                self.query_one("#btn-starter-charmander", Button).disabled = False
-                self.query_one("#btn-starter-squirtle", Button).disabled = False
-                self.query_one("#btn-starter-pikachu", Button).disabled = True
+                bulb_btn = self.query_one("#btn-starter-bulbasaur", Button)
+                bulb_btn.label = "🌿 Bulbasaur"
+                bulb_btn.disabled = False
+                char_btn = self.query_one("#btn-starter-charmander", Button)
+                char_btn.label = "🔥 Charmander"
+                char_btn.disabled = False
+                squi_btn = self.query_one("#btn-starter-squirtle", Button)
+                squi_btn.label = "💧 Squirtle"
+                squi_btn.disabled = False
+                pika_btn = self.query_one("#btn-starter-pikachu", Button)
+                pika_btn.label = ""
+                pika_btn.disabled = True
         except Exception:
             pass
 
@@ -531,6 +588,7 @@ class PanelMixin:
             self.query_one("#gym-panel").add_class("hidden")
             self.query_one("#pokemon-switch").add_class("hidden")
             self.query_one("#faint-switch").add_class("hidden")
+            self.query_one("#choose-lead-panel").add_class("hidden")
         except Exception:
             pass
 

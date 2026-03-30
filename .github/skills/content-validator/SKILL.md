@@ -39,12 +39,12 @@ Run these checks after any game-content change:
 Run this in a Python shell to surface broken references:
 
 ```python
-from PokemonLibrary.locations import LOCATIONS
-from PokemonLibrary.data.pokemon_data import POKEMON
-from PokemonLibrary.data.move_data import MOVES
-from PokemonLibrary.data.type_chart import TYPE_CHART
-from PokemonLibrary.gym_system import GYMS
-from PokemonLibrary.data.trainer_data import TRAINERS
+from pytemon.locations import LOCATIONS
+from pytemon.data.pokemon_data import POKEMON
+from pytemon.data.move_data import MOVES
+from pytemon.data.type_chart import TYPE_CHART
+from pytemon.gym_system import GYMS
+from pytemon.data.trainer_data import TRAINERS
 
 errors = []
 
@@ -91,7 +91,7 @@ print(f"Validation complete. {len(errors)} error(s) found.")
 **Running locally:**
 ```bash
 poetry run python -c "
-from PokemonLibrary.locations import LOCATIONS
+from pytemon.locations import LOCATIONS
 for n, l in LOCATIONS.items():
     for nb in l.connected_to:
         if nb not in LOCATIONS:
@@ -103,12 +103,12 @@ print('done')
 ```
 
 ## Dependencies
-- `PokemonLibrary/locations.py`
-- `PokemonLibrary/data/pokemon_data.py`
-- `PokemonLibrary/data/move_data.py`
-- `PokemonLibrary/data/type_chart.py`
-- `PokemonLibrary/gym_system.py`
-- `PokemonLibrary/data/trainer_data.py`
+- `pytemon/locations.py`
+- `pytemon/data/pokemon_data.py`
+- `pytemon/data/move_data.py`
+- `pytemon/data/type_chart.py`
+- `pytemon/gym_system.py`
+- `pytemon/data/trainer_data.py`
 
 ## Error Handling
 - **Import error when running script**: check for a syntax error in the file you just edited

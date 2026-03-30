@@ -17,15 +17,15 @@ Fixes every ruff lint violation that causes CI failures. Reference this skill be
 ```bash
 # Hard-fail checks (must be clean)
 ruff check tests/
-ruff format --check PokemonLibrary/ tests/
+ruff format --check pytemon/ tests/
 
 # Informational
-ruff check PokemonLibrary/
+ruff check pytemon/
 
 # Auto-fix what ruff can fix automatically
-ruff format PokemonLibrary/ tests/
+ruff format pytemon/ tests/
 ruff check tests/ --fix
-ruff check PokemonLibrary/ --fix
+ruff check pytemon/ --fix
 ```
 
 ### 2. Fix Patterns for Every Common Violation

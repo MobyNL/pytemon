@@ -34,10 +34,13 @@ on_button_pressed(event)
 
 **Step 1 — Start the flow** (from any mixin method or `process_command`):
 ```python
+from pytemon.texts.en import buildings as T
+from pytemon.ui.formatters import write_lines_fmt
+
 def ask_for_nickname(self, pokemon: dict, output: Any) -> None:
     self.pending_command = "nickname"
     self.pending_command_data = {"target": pokemon}
-    output.write(f"[cyan]Give {pokemon['name']} a nickname? (Enter to skip)[/cyan]")
+    write_lines_fmt(output, T.NICKNAME_PROMPT, name=pokemon["name"])  # "Give {name} a nickname? (Enter to skip)"
 ```
 
 **Step 2 — Handle the response** in `GameFlowMixin.handle_pending_command`:
@@ -47,9 +50,9 @@ elif self.pending_command == "nickname":
     nickname = command.strip()
     if nickname:
         target["nickname"] = nickname
-        output.write(f"[green]✓ Named {target['name']} '{nickname}'![/green]")
+        write_lines_fmt(output, T.NICKNAME_GIVEN, name=target["name"], nickname=nickname)  # "✓ Named {name} '{nickname}'!"
     else:
-        output.write(f"[dim]{target['name']} kept its name.[/dim]")
+        write_lines_fmt(output, T.NICKNAME_SKIPPED, name=target["name"])  # "{name} kept its name."
     self.pending_command = None
     self.pending_command_data = {}
 ```
@@ -57,16 +60,18 @@ elif self.pending_command == "nickname":
 **Multi-step flow** (two sequential inputs):
 ```python
 # Step 1: start
+from pytemon.texts.en import pc_system as T
+from pytemon.ui.formatters import write_lines
 self.pending_command = "move_confirm_step1"
 self.pending_command_data = {}
-output.write("[cyan]Which Pokemon do you want to move to the PC? (1-6)[/cyan]")
+write_lines(output, T.MOVE_TO_PC_PROMPT)  # "Which Pokemon do you want to move to the PC? (1-6)"
 
 # Step 2: receive index, ask confirmation
 elif self.pending_command == "move_confirm_step1":
     idx = int(command.strip()) - 1
     self.pending_command = "move_confirm_step2"
     self.pending_command_data = {"index": idx}
-    output.write(f"[yellow]Send {party[idx]['name']} to the PC? (yes/no)[/yellow]")
+    write_lines_fmt(output, T.MOVE_TO_PC_CONFIRM, name=party[idx]["name"])  # "Send {name} to the PC? (yes/no)"
 
 # Step 3: confirm
 elif self.pending_command == "move_confirm_step2":
@@ -95,27 +100,37 @@ elif self.pending_command == "move_confirm_step2":
 
 **Start (BuildingMixin):**
 ```python
+# texts/en/buildings.py:
+# HEAL_CONFIRM_PROMPT: list[str] = [
+#     "[cyan]Heal all your Pokémon? ([bold]yes[/bold]/no)[/cyan]",
+# ]
+
+from pytemon.texts.en import buildings as T
+from pytemon.ui.formatters import write_lines
 self.pending_command = "heal_confirm"
 self.pending_command_data = {}
-output.write("[cyan]Heal all your Pokémon? ([bold]yes[/bold]/no)[/cyan]")
+write_lines(output, T.HEAL_CONFIRM_PROMPT)
 ```
 
 **Handler (GameFlowMixin):**
 ```python
+from pytemon.buildings import heal_all_pokemon
+from pytemon.texts.en import buildings as T
+from pytemon.ui.formatters import write_lines
+
 elif self.pending_command == "heal_confirm":
     if command.strip().lower() in ("yes", "y", ""):
-        from PokemonLibrary.buildings import heal_all_pokemon
         heal_all_pokemon(self.game_state, output)
     else:
-        output.write("[dim]Come back when you need rest.[/dim]")
+        write_lines(output, T.HEAL_CONFIRM_DECLINED)   # "Come back when you need rest."
     self.pending_command = None
     self.pending_command_data = {}
 ```
 
 ## Dependencies
-- `PokemonLibrary/ui/game_flow_mixin.py` — `handle_pending_command` dispatcher
-- `PokemonLibrary/terminal.py` — `on_input_submitted`, `on_button_pressed`
-- `PokemonLibrary/ui/panel_mixin.py` — panel show/hide calls
+- `pytemon/ui/game_flow_mixin.py` — `handle_pending_command` dispatcher
+- `pytemon/terminal.py` — `on_input_submitted`, `on_button_pressed`
+- `pytemon/ui/panel_mixin.py` — panel show/hide calls
 
 ## Error Handling
 - **Flow gets stuck**: ensure every code path in `handle_pending_command` clears `pending_command`; add a universal `"cancel"` escape

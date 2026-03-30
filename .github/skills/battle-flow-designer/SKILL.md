@@ -43,8 +43,11 @@ Player input → handle_pending_command("battle", ...)
 
 **Wild battle win (Pokemon fleeing or fainting):**
 ```python
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines_fmt
+
 def handle_wild_battle_end(self, result: str, output: Any) -> None:
-    output.write(f"[bold green]Wild {enemy_name} fainted![/bold green]")
+    write_lines_fmt(output, T.WILD_FAINTED, name=enemy_name)  # "Wild {name} fainted!"
     # EXP gain
     exp_gained = calculate_exp(enemy_level, enemy_base_exp)
     grant_exp(self.game_state, active_pokemon, exp_gained, output)
@@ -57,26 +60,32 @@ def handle_wild_battle_end(self, result: str, output: Any) -> None:
 
 **Catch:**
 ```python
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines_fmt
+
 def handle_catch_success(self, caught_pokemon: dict, output: Any) -> None:
-    output.write(f"[bold cyan]{caught_pokemon['name']} was caught![/bold cyan]")
+    write_lines_fmt(output, T.POKEMON_CAUGHT, name=caught_pokemon["name"])  # "{name} was caught!"
     # Add to party (if room) or send to PC
     if len(party) < 6:
         party.append(caught_pokemon)
     else:
         pc_deposit(self.game_state, caught_pokemon)
-        output.write(f"[dim]{caught_pokemon['name']} sent to Bill's PC.[/dim]")
+        write_lines_fmt(output, T.POKEMON_SENT_TO_PC, name=caught_pokemon["name"])  # "{name} sent to Bill's PC."
     self.game_state.battle_state = None
     self.pending_command = None
 ```
 
 **Trainer battle win:**
 ```python
+from pytemon.gym_system import award_badge
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines_fmt
+
 def handle_trainer_battle_win(self, trainer: Trainer, output: Any) -> None:
     prize = trainer.prize_money
     self.game_state.game_data["money"] += prize
-    output.write(f"[bold yellow]You won ₽{prize}![/bold yellow]")
+    write_lines_fmt(output, T.PRIZE_MONEY_WON, prize=prize)  # "You won ₽{prize}!"
     if trainer.badge_reward:
-        from PokemonLibrary.gym_system import award_badge
         award_badge(self.game_state, trainer.badge_id, output)
     self.game_state.battle_state = None
     self.pending_command = None
@@ -85,9 +94,11 @@ def handle_trainer_battle_win(self, trainer: Trainer, output: Any) -> None:
 ### 4. Player Defeat Flow
 
 ```python
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines
+
 def handle_player_defeat(self, output: Any) -> None:
-    output.write("[bold red]All your Pokémon have fainted![/bold red]")
-    output.write("[italic]You blacked out...[/italic]")
+    write_lines(output, T.PLAYER_DEFEAT)   # "All your Pokémon fainted!" / "You blacked out..."
     # Halve money
     self.game_state.game_data["money"] //= 2
     # Heal party and warp to last Pokemon Center
@@ -107,11 +118,11 @@ def handle_player_defeat(self, output: Any) -> None:
 4. Add a handler branch in `BattleMixin.handle_battle_command` for any new sub-phase
 
 ## Dependencies
-- `PokemonLibrary/ui/battle_mixin.py` — battle entry, sub-command dispatch
-- `PokemonLibrary/engine/battle_engine.py` — `BattleState`, turn resolution
-- `PokemonLibrary/battle/battle_actions.py` — individual action implementations
-- `PokemonLibrary/battle/battle_ui.py` — display helpers
-- `PokemonLibrary/ui/game_flow_mixin.py` — `handle_pending_command`
+- `pytemon/ui/battle_mixin.py` — battle entry, sub-command dispatch
+- `pytemon/engine/battle_engine.py` — `BattleState`, turn resolution
+- `pytemon/battle/battle_actions.py` — individual action implementations
+- `pytemon/battle/battle_ui.py` — display helpers
+- `pytemon/ui/game_flow_mixin.py` — `handle_pending_command`
 
 ## Error Handling
 - **Battle state not cleared**: always set `self.game_state.battle_state = None` and `self.pending_command = None` in every ending path (win, lose, flee, catch)

@@ -16,20 +16,20 @@ Runs coverage measurements, reads reports, and produces a human-friendly summary
 
 ```bash
 # Full report (matches CI exactly)
-poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1
+poetry run pytest tests/ -q --cov=pytemon --cov-report=term-missing 2>&1
 
 # Files below 80% only
-poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1 \
-  | awk 'NR==1 || /^PokemonLibrary/' \
+poetry run pytest tests/ -q --cov=pytemon --cov-report=term-missing 2>&1 \
+  | awk 'NR==1 || /^pytemon/' \
   | awk '$4+0 < 80 && $4 ~ /%/'
 ```
 
 ### 2. Excluded Files (configured in `pyproject.toml`)
 
 These are intentionally excluded and will not appear in the report:
-- `PokemonLibrary/terminal.py`
-- `PokemonLibrary/library.py`
-- `PokemonLibrary/ui/text_animation.py`
+- `pytemon/terminal.py`
+- `pytemon/library.py`
+- `pytemon/ui/text_animation.py`
 
 Do not add tests targeting these files for coverage purposes.
 
@@ -38,9 +38,9 @@ Do not add tests targeting these files for coverage purposes.
 ```
 Name                                      Stmts   Miss  Cover   Missing
 ------------------------------------------------------------------------
-PokemonLibrary/buildings.py                  87     14    84%   45-52, 88
-PokemonLibrary/exploration.py               120     38    68%   34, 67-89
-PokemonLibrary/items.py                      65      8    88%   78-85
+pytemon/buildings.py                  87     14    84%   45-52, 88
+pytemon/exploration.py               120     38    68%   34, 67-89
+pytemon/items.py                      65      8    88%   78-85
 ------------------------------------------------------------------------
 TOTAL                                       850    102    88%
 ```
@@ -58,9 +58,9 @@ TOTAL                                       850    102    88%
 [tool.coverage.run]
 source = ["PokemonLibrary"]
 omit = [
-    "PokemonLibrary/terminal.py",
-    "PokemonLibrary/library.py",
-    "PokemonLibrary/ui/text_animation.py",
+    "pytemon/terminal.py",
+    "pytemon/library.py",
+    "pytemon/ui/text_animation.py",
 ]
 
 [tool.coverage.report]
@@ -87,7 +87,7 @@ Then list the MISS lines per below-target file and map them to branch types (see
 
 **Command to get just the TOTAL line:**
 ```bash
-poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1 | grep TOTAL
+poetry run pytest tests/ -q --cov=pytemon --cov-report=term-missing 2>&1 | grep TOTAL
 ```
 
 **Expected output when CI will pass:**

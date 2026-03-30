@@ -118,4 +118,4 @@ Then confirm tests still pass.
 ## Error Handling
 - **`poetry lock` fails**: run `poetry lock --no-update` first; if still failing, check for yanked versions
 - **Import error after `poetry add`**: run `poetry install` to actually install into the venv
-- **3.8 compat break**: run `mypy --python-version 3.8 PokemonLibrary/` to surface version-specific type errors
+- **3.8 compat break**: run `mypy --python-version 3.8 pytemon/` to surface version-specific type errors

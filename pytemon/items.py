@@ -357,18 +357,21 @@ def use_item_outside_battle(
     item_name: str,
     target: Optional[str],
     output: RichLog,
+    queue_move_learn_callback=None,
 ) -> bool:
     """
     Use an item outside of battle.
 
     Args:
-        game_state: Current game state.
-        item_name:  Canonical item name (e.g. ``"Rare Candy"``).
-        target:     Optional Pokemon name or slot number (e.g. ``"Charmander"``
-                    or ``"1"``).  Required for stones, stat boosters, Rare
-                    Candy, and Revive.  For plain healing items the active
-                    (first non-fainted) Pokemon is used when target is None.
-        output:     RichLog widget to write results to.
+        game_state:               Current game state.
+        item_name:                Canonical item name (e.g. ``"Rare Candy"``).
+        target:                   Optional Pokemon name or slot number (e.g. ``"Charmander"``
+                                  or ``"1"``).  Required for stones, stat boosters, Rare
+                                  Candy, and Revive.  For plain healing items the active
+                                  (first non-fainted) Pokemon is used when target is None.
+        output:                   RichLog widget to write results to.
+        queue_move_learn_callback: Optional callback for the interactive move-replacement
+                                  flow when a Pokemon's moveset is already full.
 
     Returns:
         True if the item was consumed successfully.
@@ -405,7 +408,7 @@ def use_item_outside_battle(
 
     # ── HM / TM — teach move to Pokemon ─────────────────────────────────
     if cat in (CAT_HM, CAT_TM):
-        return _use_hm_tm(game_state, canonical, data, target, output)
+        return _use_hm_tm(game_state, canonical, data, target, output, queue_move_learn_callback)
 
     # ── Fishing Rod ──────────────────────────────────────────────────────
     if cat == CAT_ROD:
@@ -743,17 +746,21 @@ def _use_hm_tm(
     data: ItemData,
     target: Optional[str],
     output: RichLog,
+    queue_move_learn_callback=None,
 ) -> bool:
     """Teach the move from an HM or TM to a target Pokemon.
 
     HMs are never consumed; TMs are consumed on successful use.
+    When the target's moveset is full and *queue_move_learn_callback* is
+    provided, the interactive replacement flow is started instead.
 
     Args:
-        game_state: Current game state.
-        name:       Canonical item name (e.g. ``"HM03 Surf"``).
-        data:       ItemData for this item.
-        target:     Pokemon name or slot to teach the move to.
-        output:     RichLog widget.
+        game_state:               Current game state.
+        name:                     Canonical item name (e.g. ``"HM03 Surf"``).
+        data:                     ItemData for this item.
+        target:                   Pokemon name or slot to teach the move to.
+        output:                   RichLog widget.
+        queue_move_learn_callback: Optional callback for the move-replacement flow.
 
     Returns:
         True if the move was successfully taught.
@@ -776,7 +783,20 @@ def _use_hm_tm(
         output.write(f"[red]❌ Pokemon not found: {target}[/red]")
         return False
 
-    success = _hm_tm.teach_move(game_state, move_name, pokemon, name, is_hm, output)
+    # For TMs: wrap the callback so the item is consumed once the player
+    # successfully replaces a move via the interactive flow.
+    if queue_move_learn_callback is not None and not is_hm:
+        tm_name = name
+        _raw_cb = queue_move_learn_callback
+
+        def _tm_callback(p, moves, action, out, _tm=tm_name, _cb=_raw_cb):
+            _cb(p, moves, action, out, consume_item=_tm)
+
+        actual_callback = _tm_callback
+    else:
+        actual_callback = queue_move_learn_callback
+
+    success = _hm_tm.teach_move(game_state, move_name, pokemon, name, is_hm, output, actual_callback)
     if success and not is_hm:
         _consume(game_state, name)
     return success

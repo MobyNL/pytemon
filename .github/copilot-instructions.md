@@ -293,6 +293,7 @@ Before writing anything, pick the right file:
 | New location | `locations.py` |
 | New gym leader | `gym_system.py` + `data/trainer_data.py` |
 | New pending-command flow | Set `self.pending_command` token, handle in `GameFlowMixin.handle_pending_command` |
+| New user-visible dialog / text block | `texts/en/<module>.py` — call with `write_lines(output, T.CONSTANT)` |
 
 ### Adding New Terminal Commands
 
@@ -301,15 +302,23 @@ When adding a simple in-game command:
 1. Add an `elif` branch in `process_command()` in `terminal.py`
 2. Call out to a module function or mixin method — **do not inline complex logic**
 3. Provide rich formatted output
-4. Always end complex output blocks with `output.write("")` for spacing
+4. For static/dynamic text blocks, use `write_lines`, `write_lines_fmt`, or `write_dynamic_lines`
 
-Example (simple, self-contained):
+Example (simple, self-contained — text constant in `texts/en/exploration.py`):
 
 ```python
+# texts/en/exploration.py
+RAN_AWAY: list[str] = [
+    "",
+    "[yellow]🏃 You ran away safely![/yellow]",
+    "",
+]
+
+# terminal.py → process_command()
 elif cmd in ("run", "run away"):
-    output.write("")
-    output.write("[yellow]🏃 You ran away safely![/yellow]")
-    output.write("")
+    from ..texts.en import exploration as T
+    from ..ui.formatters import write_lines
+    write_lines(output, T.RAN_AWAY)
 ```
 
 Example (delegates to a module):
@@ -334,7 +343,9 @@ elif self.pending_command == "nickname":
     pokemon['nickname'] = command.strip()
     self.pending_command = None
     self.pending_command_data = {}
-    output.write(f"[green]✓ Nicknamed {pokemon['name']} '{pokemon['nickname']}'![/green]")
+    from ..texts.en import buildings as T
+    from ..ui.formatters import write_lines_fmt
+    write_lines_fmt(output, T.NICKNAME_GIVEN, name=pokemon['name'], nickname=pokemon['nickname'])
 ```
 
 4. Wire up any buttons to call `self.handle_pending_command(value, output)`
@@ -418,32 +429,71 @@ if location.lower() in available_locations:
     move_to(location)
 ```
 
+## Text Content Layer (`texts/en/`)
+
+All user-visible strings (dialog, menus, battle messages, building text) live in `texts/en/`. Each module mirrors its source counterpart. **Never hard-code multi-line output blocks inline.**
+
+```
+texts/en/menus.py        ← ui/menus.py
+texts/en/buildings.py    ← buildings.py
+texts/en/exploration.py  ← exploration.py
+texts/en/battle_ui.py    ← battle/battle_ui.py
+texts/en/gym_system.py   ← gym_system.py
+... (one file per source module)
+```
+
+**Static block** — every line is a plain Rich-markup string:
+```python
+# texts/en/buildings.py
+POKECENTER_WELCOME: list[str] = [
+    "",
+    "[bold cyan]🏥  Pokemon Center[/bold cyan]",
+    "[italic]\"Welcome! We restore your Pokemon to full health!\"[/italic]",
+    "",
+]
+```
+
+**Dynamic block** — use `{placeholder}` in lines that need runtime values:
+```python
+# texts/en/exploration.py
+ENCOUNTER_FOUND: list[str] = [
+    "",
+    "[bold red]A wild {name} (Lv.{level}) appeared![/bold red]",
+    "",
+]
+```
+
+**Calling them:**
+```python
+from ..texts.en import buildings as T
+from ..ui.formatters import write_lines, write_lines_fmt
+
+# Static
+write_lines(output, T.POKECENTER_WELCOME)
+
+# Dynamic — keyword arguments
+write_lines_fmt(output, T.ENCOUNTER_FOUND, name="Pidgey", level=5)
+
+# Dynamic — dict
+from ..ui.formatters import write_dynamic_lines
+write_dynamic_lines(output, T.ENCOUNTER_FOUND, {"name": "Pidgey", "level": 5})
+```
+
 ## Rich Text Formatting
 
-Use Rich markup for beautiful terminal output:
+Use Rich markup for beautiful terminal output. Colour conventions:
 
-```python
-# Colors
-output.write("[red]Error message[/red]")
-output.write("[green]Success message[/green]")
-output.write("[yellow]Warning message[/yellow]")
-output.write("[cyan]Info message[/cyan]")
+| Colour | Use for |
+|---|---|
+| `[green]` / `[bold green]` | Success, heal, gain, caught |
+| `[red]` / `[bold red]` | Damage, faint, error |
+| `[yellow]` / `[bold yellow]` | Items, warnings, money, level-up |
+| `[cyan]` | Info, location descriptions, prompts |
+| `[magenta]` | Pokemon names, special events |
+| `[dim]` | Already seen / inactive hints |
+| `[italic]` | NPC spoken dialogue |
 
-# Styles
-output.write("[bold]Bold text[/bold]")
-output.write("[italic]Italic text[/italic]")
-output.write("[dim]Dimmed text[/dim]")
-
-# Combinations
-output.write("[bold green]✓ Success![/bold green]")
-output.write("[bold red]✗ Failed![/bold red]")
-
-# Emojis for better UX
-output.write("🎮 Game started")
-output.write("⚔️ Battle initiated")
-output.write("👾 Wild Pokemon appeared")
-output.write("🏆 Victory!")
-```
+Inline `output.write()` is reserved for **computed/dynamic single lines** (e.g. HP bars, f-strings with runtime data). Sequences of 2+ related lines go in `texts/en/`.
 
 ## Testing, Coverage & Code Quality
 
@@ -653,6 +703,8 @@ class PokemonTerminal(App):
 - Small, focused functions
 - Type hints for clarity
 - Comprehensive docstrings
+- `write_lines(output, T.CONSTANT)` from `texts/en/` over repeated inline `output.write()` calls
+- `write_lines_fmt(output, T.CONSTANT, key=value)` for any block with runtime substitutions
 
 ### Avoid:
 
@@ -666,6 +718,7 @@ class PokemonTerminal(App):
 - **🚨 CRITICAL: Using button.label or widget text without str() conversion** — This is the most common bug! Always use `str(button.label)` before calling `.lower()`, `.strip()`, or passing to functions. Button labels return Rich `Text` objects, not strings!
 - Assuming widget properties return plain strings (they often return Rich Text objects)
 - Importing `terminal` from any mixin or `ui/` module (circular import!)
+- Inline sequences of `output.write()` for static text — put 2+ related lines in `texts/en/<module>.py` and call `write_lines()`
 
 ## Quick Reference
 
@@ -693,6 +746,10 @@ from rich.table import Table
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 import json
+
+# Text constants (dialog / UI strings)
+from ..texts.en import buildings as T        # alias T for the relevant module
+from ..ui.formatters import write_lines, write_lines_fmt, write_dynamic_lines
 ```
 
 ### Useful Textual Patterns
@@ -702,8 +759,10 @@ import json
 output = self.query_one("#output", RichLog)
 input_field = self.query_one("#command-input", Input)
 
-# Write to log
-output.write("[green]Success![/green]")
+# Write static/dynamic blocks from texts/en/
+from ..texts.en import menus as T
+from ..ui.formatters import write_lines
+write_lines(output, T.NEW_GAME_STARTING)
 
 # Focus widget
 self.query_one(Input).focus()

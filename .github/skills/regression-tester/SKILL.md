@@ -32,7 +32,7 @@ poetry run pytest tests/ -q 2>&1 | tail -3  # after change
 
 ```bash
 # Find tests related to a changed file
-git diff --name-only | sed 's|PokemonLibrary/||; s|\.py||; s|^|tests/test_|; s|$|.py|'
+git diff --name-only | sed 's|pytemon/||; s|\.py||; s|^|tests/test_|; s|$|.py|'
 
 # Run only those tests
 poetry run pytest tests/test_buildings.py tests/test_exploration.py -v

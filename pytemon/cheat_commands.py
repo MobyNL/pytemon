@@ -75,6 +75,7 @@ def process_cheat_command(
     show_battle_buttons_callback=None,
     handle_battle_victory_callback=None,
     handle_pokemon_fainted_callback=None,
+    queue_move_learn_callback=None,
 ) -> bool:
     """
     Process cheat commands.
@@ -89,6 +90,8 @@ def process_cheat_command(
         show_battle_buttons_callback: Optional callback to show battle action buttons
         handle_battle_victory_callback: Optional callback to handle battle victory
         handle_pokemon_fainted_callback: Optional callback to handle player Pokemon fainting
+        queue_move_learn_callback: Optional callback for the interactive move-replacement
+            flow when a Pokemon's moveset is already full.
 
     Returns:
         True if command was processed, False otherwise
@@ -293,7 +296,7 @@ def process_cheat_command(
         # Move is the last token; identifier is everything in between
         identifier = " ".join(parts[1:-1])
         move_name = parts[-1]
-        teach_move_cheat(game_state, identifier, move_name, output)
+        teach_move_cheat(game_state, identifier, move_name, output, queue_move_learn_callback)
         return True
 
     else:
@@ -658,12 +661,7 @@ def level_up_pokemon(
         # Update stats
         pokemon["max_hp"] = new_stats["hp"]
         pokemon["hp"] = new_stats["hp"]  # Fully heal
-        pokemon["stats"] = {
-            "attack": new_stats["attack"],
-            "defense": new_stats["defense"],
-            "special": new_stats["special"],
-            "speed": new_stats["speed"],
-        }
+        pokemon["stats"] = new_stats  # Keep as StatsData so to_dict() works correctly
 
         # Update moves for new level
         new_moves = battle_engine.get_moves_for_level(pokemon_data, new_level)
@@ -767,7 +765,8 @@ def faint_pokemon(game_state: "GameState", identifier: str, output: RichLog) -> 
 
 
 def teach_move_cheat(
-    game_state: "GameState", identifier: str, move_name: str, output: RichLog
+    game_state: "GameState", identifier: str, move_name: str, output: RichLog,
+    queue_move_learn_callback=None,
 ) -> None:
     """
     Teach any move to a party Pokemon, bypassing TM/HM item requirements.
@@ -777,6 +776,8 @@ def teach_move_cheat(
         identifier: Pokemon name or slot number
         move_name: Name of the move to teach
         output: The RichLog widget to write to
+        queue_move_learn_callback: Optional callback for the interactive
+            move-replacement flow when the Pokemon already knows 4 moves.
     """
     pokemon, idx = game_state.find_pokemon(identifier)
 
@@ -808,4 +809,4 @@ def teach_move_cheat(
         return
 
     output.write(f"[bold yellow]🎮 [CHEAT MODE] Teaching {matching_move}...[/bold yellow]")
-    teach_move(game_state, matching_move, pokemon, f"TM {matching_move}", False, output)
+    teach_move(game_state, matching_move, pokemon, f"TM {matching_move}", False, output, queue_move_learn_callback)

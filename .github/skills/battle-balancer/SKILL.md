@@ -108,9 +108,9 @@ if status == "sleep":
 - Explanation of expected player experience impact
 
 ## Dependencies
-- `PokemonLibrary/battle/battle_actions.py` — `attempt_catch`, `attempt_flee`
-- `PokemonLibrary/engine/battle_engine.py` — status duration and end-of-turn damage
-- `PokemonLibrary/data/pokemon_data.py` — `catch_rate` per species
+- `pytemon/battle/battle_actions.py` — `attempt_catch`, `attempt_flee`
+- `pytemon/engine/battle_engine.py` — status duration and end-of-turn damage
+- `pytemon/data/pokemon_data.py` — `catch_rate` per species
 
 ## Error Handling
 - **Master Ball catching wrong**: ensure its multiplier is 255+ (bypasses all shake checks)

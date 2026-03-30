@@ -242,6 +242,54 @@ Footer {
     background: $warning 40%;
 }
 
+/* Choose Lead Panel */
+#choose-lead-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+}
+
+#choose-lead-title {
+    color: $accent;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#choose-lead-grid {
+    grid-size: 3 2;
+    height: auto;
+    margin-bottom: 1;
+}
+
+.lead-slot-button {
+    height: 4;
+    background: $accent 15%;
+    color: $text;
+}
+
+.lead-slot-button:hover {
+    background: $accent 35%;
+}
+
+.lead-slot-button:disabled {
+    background: $panel;
+    color: $text-muted;
+    opacity: 0.4;
+}
+
+.lead-cancel-button {
+    width: 1fr;
+    height: 3;
+    background: $panel;
+    border: tall grey;
+}
+
+.lead-cancel-button:hover {
+    background: $panel-lighten-1;
+}
+
 /* Battle Bag Panel */
 #battle-bag {
     height: auto;

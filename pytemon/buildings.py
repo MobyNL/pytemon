@@ -1249,7 +1249,11 @@ def enter_oaks_lab(
 
 
 def choose_starter_pokemon(
-    game_state: "GameState", pokemon_name: str, output: RichLog, set_pending_command_callback
+    game_state: "GameState",
+    pokemon_name: str,
+    output: RichLog,
+    set_pending_command_callback,
+    trigger_trainer_battle_callback=None,
 ) -> None:
     """
     Choose a starter Pokemon.
@@ -1259,6 +1263,9 @@ def choose_starter_pokemon(
         pokemon_name: Name of the Pokemon to choose
         output: The RichLog widget to write to
         set_pending_command_callback: Callback to set pending command
+        trigger_trainer_battle_callback: Optional callback ``(trainer) -> None`` that
+            starts the rival battle with full TUI panels.  When omitted the battle is
+            started headlessly via ``battle_actions.trigger_trainer_encounter``.
     """
     # Normalize the input
     choice = pokemon_name.lower().strip()
@@ -1325,9 +1332,12 @@ def choose_starter_pokemon(
                     output.write("[dim]As you turn to leave...[/dim]")
                     output.write("")
                     # Trigger the battle
-                    battle_actions.trigger_trainer_encounter(
-                        game_state, output, rival_trainer, set_pending_command_callback
-                    )
+                    if trigger_trainer_battle_callback:
+                        trigger_trainer_battle_callback(rival_trainer)
+                    else:
+                        battle_actions.trigger_trainer_encounter(
+                            game_state, output, rival_trainer, set_pending_command_callback
+                        )
                     return  # Battle takes over, function will be called again after battle
 
             # This part runs after the battle (or if battle was skipped)
@@ -1435,9 +1445,12 @@ def choose_starter_pokemon(
             output.write("[dim]As you turn to leave...[/dim]")
             output.write("")
             # Trigger the battle
-            battle_actions.trigger_trainer_encounter(
-                game_state, output, rival_trainer, set_pending_command_callback
-            )
+            if trigger_trainer_battle_callback:
+                trigger_trainer_battle_callback(rival_trainer)
+            else:
+                battle_actions.trigger_trainer_encounter(
+                    game_state, output, rival_trainer, set_pending_command_callback
+                )
             return  # Battle takes over, function will be called again after battle
 
     # This part runs after the battle (or if battle was skipped)
