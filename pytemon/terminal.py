@@ -562,14 +562,26 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
         # Battle action buttons
         elif button_id == "btn-fight":
-            output.write("[bold yellow]🎮 >[/bold yellow] Fight")
-            self.process_battle_command("fight", output)
+            if self.game_state.battle_state and self.game_state.battle_state.is_safari:
+                output.write("[bold yellow]🎮 >[/bold yellow] Bait")
+                self.process_battle_command("bait", output)
+            else:
+                output.write("[bold yellow]🎮 >[/bold yellow] Fight")
+                self.process_battle_command("fight", output)
         elif button_id == "btn-switch":
-            output.write("[bold yellow]🎮 >[/bold yellow] Switch")
-            self.process_battle_command("switch", output)
+            if self.game_state.battle_state and self.game_state.battle_state.is_safari:
+                output.write("[bold yellow]🎮 >[/bold yellow] Rock")
+                self.process_battle_command("rock", output)
+            else:
+                output.write("[bold yellow]🎮 >[/bold yellow] Switch")
+                self.process_battle_command("switch", output)
         elif button_id == "btn-item":
-            output.write("[bold yellow]🎮 >[/bold yellow] Item")
-            self.process_battle_command("bag", output)
+            if self.game_state.battle_state and self.game_state.battle_state.is_safari:
+                output.write("[bold yellow]🎮 >[/bold yellow] Throw Safari Ball")
+                self.process_battle_command("safari ball", output)
+            else:
+                output.write("[bold yellow]🎮 >[/bold yellow] Item")
+                self.process_battle_command("bag", output)
 
         # Battle bag item buttons
         elif button_id == "btn-bag-pokeball":

@@ -670,6 +670,73 @@ def can_rematch_gym(game_state: "GameState", location_name: str) -> bool:
     return badge_id in badges
 
 
+def handle_elite_four_victory(
+    game_state: "GameState",
+    trainer_id: str,
+    output: RichLog,
+) -> None:
+    """
+    Handle post-battle victory against an Elite Four member or Champion.
+
+    Sets the appropriate story flag for the defeated trainer.  For the Champion,
+    also sets is_champion, saves a Hall of Fame party snapshot, and displays the
+    full championship celebration text.
+
+    Args:
+        game_state: The game state object
+        trainer_id: ID of the defeated trainer
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    elite_flag_map = {
+        "elite_lorelei": "defeated_lorelei",
+        "elite_bruno": "defeated_bruno",
+        "elite_agatha": "defeated_agatha",
+        "elite_lance": "defeated_lance",
+    }
+    champion_ids = {
+        "champion_gary_bulbasaur",
+        "champion_gary_charmander",
+        "champion_gary_squirtle",
+    }
+
+    if trainer_id in elite_flag_map:
+        flag = elite_flag_map[trainer_id]
+        story_flags[flag] = True
+        output.write("[bold]You won the battle![/bold]")
+        output.write("")
+        output.write("[dim]The next chamber awaits...[/dim]")
+        output.write("")
+    elif trainer_id in champion_ids:
+        story_flags["defeated_champion"] = True
+        story_flags["is_champion"] = True
+        # Save party snapshot for the Hall of Fame
+        pokemon = game_state.game_data.get("pokemon", [])
+        story_flags["hall_of_fame_party"] = [
+            {"name": p["name"], "level": p.get("level", 1)}
+            for p in pokemon
+            if not isinstance(p, str)
+        ]
+        player_name = game_state.game_data.get("player_name", "Trainer")
+        output.write("")
+        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+        output.write("[bold yellow]★ ★ ★  CONGRATULATIONS!  ★ ★ ★[/bold yellow]")
+        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+        output.write("")
+        output.write(f"[bold green]{player_name} is the new Pokémon League Champion![/bold green]")
+        output.write("")
+        output.write("[bold green]🏆 You are the Pokémon Champion! 🏆[/bold green]")
+        output.write("[green]Your name is written in the Hall of Fame forever.[/green]")
+        output.write("[green]The Pokédex awaits completion — your legend begins here.[/green]")
+        output.write("")
+        output.write("[dim]Visit the Hall of Fame to see your eternal record.[/dim]")
+        output.write("")
+    else:
+        output.write("[bold]You won the battle![/bold]")
+        output.write("")
+
+
 def handle_rematch_gym_victory(game_state: "GameState", trainer_id: str, output: RichLog) -> None:
     """
     Handle a successful gym rematch — display rematch victory message (no badge awarded).

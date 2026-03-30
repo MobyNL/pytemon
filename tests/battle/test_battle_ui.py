@@ -344,3 +344,48 @@ class TestShowBattleOptionsStatusIcons:
         assert "BRN" not in output.combined
         assert "PSN" not in output.combined
         assert "PAR" not in output.combined
+
+
+def _setup_safari_battle(gs, player_name="PIKACHU", wild_name="SCYTHER", level=15):
+    """Helper: start a wild battle and mark it as a Safari Zone encounter."""
+    bs = BattleState()
+    player_pokemon = bs.generate_wild_pokemon(player_name, 10)
+    bs.start_wild_battle(player_pokemon, wild_name, level)
+    bs.is_safari = True
+    bs.safari_bait_turns = 0
+    bs.safari_rock_turns = 0
+    gs.battle_state = bs
+    gs.game_data["pokemon"] = [player_pokemon]
+    gs.game_data.setdefault("items", {})["Safari Ball"] = 10
+    return bs
+
+
+# ===========================================================================
+# show_battle_options - Safari Zone
+# ===========================================================================
+
+
+class TestShowBattleOptionsSafari:
+    def test_safari_battle_shows_custom_header(self, gs, output):
+        _setup_safari_battle(gs)
+        show_battle_options(gs, output)
+        assert "Safari Zone Encounter" in output.combined
+
+    def test_safari_battle_hides_player_hp_bar(self, gs, output):
+        bs = _setup_safari_battle(gs)
+        show_battle_options(gs, output)
+        player_name = bs.player_pokemon["name"]
+        assert player_name not in output.combined
+
+    def test_normal_battle_shows_player_hp_bar(self, gs, output):
+        bs = _setup_wild_battle(gs, player_name="PIKACHU")
+        show_battle_options(gs, output)
+        player_name = bs.player_pokemon["name"]
+        assert player_name in output.combined
+
+    def test_safari_options_show_bait_rock_ball_run(self, gs, output):
+        _setup_safari_battle(gs)
+        show_battle_options(gs, output)
+        assert "Bait" in output.combined
+        assert "Rock" in output.combined
+        assert "Safari Ball" in output.combined

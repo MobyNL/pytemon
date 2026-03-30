@@ -14,6 +14,8 @@ from . import gym_system, pokedex
 from .battle import battle_actions
 from .data.trainer_data import TRAINERS
 from .engine import BattleState
+from .gym_system import handle_elite_four_victory  # re-exported for backward compatibility
+from .pc_system import send_to_pc
 from .texts.en import buildings as T  # noqa: N812
 from .ui.formatters import write_lines, write_lines_fmt
 
@@ -1063,6 +1065,9 @@ def enter_oaks_lab(
         write_lines(output, T.OAKS_LAB_PROGRESS_DIALOGUE)
         write_lines_fmt(output, T.OAKS_LAB_CAUGHT_COUNT, caught_count=len(pokemon))
 
+        # Check for Pokedex completion award (first visit after catching all 151)
+        check_pokedex_completion(game_state, output)
+
     write_lines(output, T.OAKS_LAB_EXIT)
 
 
@@ -1384,3 +1389,760 @@ def enter_safari_zone(game_state: "GameState", output: RichLog) -> None:
 
     remaining = bag.get("Safari Ball", 0)
     write_lines_fmt(output, T.SAFARI_BALLS_REMAINING, remaining=remaining)
+
+
+def enter_silph_co(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_trainer_battle_callback=None,
+) -> None:
+    """
+    Enter Silph Co. headquarters in Saffron City.
+
+    Team Rocket has seized the building. Fight through four enemy encounters
+    (three Rocket Grunts plus the Rocket Executive) to clear the building and
+    receive the Master Ball from the grateful president.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_trainer_battle_callback: Optional callback for triggering trainer battles
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    output.write("")
+    output.write("[bold red]═══════════════════════════════════════════[/bold red]")
+    output.write("[bold red]          🚀 SILPH CO. — SAFFRON CITY 🚀   [/bold red]")
+    output.write("[bold red]═══════════════════════════════════════════[/bold red]")
+    output.write("")
+
+    if story_flags.get("silph_co_cleared"):
+        output.write(
+            "[bold]Silph Receptionist:[/bold] [cyan]Thanks to you, Silph Co. is safe![/cyan]"
+        )
+        output.write("[cyan]   The President extends his warmest gratitude.[/cyan]")
+        output.write("[dim]   The lobby is peaceful once more.[/dim]")
+        output.write("")
+        return
+
+    silph_trainers = [
+        "rocket_grunt_silph_1",
+        "rocket_grunt_silph_2",
+        "rocket_grunt_silph_3",
+        "silph_executive",
+    ]
+    defeated = game_state.game_data.get("defeated_trainers", [])
+    defeated_count = sum(1 for t in silph_trainers if t in defeated)
+
+    if defeated_count >= 4:
+        story_flags["silph_co_cleared"] = True
+        story_flags["received_master_ball"] = True
+        story_flags["rescued_mr_fuji_silph"] = True
+
+        items = game_state.game_data.setdefault("items", {})
+        items["Master Ball"] = items.get("Master Ball", 0) + 1
+
+        output.write("[bold yellow]🏆 Team Rocket has been driven out of Silph Co.![/bold yellow]")
+        output.write("")
+        output.write("[bold]Silph Co. President:[/bold] [cyan]You've saved us![/cyan]")
+        output.write("[cyan]   I can't thank you enough.[/cyan]")
+        output.write("[cyan]   Please — take the Master Ball, our greatest creation.[/cyan]")
+        output.write("[cyan]   It catches any wild Pokemon without fail.[/cyan]")
+        output.write("")
+        output.write("[bold green]✓ Received a Master Ball![/bold green]")
+        output.write("   [dim](Catches any wild Pokemon without fail — one-time use)[/dim]")
+        output.write("")
+        return
+
+    if defeated_count == 0:
+        output.write("[dim]Team Rocket grunts patrol every floor...[/dim]")
+        output.write("[dim]The building is locked down and employees cower at their desks![/dim]")
+        output.write("")
+        output.write("[bold]Employee:[/bold] [yellow]Please! You have to help us![/yellow]")
+        output.write("[yellow]   Team Rocket has taken over the whole building![/yellow]")
+        output.write("[yellow]   The president is trapped on the top floor![/yellow]")
+        output.write("")
+    else:
+        remaining_count = 4 - defeated_count
+        output.write(f"[dim]Progress: {defeated_count}/4 Rocket members defeated[/dim]")
+        output.write(f"[dim]{remaining_count} member(s) still patrolling the floors![/dim]")
+        output.write("")
+
+    next_trainer_id = next((t for t in silph_trainers if t not in defeated), None)
+    if next_trainer_id and trigger_trainer_battle_callback:
+        trainer = TRAINERS.get(next_trainer_id)
+        if trainer:
+            trigger_trainer_battle_callback(trainer)
+            return
+
+    output.write("[yellow]   Prepare your team, then head inside![/yellow]")
+    output.write("[dim]The automatic doors slide open with a hiss[/dim]")
+    output.write("")
+
+
+def enter_pokemon_mansion(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_trainer_battle_callback=None,
+) -> None:
+    """
+    Enter the Pokemon Mansion on Cinnabar Island.
+
+    Two rogue scientists guard the crumbling mansion. Defeat them to progress
+    deeper inside and find the Secret Key needed to unlock Blaine's Gym.
+    Scattered research notes hint at the origin of the legendary Pokemon Mewtwo.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_trainer_battle_callback: Optional callback for triggering trainer battles
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    output.write("")
+    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
+    output.write("[bold yellow]         🔥 POKEMON MANSION 🔥             [/bold yellow]")
+    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
+    output.write("")
+
+    if story_flags.get("secret_key_found"):
+        output.write("[dim]The burnt-out mansion creaks in the sea wind.[/dim]")
+        output.write("[dim]You already have the Secret Key — nothing left to find here.[/dim]")
+        output.write("")
+        return
+
+    mansion_trainers = [
+        "scientist_mansion_1",
+        "scientist_mansion_2",
+    ]
+    defeated = game_state.game_data.get("defeated_trainers", [])
+    defeated_count = sum(1 for t in mansion_trainers if t in defeated)
+
+    if defeated_count >= 2:
+        story_flags["secret_key_found"] = True
+        items = game_state.game_data.setdefault("items", {})
+        items["Secret Key"] = items.get("Secret Key", 0) + 1
+
+        output.write("[bold yellow]🗝️  You found the Secret Key![/bold yellow]")
+        output.write("")
+        output.write(
+            "[dim]Hidden behind a cracked wall panel, you discover a burnished key...[/dim]"
+        )
+        output.write("")
+        output.write("[bold]Research Journal Entry — Dr. Fuji:[/bold]")
+        output.write(
+            "[italic dim]   Feb 6 — Mewtwo is far too powerful. We have failed to control it.[/italic dim]"
+        )
+        output.write(
+            "[italic dim]   It destroyed the laboratory and fled. God forgive us.[/italic dim]"
+        )
+        output.write("")
+        output.write("[bold green]✓ Received the Secret Key![/bold green]")
+        output.write("   [dim](Unlocks the Cinnabar Island Gym)[/dim]")
+        output.write("")
+        return
+
+    if defeated_count == 0:
+        output.write(
+            "[dim]The mansion has been abandoned for years — but not entirely empty...[/dim]"
+        )
+        output.write(
+            "[dim]Wild Magmar stalk the charred halls, and rogue scientists lurk inside.[/dim]"
+        )
+        output.write("")
+        output.write(
+            "[bold]Faded Sign:[/bold] [yellow]CINNABAR POKEMON LAB ANNEX — AUTHORIZED PERSONNEL ONLY[/yellow]"
+        )
+        output.write("[dim]   Scrawled below: 'Don't look for the Mewtwo files.'[/dim]")
+        output.write("")
+    else:
+        output.write("[dim]Progress: 1/2 scientists defeated[/dim]")
+        output.write("[dim]The Secret Key must be somewhere deeper inside...[/dim]")
+        output.write("")
+
+    next_trainer_id = next((t for t in mansion_trainers if t not in defeated), None)
+    if next_trainer_id and trigger_trainer_battle_callback:
+        trainer = TRAINERS.get(next_trainer_id)
+        if trainer:
+            trigger_trainer_battle_callback(trainer)
+            return
+
+    output.write("[yellow]   Something crashes on the upper floors...[/yellow]")
+    output.write("[dim]You step cautiously into the ruined mansion[/dim]")
+    output.write("")
+
+
+def enter_pokemon_lab(
+    game_state: "GameState",
+    output: RichLog,
+) -> None:
+    """
+    Enter the Pokemon Lab on Cinnabar Island.
+
+    Scientists here can revive ancient Pokemon from fossils. Bring a Dome Fossil
+    to receive a Kabuto, or a Helix Fossil for an Omanyte.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    output.write("")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("[bold cyan]         🔬 CINNABAR POKEMON LAB 🔬        [/bold cyan]")
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+    output.write(
+        "[bold]Lab Researcher:[/bold] [cyan]Welcome! This is the famous Cinnabar Pokemon Lab.[/cyan]"
+    )
+    output.write("[cyan]   We specialise in restoring Pokemon from ancient fossils.[/cyan]")
+    output.write("[cyan]   If you have a Dome Fossil or Helix Fossil, we can help![/cyan]")
+    output.write("")
+
+    bag = game_state.game_data.get("bag", {})
+    has_dome = bag.get("Dome Fossil", 0) > 0
+    has_helix = bag.get("Helix Fossil", 0) > 0
+
+    if not has_dome and not has_helix:
+        output.write("[dim]   You don't have any fossils to revive right now.[/dim]")
+        output.write("[dim]   (Fossils can be found in Mt. Moon)[/dim]")
+        output.write("")
+        return
+
+    party = game_state.game_data.get("pokemon", [])
+
+    if has_dome and not story_flags.get("revived_dome_fossil"):
+        bag["Dome Fossil"] -= 1
+        if bag["Dome Fossil"] <= 0:
+            del bag["Dome Fossil"]
+        game_state.game_data["bag"] = bag
+
+        story_flags["revived_dome_fossil"] = True
+        story_flags["fossil_revived"] = True
+
+        kabuto = BattleState().generate_wild_pokemon("KABUTO", 5)
+        kabuto["no_evolve"] = False
+
+        if len(party) < 6:
+            party.append(kabuto)
+            game_state.game_data["pokemon"] = party
+            output.write("[bold yellow]⏳ The scientists get to work...[/bold yellow]")
+            output.write("[dim]   Hours pass as they extract DNA from the fossil...[/dim]")
+            output.write("")
+            output.write(
+                "[bold green]✓ The Dome Fossil was restored to Kabuto (Lv. 5)![/bold green]"
+            )
+            output.write("   [cyan]Kabuto joined your party![/cyan]")
+        else:
+            send_to_pc(game_state, kabuto)
+            output.write("[bold yellow]⏳ The scientists get to work...[/bold yellow]")
+            output.write("[dim]   Hours pass as they extract DNA from the fossil...[/dim]")
+            output.write("")
+            output.write(
+                "[bold green]✓ The Dome Fossil was restored to Kabuto (Lv. 5)![/bold green]"
+            )
+            output.write("   [yellow]Your party is full — Kabuto was sent to Bill's PC![/yellow]")
+        output.write("")
+
+    if has_helix and not story_flags.get("revived_helix_fossil"):
+        bag["Helix Fossil"] -= 1
+        if bag["Helix Fossil"] <= 0:
+            del bag["Helix Fossil"]
+        game_state.game_data["bag"] = bag
+
+        story_flags["revived_helix_fossil"] = True
+        story_flags["fossil_revived"] = True
+
+        omanyte = BattleState().generate_wild_pokemon("OMANYTE", 5)
+        omanyte["no_evolve"] = False
+
+        party = game_state.game_data.get("pokemon", [])
+        if len(party) < 6:
+            party.append(omanyte)
+            game_state.game_data["pokemon"] = party
+            output.write("[bold yellow]⏳ The scientists get to work...[/bold yellow]")
+            output.write("[dim]   Hours pass as they extract DNA from the fossil...[/dim]")
+            output.write("")
+            output.write(
+                "[bold green]✓ The Helix Fossil was restored to Omanyte (Lv. 5)![/bold green]"
+            )
+            output.write("   [cyan]Omanyte joined your party![/cyan]")
+        else:
+            send_to_pc(game_state, omanyte)
+            output.write("[bold yellow]⏳ The scientists get to work...[/bold yellow]")
+            output.write("[dim]   Hours pass as they extract DNA from the fossil...[/dim]")
+            output.write("")
+            output.write(
+                "[bold green]✓ The Helix Fossil was restored to Omanyte (Lv. 5)![/bold green]"
+            )
+            output.write("   [yellow]Your party is full — Omanyte was sent to Bill's PC![/yellow]")
+        output.write("")
+
+    if (has_dome and story_flags.get("revived_dome_fossil")) or (
+        has_helix and story_flags.get("revived_helix_fossil")
+    ):
+        if not has_dome and not has_helix:
+            pass
+        else:
+            output.write("[dim]Researcher: You've already revived the fossils you brought![/dim]")
+            output.write("")
+
+
+def enter_pokemon_league_reception(
+    game_state: "GameState",
+    output: RichLog,
+) -> None:
+    """
+    Enter the Pokemon League Reception at Indigo Plateau.
+
+    Displays league rules, Elite Four challenge order and the player's current
+    progress through the gauntlet.  No battle or story flag changes here — it
+    is purely informational.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    output.write("")
+    output.write(
+        "[bold yellow]═══════════════════════════════════════════════════════[/bold yellow]"
+    )
+    output.write("[bold yellow]   🏆  INDIGO PLATEAU — THE POKÉMON LEAGUE  🏆   [/bold yellow]")
+    output.write(
+        "[bold yellow]═══════════════════════════════════════════════════════[/bold yellow]"
+    )
+    output.write("")
+    output.write("[bold]Receptionist:[/bold] [cyan]Welcome, Trainer, to the Pokémon League![/cyan]")
+    output.write("[cyan]   Only those who carry all eight Gym Badges may challenge[/cyan]")
+    output.write("[cyan]   the Elite Four.  Beyond them awaits the reigning Champion.[/cyan]")
+    output.write("")
+    output.write("[bold yellow]📜 RULES OF THE POKÉMON LEAGUE[/bold yellow]")
+    output.write("   Defeat all four Elite Four members in order, then face the Champion:")
+    output.write("   [bold]1.[/bold] Lorelei  — Ice & Water specialist")
+    output.write("   [bold]2.[/bold] Bruno    — Fighting & Rock specialist")
+    output.write("   [bold]3.[/bold] Agatha   — Ghost & Poison specialist")
+    output.write("   [bold]4.[/bold] Lance    — Dragon master")
+    output.write("   [bold]5.[/bold] Champion — The current Champion awaits beyond")
+    output.write("")
+
+    elite_order = [
+        ("defeated_lorelei", "Lorelei", "❄️"),
+        ("defeated_bruno", "Bruno", "💪"),
+        ("defeated_agatha", "Agatha", "👻"),
+        ("defeated_lance", "Lance", "🐉"),
+        ("defeated_champion", "Champion", "🏆"),
+    ]
+    output.write("[bold]Your Progress:[/bold]")
+    next_found = False
+    for flag, name, emoji in elite_order:
+        if story_flags.get(flag):
+            output.write(f"   [green]✓ {emoji} {name} — defeated[/green]")
+        elif not next_found:
+            next_found = True
+            output.write(f"   [yellow]→ {emoji} {name} — NEXT CHALLENGER[/yellow]")
+        else:
+            output.write(f"   [dim]○ {emoji} {name}[/dim]")
+    output.write("")
+
+    if story_flags.get("defeated_champion"):
+        output.write("[bold green]🏆 You are the Pokémon League Champion! 🏆[/bold green]")
+        output.write("[dim]   Visit the Hall of Fame to relive your legend.[/dim]")
+    else:
+        output.write("[bold cyan]🏥 HEALING SERVICES[/bold cyan]")
+        output.write("   [cyan]A nurse at the counter can restore your Pokemon before[/cyan]")
+        output.write("   [cyan]you enter the Elite Four chambers.[/cyan]")
+        output.write("   [dim](Enter the Pokemon Center here on the Plateau to heal.)[/dim]")
+        output.write("")
+        output.write("[bold]Receptionist:[/bold] [cyan]That wall over there holds the names[/cyan]")
+        output.write("[cyan]   of every Trainer who has bested the Elite Four.[/cyan]")
+        output.write("[cyan]   Will your name be added today?[/cyan]")
+    output.write("")
+    output.write("[dim]You leave the reception hall[/dim]")
+    output.write("")
+
+
+def enter_elite_four(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_trainer_battle_callback,
+) -> None:
+    """
+    Enter the Elite Four chambers and trigger the next battle in the gauntlet.
+
+    Enforces the 8-badge gate and conscious-party check before starting.
+    Determines which opponent (Lorelei → Bruno → Agatha → Lance → Champion Gary)
+    is next based on story flags.  Calls trigger_trainer_battle_callback with the
+    next Trainer object — the victory flag is set by handle_elite_four_victory()
+    after the battle ends.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_trainer_battle_callback: Callback(trainer) that starts a trainer battle
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    output.write("")
+    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
+    output.write("[bold yellow]       ⚔️  ELITE FOUR CHAMBERS ⚔️         [/bold yellow]")
+    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
+    output.write("")
+
+    if story_flags.get("defeated_champion"):
+        output.write("[bold green]🏆 You are the Pokémon Champion! 🏆[/bold green]")
+        output.write("[green]Your name is written in the Hall of Fame forever.[/green]")
+        output.write("[green]The Pokédex awaits completion — your legend begins here.[/green]")
+        output.write("")
+        return
+
+    badge_count = gym_system.get_badge_count(game_state)
+    cheat_mode = getattr(game_state, "cheat_mode", False)
+    if badge_count < 8 and not cheat_mode:
+        output.write("[yellow]⚠ You need all 8 Gym Badges to challenge the Elite Four![/yellow]")
+        output.write(f"[dim]   You have {badge_count}/8 badges.[/dim]")
+        output.write("[dim]   Travel Kanto and defeat all 8 Gym Leaders first.[/dim]")
+        output.write("")
+        output.write("[dim]The guard at the door turns you away.[/dim]")
+        output.write("")
+        return
+
+    pokemon = game_state.game_data.get("pokemon", [])
+    alive = [p for p in pokemon if not isinstance(p, str) and p.get("hp", 0) > 0]
+    if not alive:
+        output.write("[yellow]⚠ All your Pokemon have fainted![/yellow]")
+        output.write("[dim]   Heal at the Pokemon Center before entering the Elite Four.[/dim]")
+        output.write("")
+        return
+
+    elite_order = [
+        ("defeated_lorelei", "elite_lorelei", "Lorelei", "❄️", "Ice specialist"),
+        ("defeated_bruno", "elite_bruno", "Bruno", "💪", "Fighting specialist"),
+        ("defeated_agatha", "elite_agatha", "Agatha", "👻", "Ghost specialist"),
+        ("defeated_lance", "elite_lance", "Lance", "🐉", "Dragon master"),
+    ]
+    next_trainer_id = None
+    next_description = None
+    for flag, tid, name, emoji, specialty in elite_order:
+        if not story_flags.get(flag):
+            next_trainer_id = tid
+            next_description = f"{emoji} {name} — {specialty}"
+            break
+
+    if next_trainer_id is None:
+        starter = game_state.game_data.get("starter", "").upper()
+        if starter == "BULBASAUR":
+            next_trainer_id = "champion_gary_bulbasaur"
+        elif starter == "SQUIRTLE":
+            next_trainer_id = "champion_gary_squirtle"
+        else:
+            next_trainer_id = "champion_gary_charmander"
+        rival_name = game_state.game_data.get("rival_name", "Gary")
+        next_description = f"🏆 Champion {rival_name}"
+
+    output.write(f"[bold]Next challenger: [yellow]{next_description}[/yellow][/bold]")
+    output.write("")
+    output.write("[dim]The heavy doors swing open.  The air is still.[/dim]")
+    output.write("[dim]Every step echoes in the vast chamber...[/dim]")
+    output.write("")
+
+    if not trigger_trainer_battle_callback:
+        output.write("[yellow]⚠ Battle system not available in this context[/yellow]")
+        output.write("")
+        return
+
+    trainer = TRAINERS.get(next_trainer_id)
+    if trainer:
+        trigger_trainer_battle_callback(trainer)
+    else:
+        output.write(f"[red]❌ Error: Trainer '{next_trainer_id}' not found[/red]")
+        output.write("")
+
+
+def enter_hall_of_fame(
+    game_state: "GameState",
+    output: RichLog,
+) -> None:
+    """
+    Enter the Hall of Fame at the Pokemon League.
+
+    If the player has not yet defeated the Champion the door is locked.
+    Champions see a Rich-formatted record of their name, title, and the party
+    snapshot saved when they first became Champion.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    output.write("")
+    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
+    output.write("[bold yellow]              🏆 HALL OF FAME 🏆           [/bold yellow]")
+    output.write("[bold yellow]═══════════════════════════════════════════[/bold yellow]")
+    output.write("")
+
+    if not story_flags.get("defeated_champion"):
+        output.write("[yellow]⚠ The Hall of Fame is reserved for Champions.[/yellow]")
+        output.write("[dim]   Defeat the Elite Four and Champion first.[/dim]")
+        output.write("")
+        output.write("[dim]The doors remain sealed.  Your legend is still unwritten.[/dim]")
+        output.write("")
+        return
+
+    player_name = game_state.game_data.get("player_name", "Trainer")
+    output.write(f"[bold green]Champion: {player_name}[/bold green]")
+    output.write("[bold yellow]✨ Pokémon League Champion ✨[/bold yellow]")
+    output.write("")
+
+    hall_party = story_flags.get("hall_of_fame_party", [])
+    if hall_party:
+        output.write("[bold]Champion's Party:[/bold]")
+        for p in hall_party:
+            output.write(f"   ⭐ [cyan]{p['name']}[/cyan]  Lv. {p['level']}")
+        output.write("")
+
+    output.write("[bold green]Your name is immortalised in the Hall of Fame![/bold green]")
+    output.write("[dim]Trainers from across Kanto will remember your triumph forever.[/dim]")
+    output.write("")
+    output.write("[dim]You gaze at the golden plaque bearing your name...[/dim]")
+    output.write("")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legendary encounter helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+_LEGENDARY_LOCATIONS: dict[str, tuple[str, str, int, str]] = {
+    # flag_key -> (display_name, species_name, level, encounter_text)
+    "found_articuno": (
+        "Articuno",
+        "ARTICUNO",
+        50,
+        "❄️  A legendary bird Pokémon emerges from the frozen mist! It's ARTICUNO!",
+    ),
+    "found_zapdos": (
+        "Zapdos",
+        "ZAPDOS",
+        50,
+        "⚡ A legendary bird Pokémon appears amid crackling electricity! It's ZAPDOS!",
+    ),
+    "found_moltres": (
+        "Moltres",
+        "MOLTRES",
+        50,
+        "🔥 A legendary bird Pokémon rises from the volcanic depths! It's MOLTRES!",
+    ),
+    "found_mewtwo": (
+        "Mewtwo",
+        "MEWTWO",
+        70,
+        "🧬 A psychic storm tears through the air. The most powerful Pokémon emerges — it's MEWTWO!",
+    ),
+}
+
+_LEGENDARY_AREA_FLAGS: dict[str, str] = {
+    "Power Plant": "found_zapdos",
+    "Seafoam Islands": "found_articuno",
+    "Victory Road": "found_moltres",
+    "Cerulean Cave": "found_mewtwo",
+}
+
+
+def check_legendary_encounter(
+    game_state: "GameState",
+    location_name: str,
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> bool:
+    """
+    Check if the player has entered a legendary Pokemon's area and trigger the
+    one-time encounter if they haven't yet caught or fled from it.
+
+    Args:
+        game_state: The game state object
+        location_name: Current location name
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+
+    Returns:
+        True if a legendary encounter was triggered, False otherwise
+    """
+    flag_key = _LEGENDARY_AREA_FLAGS.get(location_name)
+    if flag_key is None:
+        return False
+
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    if story_flags.get(flag_key):
+        return False
+
+    display_name, species, level, text = _LEGENDARY_LOCATIONS[flag_key]
+
+    story_flags[flag_key] = True
+
+    output.write("")
+    output.write("[bold cyan]══════════════════════════════════════════════════[/bold cyan]")
+    output.write(f"[bold yellow]{text}[/bold yellow]")
+    output.write("[bold cyan]══════════════════════════════════════════════════[/bold cyan]")
+    output.write("")
+    output.write("[dim]This is a one-time encounter. Use your best Poké Balls![/dim]")
+    output.write("")
+
+    game_state.game_data["_forced_encounter"] = {"species": species, "level": level}
+    trigger_wild_battle_callback()
+    return True
+
+
+def mark_legendary_encountered(game_state: "GameState", location_name: str) -> None:
+    """
+    Mark the legendary Pokemon for the given area as encountered (one-time flag set).
+
+    Args:
+        game_state: The game state object
+        location_name: The location where the legendary lives
+    """
+    flag_key = _LEGENDARY_AREA_FLAGS.get(location_name)
+    if flag_key:
+        game_state.game_data.setdefault("story_flags", {})[flag_key] = True
+
+
+def enter_power_plant(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> None:
+    """
+    Enter the Power Plant.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+    """
+    output.write("")
+    output.write("[bold yellow]⚡ Power Plant ⚡[/bold yellow]")
+    output.write("[dim]The air crackles with static electricity.[/dim]")
+    output.write("[dim]Broken machines and abandoned generators litter the floor.[/dim]")
+    output.write("")
+    output.write("[cyan]Electric-type Pokémon roam freely here. Stay alert![/cyan]")
+    output.write("")
+
+    check_legendary_encounter(game_state, "Power Plant", output, trigger_wild_battle_callback)
+
+
+def enter_seafoam_islands(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> None:
+    """
+    Enter the Seafoam Islands.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+    """
+    output.write("")
+    output.write("[bold cyan]❄️  Seafoam Islands ❄️[/bold cyan]")
+    output.write("[dim]Biting cold pours from the cave entrance.[/dim]")
+    output.write("[dim]Ice coats every surface, and water flows through frozen chambers.[/dim]")
+    output.write("")
+    output.write("[cyan]Ice and Water-type Pokémon nest deep inside.[/cyan]")
+    output.write("")
+
+    check_legendary_encounter(game_state, "Seafoam Islands", output, trigger_wild_battle_callback)
+
+
+def enter_cerulean_cave(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_wild_battle_callback,
+) -> bool:
+    """
+    Enter Cerulean Cave (Unknown Dungeon). Blocked until the player is Champion.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+        trigger_wild_battle_callback: Callback to start a wild battle
+
+    Returns:
+        True if entry was allowed, False if blocked
+    """
+    story_flags = game_state.game_data.get("story_flags", {})
+    if not story_flags.get("is_champion"):
+        output.write("")
+        output.write("[bold red]🚫 The cave is sealed with a heavy barrier.[/bold red]")
+        output.write("[red]A guard blocks the entrance:[/red]")
+        output.write(
+            '[italic]"Only the Pokemon Champion has the authority to enter. '
+            "Come back after you've proven yourself at the Pokemon League.\"[/italic]"
+        )
+        output.write("")
+        return False
+
+    output.write("")
+    output.write("[bold magenta]🌀 Cerulean Cave 🌀[/bold magenta]")
+    output.write("[dim]An oppressive psychic aura fills every passage.[/dim]")
+    output.write("[dim]The most powerful wild Pokémon in Kanto dwell here.[/dim]")
+    output.write("")
+    output.write(
+        "[magenta]Something overwhelmingly powerful lurks in the deepest chamber...[/magenta]"
+    )
+    output.write("")
+
+    check_legendary_encounter(game_state, "Cerulean Cave", output, trigger_wild_battle_callback)
+    return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pokedex completion reward
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def check_pokedex_completion(game_state: "GameState", output: RichLog) -> bool:
+    """
+    Check if the player has caught all 151 Pokemon and award Professor Oak's certificate.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+
+    Returns:
+        True if the certificate was awarded (first time), False otherwise
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    if story_flags.get("oaks_certificate"):
+        return False
+
+    caught_set = game_state.game_data.get("pokedex", {}).get("caught", [])
+    if len(caught_set) < 151:
+        return False
+
+    story_flags["oaks_certificate"] = True
+    player_name = game_state.game_data.get("player_name", "Trainer")
+
+    output.write("")
+    output.write("[bold yellow]════════════════════════════════════════════[/bold yellow]")
+    output.write("[bold yellow]🏅  POKÉDEX COMPLETE!  🏅[/bold yellow]")
+    output.write("[bold yellow]════════════════════════════════════════════[/bold yellow]")
+    output.write("")
+    output.write("[bold green]Professor Oak looks up from his workbench, eyes wide:[/bold green]")
+    output.write(
+        "[italic green]\"Incredible! You've done it, "
+        f'{player_name}! You have caught all 151 Pokémon!"[/italic green]'
+    )
+    output.write("")
+    output.write(
+        '[italic green]"I have spent my life studying Pokémon and even I never managed this feat. '
+        'Please accept this Certificate of Completion as a token of my deepest respect."[/italic green]'
+    )
+    output.write("")
+    output.write("[bold cyan]🏅  PROFESSOR OAK'S CERTIFICATE  🏅[/bold cyan]")
+    output.write("[cyan]This certifies that[/cyan]")
+    output.write(f"[bold cyan]{player_name}[/bold cyan]")
+    output.write("[cyan]has completed the Pokédex by catching all 151 Pokémon.[/cyan]")
+    output.write("[dim cyan]Signed: Professor Samuel Oak[/dim cyan]")
+    output.write("")
+    return True

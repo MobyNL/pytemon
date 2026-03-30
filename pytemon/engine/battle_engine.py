@@ -888,21 +888,21 @@ class BattleState:
         # Catch rate from species data
         catch_rate = wild.get("catch_rate", 255)
 
-        # Safari Zone: apply bait/rock modifier and treat Pokemon as if at full HP
-        # (no HP damage occurs in Safari battles)
+        # Safari Zone: apply bait/rock modifier, then skip the HP formula entirely.
+        # There is no HP damage in Safari battles, and running the HP formula at
+        # full HP would reduce catch_rate to 1/3 — making catching nearly impossible.
         if self.is_safari:
             if self.safari_rock_turns > 0:
                 catch_rate = min(255, int(catch_rate * 1.5))
             elif self.safari_bait_turns > 0:
                 catch_rate = max(1, catch_rate // 2)
-
-        # HP factor: ((3 * max_hp - 2 * current_hp) * catch_rate) / (3 * max_hp)
-        max_hp = wild["max_hp"]
-        current_hp = wild["hp"]
-        hp_factor = ((3 * max_hp - 2 * current_hp) * catch_rate) // (3 * max_hp)
-
-        # Final catch value
-        catch_value = min(255, status_bonus + hp_factor)
+            catch_value = min(255, status_bonus + catch_rate)
+        else:
+            # HP factor: ((3 * max_hp - 2 * current_hp) * catch_rate) / (3 * max_hp)
+            max_hp = wild["max_hp"]
+            current_hp = wild["hp"]
+            hp_factor = ((3 * max_hp - 2 * current_hp) * catch_rate) // (3 * max_hp)
+            catch_value = min(255, status_bonus + hp_factor)
 
         # Master Ball override (shouldn't reach here, but just in case)
         if ball_mod == 0:

@@ -777,3 +777,47 @@ def teach_move_cheat(
         output,
         queue_move_learn_callback,
     )
+
+
+def _trigger_mew_encounter(game_state: "GameState", output: RichLog) -> None:
+    """
+    Trigger the secret Mew encounter.  Queues a forced encounter so the next
+    call to ``trigger_wild_encounter`` uses Mew lv 5.
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+    """
+    pokemon_list = game_state.game_data.get("pokemon", [])
+    if not pokemon_list or not game_state.current_location:
+        output.write("")
+        output.write("[magenta]You feel a strange presence... but nothing happens.[/magenta]")
+        output.write("[dim]Get a Pokemon and venture into the world first.[/dim]")
+        output.write("")
+        return
+
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    if story_flags.get("found_mew"):
+        output.write("")
+        output.write(
+            "[magenta]You heard that rumour... but Mew already revealed itself to you.[/magenta]"
+        )
+        output.write("")
+        return
+
+    story_flags["found_mew"] = True
+    # Queue the encounter for terminal.py to pick up
+    game_state.game_data["_forced_encounter"] = {"species": "MEW", "level": 5}
+
+    output.write("")
+    output.write("[bold magenta]✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨[/bold magenta]")
+    output.write("[bold magenta]   THE TRUCK… IT WAS REAL ALL ALONG!   [/bold magenta]")
+    output.write("[bold magenta]✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨ ✨[/bold magenta]")
+    output.write("")
+    output.write(
+        "[magenta]Something materialises from thin air — a tiny pink Pokemon, "
+        "barely visible, hovers before you![/magenta]"
+    )
+    output.write("")
+    output.write("[bold pink]A wild MEW appeared! (Lv 5)[/bold pink]")
+    output.write("")

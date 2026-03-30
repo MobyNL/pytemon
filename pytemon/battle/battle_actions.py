@@ -16,7 +16,7 @@ from .. import stats as _stats
 from ..data import get_move
 from ..data.move_data import MoveSlot
 from ..engine.battle_engine import BattleState
-from ..gym_system import handle_gym_victory
+from ..gym_system import handle_elite_four_victory, handle_gym_victory, handle_rematch_gym_victory
 from ..locations import get_location
 from ..texts.en import battle_actions as T  # noqa: N812
 from ..ui.formatters import write_lines, write_lines_fmt
@@ -1063,7 +1063,14 @@ def handle_trainer_defeated(game_state: "GameState", output: RichLog, end_battle
 
     # Check if this was a gym leader and award badge
     if trainer.get("trainer_class") == "Gym Leader":
-        handle_gym_victory(game_state, trainer["id"], output)
+        if trainer["id"].endswith("_rematch"):
+            from ..gym_system import handle_rematch_gym_victory
+
+            handle_rematch_gym_victory(game_state, trainer["id"], output)
+        else:
+            handle_gym_victory(game_state, trainer["id"], output)
+    elif trainer.get("trainer_class") in ("Elite Four", "Champion"):
+        handle_elite_four_victory(game_state, trainer["id"], output)
     else:
         write_lines(output, T.BATTLE_WON)
 

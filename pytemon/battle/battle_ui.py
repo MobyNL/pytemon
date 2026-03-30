@@ -138,16 +138,19 @@ def show_battle_options(game_state: "GameState", output: RichLog) -> None:
             f" [dim]Lv.{wild['level']}[/dim]{wild_status}"
         )
     else:
+        if battle.is_safari:
+            output.write("[bold green]🌿  Safari Zone Encounter  🌿[/bold green]")
         output.write(
             f"  [bold red]{wild['name']}[/bold red] [dim]Lv.{wild['level']}[/dim]{wild_status}"
         )
 
     output.write(f"  HP {wild_bar} {wild['hp']}/{wild['max_hp']}")
-    output.write("")
-    output.write(
-        f"  [bold cyan]{player['name']}[/bold cyan] [dim]Lv.{player['level']}[/dim]{player_status}"
-    )
-    output.write(f"  HP {player_bar} {player['hp']}/{player['max_hp']}")
+    if not battle.is_safari:
+        output.write("")
+        output.write(
+            f"  [bold cyan]{player['name']}[/bold cyan] [dim]Lv.{player['level']}[/dim]{player_status}"
+        )
+        output.write(f"  HP {player_bar} {player['hp']}/{player['max_hp']}")
     output.write("")
     write_lines(output, T.BATTLE_WHAT_TO_DO)
     items = game_state.game_data.get("items", {})

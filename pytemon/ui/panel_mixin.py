@@ -103,6 +103,8 @@ class PanelMixin:
 
     def show_battle_action_panel(self) -> None:
         """Show the battle action button panel."""
+        from textual.widgets import Button
+
         battle_panel = self.query_one("#battle-actions")
         move_panel = self.query_one("#move-selection")
         battle_panel.remove_class("hidden")
@@ -112,6 +114,25 @@ class PanelMixin:
             self.query_one("#pokemon-switch").add_class("hidden")
             self.query_one("#faint-switch").add_class("hidden")
             self.hide_battle_loading()
+        except Exception:
+            pass
+        # Relabel buttons for Safari Zone vs normal battle
+        battle_state = getattr(self.game_state, "battle_state", None)
+        try:
+            if battle_state and battle_state.is_safari:
+                items = self.game_state.game_data.get("items", {})
+                safari_balls = items.get("Safari Ball", 0)
+                self.query_one("#btn-fight", Button).label = "🥩 Bait"
+                self.query_one("#btn-switch", Button).label = "🪨 Rock"
+                self.query_one("#btn-item", Button).label = f"🟤 Safari Ball ({safari_balls})"
+                self.query_one("#btn-item", Button).disabled = safari_balls <= 0
+                self.query_one("#btn-run", Button).label = "🏃 Run"
+            else:
+                self.query_one("#btn-fight", Button).label = "⚔️ Fight"
+                self.query_one("#btn-switch", Button).label = "🔄 Switch"
+                self.query_one("#btn-item", Button).label = "🎒 Item"
+                self.query_one("#btn-item", Button).disabled = False
+                self.query_one("#btn-run", Button).label = "🏃 Run"
         except Exception:
             pass
 
@@ -398,7 +419,11 @@ class PanelMixin:
     def show_battle_hud(self) -> None:
         """Show the player and enemy HUD panels inside the battle screen."""
         try:
-            self.query_one("#hud-player").remove_class("hidden")
+            battle_state = getattr(self.game_state, "battle_state", None)
+            if battle_state and battle_state.is_safari:
+                self.query_one("#hud-player").add_class("hidden")
+            else:
+                self.query_one("#hud-player").remove_class("hidden")
             self.query_one("#hud-enemy").remove_class("hidden")
         except Exception:
             pass

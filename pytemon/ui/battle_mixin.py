@@ -147,6 +147,11 @@ class BattleMixin:
 
         output.write(f"[bold red]A wild Pokémon appeared![/bold red] [dim]{flavor}[/dim]")
 
+        location = self.game_state.current_location
+        if location and location.name == "Safari Zone":
+            self._do_trigger_wild_encounter(output)
+            return
+
         self._show_lead_selection_prompt(output, battle_type="wild")
 
     def trigger_trainer_encounter(self, output: RichLog, trainer: dict) -> None:
