@@ -197,6 +197,13 @@ def move_to_location(
         write_lines_fmt(output, T.LOCATION_NOT_FOUND, location_name=matching_exit)
         return
 
+    # Exit the current dungeon if applicable (before updating current_location)
+    from .dungeon import exit_dungeon as _exit_dungeon, get_dungeon_for_location as _get_dungeon
+
+    prev_dungeon = _get_dungeon(current.name)
+    if prev_dungeon:
+        _exit_dungeon(game_state)
+
     game_state.game_data["previous_location"] = current.name
     game_state.current_location = new_location
     game_state.game_data["location"] = new_location.name
@@ -218,8 +225,15 @@ def move_to_location(
         write_lines_fmt(output, T.AUTOSAVED_TO, autosave_name=autosave_path.name)
     write_lines(output, T.TRAVELING_TO_FOOTER)
 
-    # Show the location details
-    show_arrival_callback(output)
+    # If the new location is a dungeon, enter it automatically
+    new_dungeon = _get_dungeon(new_location.name)
+    if new_dungeon:
+        from .dungeon import enter_dungeon as _enter_dungeon
+
+        _enter_dungeon(game_state, new_dungeon, output)
+    else:
+        # Show the location details normally
+        show_arrival_callback(output)
 
 
 def prompt_for_location(
@@ -769,10 +783,42 @@ def explore_area(
     if _is_dark_tunnel:
         write_lines(output, T.DARK_TUNNEL_WARNING)
 
+    # ── Dungeon floor override ────────────────────────────────────────────────
+    # When inside a multi-floor dungeon, use the active floor's encounter tables
+    # and trainer roster instead of the flat location-level data.
+    from .dungeon import (
+        get_current_floor as _get_current_floor,
+        pick_floor_level,
+        pick_floor_species,
+    )
+
+    _active_floor = _get_current_floor(game_state)
+
+    # Effective wild Pokemon list (floor override or location default)
+    _effective_wild_pokemon = _active_floor.wild_pokemon if _active_floor else location.wild_pokemon
+
+    # Effective wild encounter rate (floor override or location default)
+    _effective_wild_rate = (
+        _active_floor.encounter_rate if _active_floor else location.wild_encounter_rate
+    )
+
+    # Effective trainer list (floor trainer IDs if in a dungeon floor, else location trainers)
+    if _active_floor and _active_floor.trainer_ids:
+        from .data import TRAINERS as _TRAINERS
+
+        all_floor_trainers = [
+            _TRAINERS[tid] for tid in _active_floor.trainer_ids if tid in _TRAINERS
+        ]
+    else:
+        all_floor_trainers = None  # fall back to location-based lookup below
+
     # Check for undefeated trainers first (60% chance to encounter if available)
-    trainers = get_trainers_by_location(location.name)
+    if all_floor_trainers is not None:
+        trainers_pool = all_floor_trainers
+    else:
+        trainers_pool = get_trainers_by_location(location.name)
     defeated_ids = game_state.game_data.get("defeated_trainers", [])
-    available_trainers = [t for t in trainers if t["id"] not in defeated_ids]
+    available_trainers = [t for t in trainers_pool if t["id"] not in defeated_ids]
 
     pokemon_list = game_state.game_data.get("pokemon", [])
     if not pokemon_list:
@@ -789,7 +835,10 @@ def explore_area(
         return
 
     # Prioritize trainer encounters
-    if available_trainers and random.random() < location.trainer_encounter_rate:
+    _trainer_encounter_rate = (
+        location.trainer_encounter_rate if not _active_floor else location.trainer_encounter_rate
+    )
+    if available_trainers and random.random() < _trainer_encounter_rate:
         # Encounter a random undefeated trainer
         trainer = random.choice(available_trainers)
         # In dark Rock Tunnel without Flash, trainer names/details are hidden
@@ -806,7 +855,7 @@ def explore_area(
         return
 
     # Otherwise check for wild Pokemon
-    if not location.wild_pokemon:
+    if not _effective_wild_pokemon:
         write_lines(output, T.EXPLORE_NOTHING_FOUND)
         return
 
@@ -819,7 +868,7 @@ def explore_area(
     # Bicycle halves wild encounter rate and counts as 2 explores per trip
     cycling = game_state.game_data.get("cycling", False)
     explore_step = 2 if cycling else 1
-    wild_encounter_rate = location.wild_encounter_rate
+    wild_encounter_rate = _effective_wild_rate
     if _is_dark_tunnel:
         # Darkness triples the encounter rate (capped at 100%)
         wild_encounter_rate = min(1.0, wild_encounter_rate * 3.0)
@@ -849,7 +898,7 @@ def explore_area(
             has_silph_scope = bool(_bag.get("Silph Scope", 0))
             if not has_silph_scope:
                 ghost_species = {"GASTLY", "HAUNTER"}
-                ghost_pool = [p for p in location.wild_pokemon if p in ghost_species]
+                ghost_pool = [p for p in _effective_wild_pokemon if p in ghost_species]
                 if ghost_pool and random.random() < 0.70:
                     game_state.increment_route_progress(location.name, explore_step)
                     _stats.record_explore(game_state, location.name)
@@ -857,6 +906,12 @@ def explore_area(
                     return
         game_state.increment_route_progress(location.name, explore_step)
         _stats.record_explore(game_state, location.name)
+        # Inject floor-specific encounter data so trigger_wild_callback uses it
+        if _active_floor:
+            game_state.game_data["_fishing_encounter"] = {
+                "species": pick_floor_species(_active_floor),
+                "level": pick_floor_level(_active_floor),
+            }
         trigger_wild_callback(output)
     else:
         game_state.increment_route_progress(location.name, explore_step)

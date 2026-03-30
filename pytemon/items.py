@@ -718,8 +718,16 @@ def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
         output.write("")
         return False
 
-    # BFS to find the nearest town (works even when no town is a direct exit)
-    town_name = _find_nearest_town(location.name)
+    # If inside a tracked dungeon, use its escape_to destination directly
+    from .dungeon import exit_dungeon as _exit_dungeon, get_dungeon_for_location as _get_dungeon
+
+    dungeon = _get_dungeon(location.name)
+    town_name = dungeon.escape_to if dungeon else None
+
+    # BFS fallback for non-dungeon areas or when dungeon.escape_to doesn't resolve
+    if not town_name:
+        town_name = _find_nearest_town(location.name)
+
     if town_name:
         dest = get_location(town_name)
         if dest:
@@ -728,6 +736,9 @@ def _use_escape_rope(game_state: GameState, name: str, output: RichLog) -> bool:
             game_state.current_location = dest
             game_state.game_data["location"] = dest.name
             game_state.game_data.setdefault("route_progress", {})[dest.name] = 0
+            # Clear dungeon state when escaping
+            if dungeon:
+                _exit_dungeon(game_state)
             output.write("")
             output.write("[bold cyan]🪢 You used the Escape Rope![/bold cyan]")
             output.write(f"[cyan]You were whisked back to {dest.name}![/cyan]")
