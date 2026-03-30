@@ -10,11 +10,10 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import RichLog
 
-from .texts.en import evolution as T
-from .ui.formatters import write_lines
-
 from .data.pokemon_data import POKEMON
 from .engine import BattleState as _BattleStateClass
+from .texts.en import evolution as T
+from .ui.formatters import write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -220,15 +219,16 @@ def force_evolve(
 
     # ---- Print evolution sequence -------------------------------------------
     if not silent_preamble:
-        output.write("")
-        output.write(f"[bold yellow]✨ What? {old_name} is evolving![/bold yellow]")
+        write_lines_fmt(output, T.EVOLVING_LINE, old_name=old_name)
         write_lines(output, T.EVOLUTION_PREAMBLE)
-    output.write(
-        f"[bold green]🎉 Congratulations! {old_name} evolved into {evolved_form_name}! 🎉[/bold green]"
+    write_lines_fmt(
+        output,
+        T.EVOLUTION_SUCCESS,
+        old_name=old_name,
+        evolved_form=evolved_form_name,
+        current_level=current_level,
+        hp=evolved_pokemon["hp"],
+        max_hp=evolved_pokemon["max_hp"],
     )
-    output.write(
-        f"  [dim]Level {current_level} | HP: {evolved_pokemon['hp']}/{evolved_pokemon['max_hp']}[/dim]"
-    )
-    output.write("")
 
     return True

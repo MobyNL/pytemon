@@ -29,9 +29,10 @@ ITEM_NO_POKEMON: list[str] = [
     "",
 ]
 
+# Dynamic: use write_lines_fmt(output, ITEM_NOT_OWNED, item_name=...)
 ITEM_NOT_OWNED: list[str] = [
     "",
-    # dynamic: "[red]❌ You don't have any {item_name}![/red]"
+    "[red]❌ You don't have any {item_name}![/red]",
     "",
 ]
 
@@ -41,8 +42,12 @@ ITEM_BALLS_BATTLE_ONLY: list[str] = [
     "",
 ]
 
+# Dynamic: use write_lines_fmt(output, ITEM_HM_USE_HINT, hm_name=..., example_name=...)
 ITEM_HM_USE_HINT: list[str] = [
-    # dynamic: "[dim]{hm_name} teaches a move. Select a Pokemon with 'use {hm_name} on <pokemon>'[/dim]"
+    "",
+    "[yellow]⚠ Usage: use {hm_name} on <Pokemon name or slot>[/yellow]",
+    "[dim]Example: 'use {hm_name} on {example_name}'[/dim]",
+    "",
 ]
 
 # ── use_item (escape rope) ────────────────────────────────────────────────────

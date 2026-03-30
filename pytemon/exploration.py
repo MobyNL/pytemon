@@ -14,7 +14,7 @@ from . import stats as _stats
 from .data import get_trainers_by_location
 from .locations import get_location
 from .texts.en import exploration as T
-from .ui.formatters import format_list, get_travel_description, write_lines
+from .ui.formatters import format_list, get_travel_description, write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -48,10 +48,12 @@ def move_to_location(
             break
 
     if not matching_exit:
-        output.write("")
-        output.write(f"[red]❌ You can't go to '{destination}' from {current.name}[/red]")
-        output.write("[dim]Type 'Look Around' to see available exits[/dim]")
-        output.write("")
+        write_lines_fmt(
+            output,
+            T.CANT_GO_THERE,
+            destination=destination,
+            location=current.name,
+        )
         return
 
     # Check if the exit is blocked
@@ -84,15 +86,15 @@ def move_to_location(
     done = game_state.get_route_progress(current.name)
     if required > 0 and done < required and not game_state.cheat_mode and not is_backtracking:
         remaining = required - done
-        output.write("")
-        output.write(f"[yellow]⚠ You haven't fully explored {current.name} yet![/yellow]")
-        output.write(
-            f"[dim]Explore the area {remaining} more time(s) before heading to {matching_exit}.[/dim]"
+        write_lines_fmt(
+            output,
+            T.NOT_ENOUGH_EXPLORES,
+            location=current.name,
+            remaining=remaining,
+            destination=matching_exit,
+            done=done,
+            required=required,
         )
-        output.write(
-            f"[dim]Progress: {done}/{required} — use 'Explore' to continue searching[/dim]"
-        )
-        output.write("")
         return
 
     # Special check: Block Route 1 from Pallet Town if no Pokemon
@@ -586,7 +588,9 @@ def explore_area(
     _is_dark_tunnel = location.name == "Rock Tunnel" and location.name not in flash_lit
     if _is_dark_tunnel:
         output.write("[dim]🌑 The tunnel is pitch black — encounters are far more frequent![/dim]")
-        output.write("[dim]   Use Flash to illuminate the cave and reduce wild encounter rate.[/dim]")
+        output.write(
+            "[dim]   Use Flash to illuminate the cave and reduce wild encounter rate.[/dim]"
+        )
         output.write("")
 
     # Check for undefeated trainers first (60% chance to encounter if available)
@@ -744,12 +748,8 @@ def explore_area(
                     "[bold magenta]👻 A shadowy figure blocks the stairs...[/bold magenta]"
                 )
                 if has_silph_scope:
-                    output.write(
-                        "[magenta]   Through the Silph Scope you see clearly:[/magenta]"
-                    )
-                    output.write(
-                        "[magenta]   It's the ghost of a [bold]MAROWAK[/bold]![/magenta]"
-                    )
+                    output.write("[magenta]   Through the Silph Scope you see clearly:[/magenta]")
+                    output.write("[magenta]   It's the ghost of a [bold]MAROWAK[/bold]![/magenta]")
                     output.write(
                         "[magenta]   The vengeful spirit of a mother protecting her child...[/magenta]"
                     )
@@ -764,9 +764,7 @@ def explore_area(
                     output.write(
                         "[magenta]   The ghost cannot be identified — your Pokeballs pass right through![/magenta]"
                     )
-                    output.write(
-                        "[magenta]   You retreat to a lower floor, shaken.[/magenta]"
-                    )
+                    output.write("[magenta]   You retreat to a lower floor, shaken.[/magenta]")
                     output.write("")
                     output.write(
                         "[yellow]⚠ Tip:[/yellow] [dim]You need the Silph Scope to battle the ghost Pokemon here.[/dim]"
@@ -784,22 +782,14 @@ def explore_area(
                 _tower_flags["rescued_mr_fuji"] = True
                 _bag["Poke Flute"] = _bag.get("Poke Flute", 0) + 1
                 output.write("")
-                output.write(
-                    "[bold cyan]🏠 You reach the top of Pokemon Tower...[/bold cyan]"
-                )
-                output.write(
-                    "[cyan]   Team Rocket Grunts scatter as you approach![/cyan]"
-                )
+                output.write("[bold cyan]🏠 You reach the top of Pokemon Tower...[/bold cyan]")
+                output.write("[cyan]   Team Rocket Grunts scatter as you approach![/cyan]")
                 output.write("")
                 output.write(
                     "[bold]Mr. Fuji:[/bold] [cyan]Oh my... a young trainer, here to rescue me![/cyan]"
                 )
-                output.write(
-                    "[cyan]   Those dreadful Team Rocket villains imprisoned me![/cyan]"
-                )
-                output.write(
-                    "[cyan]   Please — take this Poke Flute as thanks.[/cyan]"
-                )
+                output.write("[cyan]   Those dreadful Team Rocket villains imprisoned me![/cyan]")
+                output.write("[cyan]   Please — take this Poke Flute as thanks.[/cyan]")
                 output.write(
                     "[cyan]   It will wake the sleeping Pokemon that block your path.[/cyan]"
                 )
@@ -820,9 +810,7 @@ def explore_area(
                 output.write(
                     "[bold yellow]🗝️  A small key glints under a fallen crate...[/bold yellow]"
                 )
-                output.write(
-                    "[yellow]   The tag reads: [bold]LIFT KEY — B4F[/bold].[/yellow]"
-                )
+                output.write("[yellow]   The tag reads: [bold]LIFT KEY — B4F[/bold].[/yellow]")
                 output.write("[bold green]✓ Found the Lift Key![/bold green]")
                 output.write(
                     "[dim]   Use this key to reach the lower floors and confront the Rocket Boss.[/dim]"
@@ -840,23 +828,15 @@ def explore_area(
                 output.write(
                     "[bold red]🚀 You reach the deepest level of the Hideout...[/bold red]"
                 )
-                output.write(
-                    "[red]   Giovanni stares at you with cold contempt.[/red]"
-                )
+                output.write("[red]   Giovanni stares at you with cold contempt.[/red]")
                 output.write("")
-                output.write(
-                    "[bold]Giovanni:[/bold] [red]So... you've made it this far.[/red]"
-                )
-                output.write(
-                    "[red]   I am Giovanni — the Boss of Team Rocket.[/red]"
-                )
+                output.write("[bold]Giovanni:[/bold] [red]So... you've made it this far.[/red]")
+                output.write("[red]   I am Giovanni — the Boss of Team Rocket.[/red]")
                 output.write(
                     "[red]   You have some skill. But skill alone does not impress me.[/red]"
                 )
                 output.write("[red]   ...You win. Take the Silph Scope.[/red]")
-                output.write(
-                    "[red]   It is useless to us if we cannot hold this base.[/red]"
-                )
+                output.write("[red]   It is useless to us if we cannot hold this base.[/red]")
                 output.write("[red]   Team Rocket will retreat... for now.[/red]")
                 output.write("")
                 output.write("[bold yellow]★ Received Silph Scope! ★[/bold yellow]")

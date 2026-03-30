@@ -504,7 +504,12 @@ class TestCheatWin:
     def _run(self, gs, output, victory_cb=None):
         gs.cheat_mode = True
         return process_cheat_command(
-            "cheat win", gs, output, noop, noop, noop,
+            "cheat win",
+            gs,
+            output,
+            noop,
+            noop,
+            noop,
             handle_battle_victory_callback=victory_cb,
         )
 
@@ -539,7 +544,12 @@ class TestCheatLose:
     def _run(self, gs, output, fainted_cb=None):
         gs.cheat_mode = True
         return process_cheat_command(
-            "cheat lose", gs, output, noop, noop, noop,
+            "cheat lose",
+            gs,
+            output,
+            noop,
+            noop,
+            noop,
             handle_pokemon_fainted_callback=fainted_cb,
         )
 

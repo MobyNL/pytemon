@@ -69,8 +69,8 @@ class BattleState:
 
         # ── Safari Zone state ─────────────────────────────────────────────
         self.is_safari: bool = False
-        self.safari_bait_turns: int = 0   # turns bait is active (reduces flee chance)
-        self.safari_rock_turns: int = 0   # turns rock is active (raises flee + catch rate)
+        self.safari_bait_turns: int = 0  # turns bait is active (reduces flee chance)
+        self.safari_rock_turns: int = 0  # turns rock is active (raises flee + catch rate)
 
     def start_wild_battle(
         self, player_pokemon: PartyPokemon, wild_species: str, wild_level: int

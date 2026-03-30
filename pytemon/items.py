@@ -19,6 +19,8 @@ from . import hm_tm_system as _hm_tm
 from .engine import BattleState as _BattleState
 from .locations import get_location
 from .models import PartyPokemon as _PartyPokemon
+from .texts.en import items as T
+from .ui.formatters import write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -381,7 +383,7 @@ def use_item_outside_battle(
         return False  # guard: keeps canonical as str below
     items = game_state.game_data.get("items", {})
     if items.get(canonical, 0) <= 0:
-        output.write(f"[red]❌ You have no {canonical}![/red]")
+        write_lines_fmt(output, T.ITEM_NOT_OWNED, item_name=canonical)
         return False
 
     cat = data["cat"]
@@ -766,10 +768,7 @@ def _use_hm_tm(
     if not target:
         party = game_state.game_data.get("pokemon", [])
         example_name = party[0].get("name", "Pikachu") if party else "Pikachu"
-        output.write("")
-        output.write(f"[yellow]⚠ Usage: use {name} on <Pokemon name or slot>[/yellow]")
-        output.write(f"[dim]Example: 'use {name} on {example_name}'[/dim]")
-        output.write("")
+        write_lines_fmt(output, T.ITEM_HM_USE_HINT, hm_name=name, example_name=example_name)
         return False
 
     pokemon, _ = game_state.find_pokemon(target)

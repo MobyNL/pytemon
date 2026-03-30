@@ -4,11 +4,17 @@ Text constants for pytemon/gym_system.py.
 
 # ── enter_gym_lobby ───────────────────────────────────────────────────────────
 
-# Dynamic header — use write_dynamic_lines(output, GYM_LOBBY_HEADER, {"gym_name": "PEWTER CITY GYM"})
-#                  or   write_lines_fmt(output, GYM_LOBBY_HEADER, gym_name="PEWTER CITY GYM")
-# Note: [bold cyan] with a dynamic name can't be fully pre-baked; only the
-# surrounding border lines are in the list — the name line stays inline.
+# Dynamic header — use write_lines_fmt(output, GYM_LOBBY_HEADER, gym_name="PEWTER CITY GYM")
+#                  or   write_dynamic_lines(output, GYM_LOBBY_HEADER, {"gym_name": "PEWTER CITY GYM"})
+GYM_LOBBY_HEADER: list[str] = [
+    "",
+    "[bold cyan]═══════════════════════════════════════════[/bold cyan]",
+    "[bold cyan]     ⚔️  {gym_name} ⚔️      [/bold cyan]",
+    "[bold cyan]═══════════════════════════════════════════[/bold cyan]",
+    "",
+]
 
+# Legacy border-only constant (kept for backward compatibility)
 GYM_LOBBY_BORDER: list[str] = [
     "",
     "[bold cyan]═══════════════════════════════════════════[/bold cyan]",

@@ -28,16 +28,18 @@ FISHING_NO_ROD: list[str] = [
     "",
 ]
 
-# Dynamic: "[red]❌ You don't have a {rod_name}![/red]"
+# Dynamic: use write_lines_fmt(output, FISHING_WRONG_ROD, rod_name=...)
 FISHING_WRONG_ROD: list[str] = [
     "",
-    # dynamic line
+    "[red]❌ You don't have a {rod_name}![/red]",
     "[dim]Buy fishing rods from the Fishing Guru.[/dim]",
     "",
 ]
 
-# Dynamic: "[bold cyan]🎣 You cast your {rod_name} into the water...[/bold cyan]"
-FISHING_CAST_POST: list[str] = [
+# Dynamic: use write_lines_fmt(output, FISHING_CAST, rod_name=...)
+FISHING_CAST: list[str] = [
+    "",
+    "[bold cyan]🎣 You cast your {rod_name} into the water...[/bold cyan]",
     "",
 ]
 

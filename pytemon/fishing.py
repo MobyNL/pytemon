@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from .game_state import GameState
 
 from .texts.en import fishing as T
-from .ui.formatters import write_lines
+from .ui.formatters import write_lines, write_lines_fmt
 
 # ---------------------------------------------------------------------------
 # Fishing data — rod → (species, weight) tables and level ranges
@@ -159,10 +159,7 @@ def start_fishing(
     if rod_name:
         chosen_rod = get_rod_for_name(game_state, rod_name)
         if not chosen_rod:
-            output.write("")
-            output.write(f"[red]❌ You don't have a {rod_name}![/red]")
-            output.write("[dim]Buy fishing rods from the Fishing Guru.[/dim]")
-            output.write("")
+            write_lines_fmt(output, T.FISHING_WRONG_ROD, rod_name=rod_name)
             return
     else:
         chosen_rod = get_best_rod(game_state)
@@ -171,9 +168,7 @@ def start_fishing(
             return
 
     # --- Casting ---
-    output.write("")
-    output.write(f"[bold cyan]🎣 You cast your {chosen_rod} into the water...[/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.FISHING_CAST, rod_name=chosen_rod)
 
     nibble_chance = _NIBBLE_CHANCE.get(chosen_rod, 0.75)
     if random.random() > nibble_chance:

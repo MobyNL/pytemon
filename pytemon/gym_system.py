@@ -10,9 +10,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from textual.widgets import RichLog
 
 from .data import get_trainer
-
 from .texts.en import gym_system as T
-from .ui.formatters import write_lines
+from .ui.formatters import write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     from .game_state import GameState
@@ -264,10 +263,7 @@ def enter_gym_lobby(game_state: "GameState", output: RichLog, show_gym_panel_cal
     leader_name = badge_data["leader"] if badge_data else "Gym Leader"
 
     output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write(f"[bold cyan]     ⚔️  {gym_data['name'].upper()} ⚔️      [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.GYM_LOBBY_HEADER, gym_name=gym_data["name"].upper())
     output.write(f"[bold]Official Pokemon Gym[/bold]  [dim]{gym_data['specialty']}[/dim]")
     output.write("")
 
@@ -533,10 +529,7 @@ def enter_gym(game_state: "GameState", output: RichLog, trigger_trainer_battle_c
         return
 
     output.write("")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write(f"[bold cyan]     ⚔️  {gym_data['name'].upper()} ⚔️      [/bold cyan]")
-    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.GYM_LOBBY_HEADER, gym_name=gym_data["name"].upper())
     output.write("[bold]Official Pokemon Gym[/bold]")
     output.write(f"[dim]Specialty: {gym_data['specialty']}[/dim]")
     output.write("")
