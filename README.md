@@ -25,6 +25,22 @@ poetry install
 poetry run python run_terminal.py
 ```
 
+## Run in the browser (experimental)
+
+The game can also be served locally and played entirely in a browser tab using a
+built-in PTY WebSocket server.  No cloud account or extra installs are needed —
+`aiohttp` is already a transitive dependency.
+
+```bash
+poetry run python run_web_local.py
+```
+
+Then open **http://localhost:7681** in your browser.  Each tab launches a
+separate game session.  Press `Ctrl+C` in the terminal to stop the server.
+
+The terminal fills the full browser window; the layout automatically adapts when
+you resize the tab.
+
 ---
 
 ## How to play
@@ -380,6 +396,7 @@ pytemon/
 │   └── ui/            # TUI mixin modules
 ├── tests/             # Pytest unit tests
 ├── saves/             # Save files (auto-created)
-├── run_terminal.py    # Direct launcher
+├── run_terminal.py    # Terminal launcher
+├── run_web_local.py   # Browser launcher (PTY WebSocket server)
 └── pyproject.toml
 ```
