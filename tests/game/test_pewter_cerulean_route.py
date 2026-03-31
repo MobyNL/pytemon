@@ -271,13 +271,13 @@ class TestCeruleanGym:
 
 class TestNewBuildings:
     def test_enter_museum_shows_exhibits(self, gs, output):
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda _: None)
         assert "PEWTER CITY MUSEUM" in output.combined
         assert "FOSSIL EXHIBIT" in output.combined
 
     def test_enter_museum_fossil_dialogue(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda _: None)
         assert "found in Mt. Moon" in output.combined
 
     def test_enter_bike_shop_first_visit(self, gs, output):

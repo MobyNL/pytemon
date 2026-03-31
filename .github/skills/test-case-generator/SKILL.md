@@ -13,7 +13,7 @@ Generates complete, CI-passing pytest test files for new robot-pokemon features.
 ## Instructions
 
 ### 1. Input
-- **File(s) to test** — e.g. `PokemonLibrary/buildings.py`
+- **File(s) to test** — e.g. `pytemon/buildings.py`
 - **Functions/classes** — which functions need coverage
 - **Current coverage** — run `pytest --cov-report=term-missing` and paste the MISS lines
 - **Fixtures needed** — `gs` (GameState), `output` (MockRichLog), or custom
@@ -21,14 +21,14 @@ Generates complete, CI-passing pytest test files for new robot-pokemon features.
 ### 2. File Naming and Structure
 
 ```
-PokemonLibrary/buildings.py  →  tests/test_buildings.py
-PokemonLibrary/ui/battle_mixin.py  →  tests/test_battle_mixin.py
+pytemon/buildings.py  →  tests/test_buildings.py
+pytemon/ui/battle_mixin.py  →  tests/test_battle_mixin.py
 ```
 
 ```python
 # tests/test_buildings.py
 import pytest
-from PokemonLibrary.buildings import enter_bike_shop, heal_all_pokemon
+from pytemon.buildings import enter_bike_shop, heal_all_pokemon
 from tests.conftest import MockRichLog   # or define inline if not in conftest
 
 
@@ -116,7 +116,7 @@ class TestMoveToLocation:
 ## Dependencies
 - `tests/conftest.py` — `gs` and `output` fixtures, `MockRichLog`
 - `pytest` — test runner
-- `PokemonLibrary/` — modules under test
+- `pytemon/` — modules under test
 
 ## Error Handling
 - **Test imports fail**: check for a circular import or missing `__init__.py` in `tests/`

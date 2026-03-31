@@ -131,8 +131,8 @@ start_wild_encounter / start_trainer_battle
 ## Testing Battle Code
 
 ```python
-from PokemonLibrary.engine import BattleState
-from PokemonLibrary.battle.battle_actions import execute_player_move
+from pytemon.engine import BattleState
+from pytemon.battle.battle_actions import execute_player_move
 
 def setup_wild_battle(gs, player="PIKACHU", wild="RATTATA", level=5):
     bs = BattleState()

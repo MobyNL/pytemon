@@ -38,24 +38,40 @@ connected_to=["Cerulean City"],   # Route 24 exit
 ### 3. Story Flag Guard (one-time event)
 
 ```python
+# texts/en/exploration.py:
+# MOON_STONE_FOUND: list[str] = [
+#     "[bold yellow]★  You found a MOON STONE![/bold yellow]",
+#     "[italic]You picked up a Moon Stone![/italic]",
+# ]
+
 # exploration.py — in show_arrival or explore_area callback
+from pytemon.texts.en import exploration as T
+from pytemon.ui.formatters import write_lines
 flags = game_state.game_data["story_flags"]
 if location_name == "Mt. Moon" and not flags.get("received_moon_stone"):
     flags["received_moon_stone"] = True
     bag = game_state.game_data["bag"]
     bag["Moon Stone"] = bag.get("Moon Stone", 0) + 1
-    output.write("[bold yellow]★  You found a MOON STONE![/bold yellow]")
+    write_lines(output, T.MOON_STONE_FOUND)
 # Second visit: flag is True, block skips, no duplicate item
 ```
 
 ### 4. Item Use Restriction
 
 ```python
+from pytemon.texts.en import items as T
+from pytemon.ui.formatters import write_lines_fmt
+
 # items.py
 if item_name == "Thunder Stone":
     valid_species = {"PIKACHU", "EEVEE"}   # only these can use it
     if pokemon["species"] not in valid_species:
-        output.write(f"[red]{pokemon['name']} can't use the Thunder Stone.[/red]")
+        write_lines_fmt(
+            output,
+            T.CANNOT_USE_ITEM_ON_POKEMON,
+            name=pokemon["name"],
+            item="Thunder Stone",
+        )
         return
 ```
 
@@ -76,18 +92,26 @@ if item_name == "Thunder Stone":
 
 **Output:**
 ```python
+# texts/en/exploration.py:
+# ROUTE24_BLOCKED: list[str] = [
+#     "[yellow]A trainer blocks the way: 'You need the Cascade Badge!'[/yellow]",
+# ]
+
+from pytemon.texts.en import exploration as T
+from pytemon.ui.formatters import write_lines
+
 # exploration.py — in move_to_location, after resolving destination
 if destination.lower() == "route 24":
     if "cascade" not in game_state.game_data.get("badges", []):
         if not game_state.cheat_mode:
-            output.write("[yellow]A trainer blocks the way: 'You need the Cascade Badge!'[/yellow]")
+            write_lines(output, T.ROUTE24_BLOCKED)
             return
 ```
 
 ## Dependencies
-- `PokemonLibrary/exploration.py` — movement and arrival logic
-- `PokemonLibrary/items.py` — item use restrictions
-- `PokemonLibrary/game_state.py` — `game_data["story_flags"]`, `game_data["badges"]`, `cheat_mode`
+- `pytemon/exploration.py` — movement and arrival logic
+- `pytemon/items.py` — item use restrictions
+- `pytemon/game_state.py` — `game_data["story_flags"]`, `game_data["badges"]`, `cheat_mode`
 
 ## Error Handling
 - **Flag never set**: trace back to where the preceding event (gym win, story beat) should set it

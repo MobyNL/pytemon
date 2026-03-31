@@ -34,7 +34,7 @@ Project skills live in `.github/skills/`. **Invoke the relevant skill at the sta
 
 ## Your Responsibilities
 
-- Write tests in `tests/` that mirror the source structure (`PokemonLibrary/foo.py` → `tests/test_foo.py`)
+- Write tests in `tests/` that mirror the source structure (`pytemon/foo.py` → `tests/test_foo.py`)
 - Ensure all new tests pass `ruff check tests/` with zero errors before presenting them
 - **Coverage targets (non-negotiable):**
   - Overall project coverage: **≥ 80%**
@@ -116,10 +116,10 @@ can, _ = can_challenge_gym(gs, "Pewter City")
 ## Test Structure Template
 
 ```python
-"""Tests for PokemonLibrary/<module>.py"""
+"""Tests for pytemon/<module>.py"""
 
 import pytest
-from PokemonLibrary.<module> import <thing>
+from pytemon.<module> import <thing>
 
 # ===========================================================================
 # <ClassName or function group>
@@ -144,7 +144,7 @@ class Test<Subject>:
 ```python
 # Make a party pokemon and add to game_state
 def make_party_pokemon(gs, name="PIKACHU", level=5, hp=35):
-    from PokemonLibrary.models import PartyPokemon, MoveSlot
+    from pytemon.models import PartyPokemon, MoveSlot
     p = PartyPokemon(name=name, number=25, types=["Electric"], level=level,
                      hp=hp, max_hp=35, stats={...}, moves=[MoveSlot(...)], ...)
     gs.game_data["pokemon"].append(p)
@@ -152,7 +152,7 @@ def make_party_pokemon(gs, name="PIKACHU", level=5, hp=35):
 
 # Set up a wild battle
 def setup_wild_battle(gs, wild="RATTATA", level=5):
-    from PokemonLibrary.engine import BattleState
+    from pytemon.engine import BattleState
     bs = BattleState()
     player = bs.generate_wild_pokemon("PIKACHU", 10)
     gs.game_data["pokemon"] = [player]
@@ -162,7 +162,7 @@ def setup_wild_battle(gs, wild="RATTATA", level=5):
 
 # Import heavy modules inside the test method
 def test_something(self):
-    from PokemonLibrary.engine import BattleState
+    from pytemon.engine import BattleState
     bs = BattleState()
     ...
 ```
@@ -266,7 +266,7 @@ assert 1 <= shakes <= 4
 
 ## Coverage Requirements
 
-Coverage is measured with `pytest --cov=PokemonLibrary --cov-report=term-missing`.
+Coverage is measured with `pytest --cov=pytemon --cov-report=term-missing`.
 
 **Targets:**
 - **Overall**: ≥ 80%
@@ -276,10 +276,10 @@ Coverage is measured with `pytest --cov=PokemonLibrary --cov-report=term-missing
 
 ```bash
 # Coverage for a single file (see exactly which lines are missing)
-poetry run pytest tests/ --cov=PokemonLibrary --cov-report=term-missing | grep "PokemonLibrary/foo.py"
+poetry run pytest tests/ --cov=pytemon --cov-report=term-missing | grep "pytemon/foo.py"
 
 # Full report
-poetry run pytest tests/ --cov=PokemonLibrary --cov-report=term-missing
+poetry run pytest tests/ --cov=pytemon --cov-report=term-missing
 ```
 
 **Coverage workflow:**
@@ -297,9 +297,9 @@ poetry run pytest tests/ --cov=PokemonLibrary --cov-report=term-missing
 
 **What NOT to Test (excluded from coverage entirely):**
 
-- `PokemonLibrary/terminal.py` — excluded from coverage; needs a live Textual display
-- `PokemonLibrary/library.py` — thin Robot Framework wrapper
-- `PokemonLibrary/ui/text_animation.py` — excluded from coverage
+- `pytemon/terminal.py` — excluded from coverage; needs a live Textual display
+- `pytemon/library.py` — thin Robot Framework wrapper
+- `pytemon/ui/text_animation.py` — excluded from coverage
 
 ## Verification Checklist
 

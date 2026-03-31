@@ -16,8 +16,10 @@ from .. import stats as _stats
 from ..data import get_move
 from ..data.move_data import MoveSlot
 from ..engine.battle_engine import BattleState
-from ..gym_system import handle_gym_victory
+from ..gym_system import handle_elite_four_victory, handle_gym_victory, handle_rematch_gym_victory
 from ..locations import get_location
+from ..texts.en import battle_actions as T  # noqa: N812
+from ..ui.formatters import write_lines, write_lines_fmt
 from . import battle_ui
 
 if TYPE_CHECKING:
@@ -99,8 +101,7 @@ def trigger_wild_encounter(
     player_pokemon = game_state.get_active_pokemon()
 
     if not player_pokemon:
-        output.write("[red]❌ All your Pokemon have fainted! Head to a Pokemon Center![/red]")
-        output.write("")
+        write_lines(output, T.NO_USABLE_POKEMON)
         return
 
     # Check for a forced fishing encounter
@@ -109,10 +110,16 @@ def trigger_wild_encounter(
         wild_species = fishing_enc["species"]
         wild_level = fishing_enc["level"]
     else:
-        # Pick a random wild species and level
-        wild_species = random.choice(location.wild_pokemon)
-        min_lvl, max_lvl = location.wild_level_range
-        wild_level = random.randint(min_lvl, max_lvl)
+        # Check for a generic forced encounter (e.g. legendary, cheat)
+        forced_enc = game_state.game_data.pop("_forced_encounter", None)
+        if forced_enc:
+            wild_species = forced_enc["species"]
+            wild_level = forced_enc["level"]
+        else:
+            # Pick a random wild species and level
+            wild_species = random.choice(location.wild_pokemon)
+            min_lvl, max_lvl = location.wild_level_range
+            wild_level = random.randint(min_lvl, max_lvl)
 
     # Create and start battle
     bs = BattleState()
@@ -174,8 +181,7 @@ def trigger_trainer_encounter(
     player_pokemon = game_state.get_active_pokemon()
 
     if not player_pokemon:
-        output.write("[red]❌ All your Pokemon have fainted! Head to a Pokemon Center![/red]")
-        output.write("")
+        write_lines(output, T.NO_USABLE_POKEMON)
         return
 
     # Create and start trainer battle
@@ -234,9 +240,12 @@ def parse_move_choice(command: str, player: "PartyPokemon") -> "Optional[MoveSlo
             return player["moves"][idx]
         return None
 
-    # Name selection (case-insensitive, partial match)
+    # Name selection (case-insensitive): exact match first, then partial match
     for move in player["moves"]:
-        if move["name"].lower() == cmd or cmd in move["name"].lower():
+        if move["name"].lower() == cmd:
+            return move
+    for move in player["moves"]:
+        if cmd in move["name"].lower():
             return move
 
     return None
@@ -277,15 +286,13 @@ def execute_player_move(
     move = parse_move_choice(command, player)
 
     if not move:
-        output.write("[red]❌ Unknown move. Type the name, number, or 'Back'.[/red]")
-        output.write("")
+        write_lines(output, T.UNKNOWN_MOVE)
         show_move_selection_callback(output)
         pending_command_callback("select_move")
         return
 
     if move["pp"] <= 0:
-        output.write(f"[red]❌ {move['name']} has no PP left! Choose another move.[/red]")
-        output.write("")
+        write_lines_fmt(output, T.MOVE_NO_PP, move_name=move["name"])
         show_move_selection_callback(output)
         pending_command_callback("select_move")
         return
@@ -298,8 +305,9 @@ def execute_player_move(
 
     if player_goes_first:
         # ── Player's turn ──────────────────────────────────
-        output.write("")
-        output.write(f"[bold]{player['name']} used {move['name']}![/bold]")
+        write_lines_fmt(
+            output, T.PLAYER_USED_MOVE, player_name=player["name"], move_name=move["name"]
+        )
         messages = battle.execute_move(player, battle.wild_pokemon, move["name"])
         for msg in messages:
             output.write(msg)
@@ -323,8 +331,9 @@ def execute_player_move(
             return
 
         # ── Player's turn ──────────────────────────────────
-        output.write("")
-        output.write(f"[bold]{player['name']} used {move['name']}![/bold]")
+        write_lines_fmt(
+            output, T.PLAYER_USED_MOVE, player_name=player["name"], move_name=move["name"]
+        )
         messages = battle.execute_move(player, battle.wild_pokemon, move["name"])
         for msg in messages:
             output.write(msg)
@@ -377,10 +386,10 @@ def execute_wild_pokemon_turn(game_state: "GameState", output: RichLog) -> None:
             if battle.is_trainer_battle
             else f"Wild {wild['name']}"
         )
-        output.write(f"[yellow]{opponent_name} has no moves left! It used Struggle![/yellow]")
+        write_lines_fmt(output, T.OPPONENT_USED_STRUGGLE, opponent_name=opponent_name)
         struggle_dmg = max(1, player["max_hp"] // 8)
         player["hp"] = max(0, player["hp"] - struggle_dmg)
-        output.write(f"[cyan]{player['name']} took {struggle_dmg} damage![/cyan]")
+        write_lines_fmt(output, T.STRUGGLE_DAMAGE, player_name=player["name"], damage=struggle_dmg)
         return
 
     # Choose move based on battle type
@@ -396,8 +405,9 @@ def execute_wild_pokemon_turn(game_state: "GameState", output: RichLog) -> None:
         opponent_name = f"Wild {wild['name']}"
 
     battle.enemy_moves_seen.add(move["name"])
-    output.write("")
-    output.write(f"[yellow]{opponent_name} used {move['name']}![/yellow]")
+    write_lines_fmt(
+        output, T.OPPONENT_USED_MOVE, opponent_name=opponent_name, move_name=move["name"]
+    )
     messages = battle.execute_move(wild, player, move["name"])
     for msg in messages:
         output.write(msg)
@@ -426,9 +436,7 @@ def attempt_flee(
 
     # Can't flee from trainer battles
     if battle and battle.is_trainer_battle:
-        output.write("")
-        output.write("[red]❌ No! There's no running from a trainer battle![/red]")
-        output.write("")
+        write_lines(output, T.TRAINER_FLEE_BLOCKED)
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
@@ -436,28 +444,16 @@ def attempt_flee(
     # Wild battle - 75% flee chance
     if random.random() < 0.75:
         # Success - varied messages for flavor
-        success_messages = [
-            "[cyan]Got away safely![/cyan]",
-            "[cyan]You managed to escape![/cyan]",
-            "[cyan]Fled successfully![/cyan]",
-            "[cyan]You got away![/cyan]",
-        ]
-        output.write("")
-        output.write(random.choice(success_messages))
-        output.write("")
+        write_lines_fmt(
+            output, T.FLEE_RESULT_WRAPPER, message=random.choice(T.FLEE_SUCCESS_MESSAGES)
+        )
         _stats.record_fled(game_state)
         end_battle_callback(output)
     else:
         # Failed - varied messages for flavor
-        fail_messages = [
-            "[yellow]Can't escape![/yellow]",
-            "[yellow]Couldn't get away![/yellow]",
-            "[yellow]Failed to flee![/yellow]",
-            "[yellow]No! Can't escape![/yellow]",
-        ]
-        output.write("")
-        output.write(random.choice(fail_messages))
-        output.write("")
+        write_lines_fmt(
+            output, T.FLEE_RESULT_WRAPPER, message=random.choice(T.FLEE_FAILED_MESSAGES)
+        )
         # Wild Pokemon still attacks
         execute_wild_pokemon_turn(game_state, output)
         if battle and battle.player_pokemon["hp"] > 0:
@@ -476,6 +472,7 @@ def attempt_catch_pokemon(
     handle_pokemon_fainted_callback,
     ball_type: str = "Pokeball",
     animate_shake_callback=None,
+    post_fail_delay_callback=None,
 ) -> None:
     """
     Attempt to catch the wild Pokemon with a Pokeball.
@@ -491,16 +488,16 @@ def attempt_catch_pokemon(
         animate_shake_callback: Optional ``(output, lines, on_complete)`` callback that
             displays the shake animation and calls ``on_complete()`` when done.
             When omitted the shake lines are written instantly.
+        post_fail_delay_callback: Optional ``(on_complete)`` callback used only when
+            a catch fails. It should invoke ``on_complete()`` after a short delay.
+            When omitted, continuation happens immediately.
     """
     battle = game_state.battle_state
 
     # Can't catch trainer Pokemon!
     if battle and battle.is_trainer_battle:
         trainer = battle.trainer_data
-        output.write("")
-        output.write("[red]❌ The trainer blocked the Ball![/red]")
-        output.write(f"[yellow]{trainer['name']}: Don't be a thief![/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.TRAINER_BLOCKED_BALL, trainer_name=trainer["name"])
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
@@ -510,14 +507,10 @@ def attempt_catch_pokemon(
     # Check inventory for the chosen ball type; fall back to any available ball
     if items.get(ball_type, 0) <= 0:
         # Try to find any available ball to inform the player
-        output.write("")
         if ball_type == "Pokeball":
-            output.write("[red]❌ You have no Pokeballs![/red]")
-            output.write("[dim]Buy Pokeballs at the Pokemart[/dim]")
+            write_lines(output, T.NO_POKEBALLS)
         else:
-            output.write(f"[red]❌ You have no {ball_type}s![/red]")
-            output.write("[dim]Check your bag for available Pokéballs[/dim]")
-        output.write("")
+            write_lines_fmt(output, T.NO_BALL_TYPE, ball_type=ball_type)
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
@@ -529,9 +522,7 @@ def attempt_catch_pokemon(
     if items[ball_type] <= 0:
         del items[ball_type]
 
-    output.write("")
-    output.write(f"[bold cyan]You threw a {ball_type} at wild {wild['name']}![/bold cyan]")
-    output.write("")
+    write_lines_fmt(output, T.THREW_BALL_AT_WILD, ball_type=ball_type, wild_name=wild["name"])
 
     # Attempt catch (computes result, has no display side-effects)
     caught, shakes, messages = battle.attempt_catch(ball_type)
@@ -562,18 +553,17 @@ def attempt_catch_pokemon(
                 }
                 placed_box = pc_system.send_to_pc(game_state, caught_pokemon)
                 if placed_box:
-                    output.write(f"[green]★ Gotcha! {wild['name']} was caught! ★[/green]")
-                    output.write(
-                        f"[yellow]  Your party is full — {wild['name']} was sent to {placed_box}![/yellow]"
+                    write_lines_fmt(output, T.CATCH_SUCCESS_PLAIN, wild_name=wild["name"])
+                    write_lines_fmt(
+                        output,
+                        T.PARTY_FULL_SENT_TO_PC,
+                        wild_name=wild["name"],
+                        box_name=placed_box,
                     )
-                    output.write(
-                        "[dim]  Access Bill's PC at any Pokemon Center to retrieve it.[/dim]"
-                    )
+                    write_lines(output, T.PC_RETRIEVE_HINT)
                     species = wild.get("species", wild["name"]).upper()
                     if pokedex.mark_as_caught(game_state, species):
-                        output.write(
-                            f"[dim]📖 Pokedex: {wild['name']} was registered as caught![/dim]"
-                        )
+                        write_lines_fmt(output, T.POKEDEX_CAUGHT_REGISTERED, wild_name=wild["name"])
                         caught_count = len(
                             game_state.game_data.get("pokedex", {}).get("caught", [])
                         )
@@ -584,10 +574,8 @@ def attempt_catch_pokemon(
                         if type_msg:
                             output.write(f"[yellow]{type_msg}[/yellow]")
                 else:
-                    output.write(f"[green]★ Gotcha! {wild['name']} was caught! ★[/green]")
-                    output.write(
-                        f"[red]  Your party and PC are both full! {wild['name']} could not be stored.[/red]"
-                    )
+                    write_lines_fmt(output, T.CATCH_SUCCESS_PLAIN, wild_name=wild["name"])
+                    write_lines_fmt(output, T.PARTY_AND_PC_FULL, wild_name=wild["name"])
             else:
                 # Add to party
                 caught_pokemon = {
@@ -605,12 +593,12 @@ def attempt_catch_pokemon(
                     "no_evolve": False,
                 }
                 pokemon_party.append(caught_pokemon)
-                output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
+                write_lines_fmt(output, T.CATCH_SUCCESS, wild_name=wild["name"])
 
                 # Mark as caught in Pokedex
                 species = wild.get("species", wild["name"]).upper()
                 if pokedex.mark_as_caught(game_state, species):
-                    output.write(f"[dim]📖 Pokedex: {wild['name']} was registered as caught![/dim]")
+                    write_lines_fmt(output, T.POKEDEX_CAUGHT_REGISTERED, wild_name=wild["name"])
                     caught_count = len(game_state.game_data.get("pokedex", {}).get("caught", []))
                     milestone_msg = pokedex.get_caught_milestone_message(caught_count)
                     if milestone_msg:
@@ -618,34 +606,39 @@ def attempt_catch_pokemon(
                     type_msg = pokedex.get_first_type_message(game_state, species)
                     if type_msg:
                         output.write(f"[yellow]{type_msg}[/yellow]")
-                output.write("")
-                output.write(f"[green]✓ {wild['name']} was added to your party![/green]")
+                write_lines_fmt(output, T.ADDED_TO_PARTY, wild_name=wild["name"])
 
-            output.write("")
+            write_lines(output, T.TRAILING_BLANK)
             # End battle on successful catch
             _stats.record_catch(game_state, wild.get("species", wild["name"]))
             end_battle_callback(output)
         else:
             # Failed catch
             if shakes == 0:
-                output.write(f"[yellow]Oh no! {wild['name']} broke free immediately![/yellow]")
+                write_lines_fmt(output, T.CATCH_FAIL_0, wild_name=wild["name"])
             elif shakes == 1:
-                output.write("[yellow]Aww! It appeared to be caught![/yellow]")
+                write_lines(output, T.CATCH_FAIL_1)
             elif shakes == 2:
-                output.write("[yellow]Aargh! Almost had it![/yellow]")
+                write_lines(output, T.CATCH_FAIL_2)
             elif shakes == 3:
-                output.write("[yellow]Gah! It was so close, too![/yellow]")
-            output.write("")
+                write_lines(output, T.CATCH_FAIL_3)
+            write_lines(output, T.TRAILING_BLANK)
 
-            # Wild Pokemon gets a free turn
-            execute_wild_pokemon_turn(game_state, output)
+            def _continue_after_failed_catch() -> None:
+                # Wild Pokemon gets a free turn
+                execute_wild_pokemon_turn(game_state, output)
 
-            # Check if player fainted
-            if battle.player_pokemon["hp"] <= 0:
-                handle_pokemon_fainted_callback(output)
+                # Check if player fainted
+                if battle.player_pokemon["hp"] <= 0:
+                    handle_pokemon_fainted_callback(output)
+                else:
+                    show_battle_options_callback(output)
+                    pending_command_callback("battle")
+
+            if post_fail_delay_callback:
+                post_fail_delay_callback(_continue_after_failed_catch)
             else:
-                show_battle_options_callback(output)
-                pending_command_callback("battle")
+                _continue_after_failed_catch()
 
     if animate_shake_callback:
         animate_shake_callback(output, shake_lines, _after_shake)
@@ -683,35 +676,25 @@ def handle_safari_action(
     if action == "bait":
         battle.safari_bait_turns = 3
         battle.safari_rock_turns = 0
-        output.write("")
-        output.write(f"[cyan]🥩 You tossed some Bait at {wild['name']}...[/cyan]")
-        output.write(f"[dim]   {wild['name']} is distracted by the food![/dim]")
-        output.write("")
+        write_lines_fmt(output, T.SAFARI_BAIT, wild_name=wild["name"])
 
     elif action == "rock":
         battle.safari_rock_turns = 2
         battle.safari_bait_turns = 0
-        output.write("")
-        output.write(f"[red]🪨 You threw a Rock at {wild['name']}...[/red]")
-        output.write(f"[dim]   {wild['name']} became angry![/dim]")
-        output.write("")
+        write_lines_fmt(output, T.SAFARI_ROCK, wild_name=wild["name"])
 
     elif action == "ball":
         items = game_state.game_data.get("items", {})
         safari_balls = items.get("Safari Ball", 0)
         if safari_balls <= 0:
-            output.write("")
-            output.write("[red]❌ You have no Safari Balls left![/red]")
-            output.write("")
+            write_lines(output, T.NO_SAFARI_BALLS)
             show_battle_options_callback(output)
             pending_command_callback("battle")
             return
 
         items["Safari Ball"] = safari_balls - 1
 
-        output.write("")
-        output.write(f"[bold cyan]🎯 You threw a Safari Ball at {wild['name']}![/bold cyan]")
-        output.write("")
+        write_lines_fmt(output, T.THREW_SAFARI_BALL, wild_name=wild["name"])
 
         caught, shakes, messages = battle.attempt_catch("Safari Ball")
 
@@ -740,47 +723,46 @@ def handle_safari_action(
             if len(pokemon_party) >= 6:
                 placed_box = pc_system.send_to_pc(game_state, caught_pokemon)
                 if placed_box:
-                    output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
-                    output.write(
-                        f"[yellow]  Your party is full — {wild['name']} was sent to {placed_box}![/yellow]"
+                    write_lines_fmt(output, T.CATCH_SUCCESS, wild_name=wild["name"])
+                    write_lines_fmt(
+                        output,
+                        T.PARTY_FULL_SENT_TO_PC,
+                        wild_name=wild["name"],
+                        box_name=placed_box,
                     )
                 else:
-                    output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
-                    output.write(
-                        f"[red]  Your party and PC are both full! {wild['name']} could not be stored.[/red]"
-                    )
+                    write_lines_fmt(output, T.CATCH_SUCCESS, wild_name=wild["name"])
+                    write_lines_fmt(output, T.PARTY_AND_PC_FULL, wild_name=wild["name"])
             else:
                 pokemon_party.append(caught_pokemon)
-                output.write(f"[bold green]★ Gotcha! {wild['name']} was caught! ★[/bold green]")
-                output.write(f"[green]✓ {wild['name']} was added to your party![/green]")
+                write_lines_fmt(output, T.CATCH_SUCCESS, wild_name=wild["name"])
+                write_lines_fmt(output, T.ADDED_TO_PARTY, wild_name=wild["name"])
 
             species = wild.get("species", wild["name"]).upper()
             if pokedex.mark_as_caught(game_state, species):
-                output.write(f"[dim]📖 Pokedex: {wild['name']} was registered as caught![/dim]")
+                write_lines_fmt(output, T.POKEDEX_CAUGHT_REGISTERED, wild_name=wild["name"])
                 caught_count = len(game_state.game_data.get("pokedex", {}).get("caught", []))
                 milestone_msg = pokedex.get_caught_milestone_message(caught_count)
                 if milestone_msg:
                     output.write(f"[bold yellow]{milestone_msg}[/bold yellow]")
 
-            output.write("")
+            write_lines(output, T.TRAILING_BLANK)
             _stats.record_catch(game_state, wild.get("species", wild["name"]))
             end_battle_callback(output)
             return
         else:
             if shakes == 0:
-                output.write(f"[yellow]Oh no! {wild['name']} broke free immediately![/yellow]")
+                write_lines_fmt(output, T.CATCH_FAIL_0, wild_name=wild["name"])
             elif shakes == 1:
-                output.write("[yellow]Aww! It appeared to be caught![/yellow]")
+                write_lines(output, T.CATCH_FAIL_1)
             elif shakes == 2:
-                output.write("[yellow]Aargh! Almost had it![/yellow]")
+                write_lines(output, T.CATCH_FAIL_2)
             elif shakes == 3:
-                output.write("[yellow]Gah! It was so close, too![/yellow]")
-            output.write("")
+                write_lines(output, T.CATCH_FAIL_3)
+            write_lines(output, T.TRAILING_BLANK)
 
     elif action == "run":
-        output.write("")
-        output.write("[yellow]You safely fled from the Safari Zone encounter![/yellow]")
-        output.write("")
+        write_lines(output, T.SAFARI_FLED_SAFE)
         end_battle_callback(output)
         return
 
@@ -794,8 +776,7 @@ def handle_safari_action(
         battle.safari_bait_turns -= 1
 
     if random.random() < flee_chance:
-        output.write(f"[yellow]{wild['name']} fled![/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.WILD_FLED, wild_name=wild["name"])
         end_battle_callback(output)
         return
 
@@ -829,8 +810,7 @@ def execute_switch(
         return
 
     if target.lower().strip() in ("back", "cancel", "no"):
-        output.write("[dim]Switch cancelled.[/dim]")
-        output.write("")
+        write_lines(output, T.SWITCH_CANCELLED)
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
@@ -852,28 +832,29 @@ def execute_switch(
                 break
 
     if not chosen:
-        output.write(f"[red]❌ Invalid selection: {target}[/red]")
+        write_lines_fmt(output, T.INVALID_SWITCH_SELECTION, target=target)
         show_pokemon_switch_menu_callback(output)
         return
 
     if chosen is active:
-        output.write(f"[yellow]{chosen['name']} is already in battle![/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.ALREADY_IN_BATTLE, pokemon_name=chosen["name"])
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
 
     if chosen["hp"] <= 0:
-        output.write(f"[red]❌ {chosen['name']} has fainted and can't battle![/red]")
+        write_lines_fmt(output, T.FAINTED_CANNOT_BATTLE, pokemon_name=chosen["name"])
         show_pokemon_switch_menu_callback(output)
         return
 
     # Perform switch
     battle.player_pokemon = chosen
-    output.write("")
-    output.write(f"[bold cyan]{active['name']}, come back![/bold cyan]")
-    output.write(f"[bold green]Go, {chosen['name']}![/bold green]")
-    output.write("")
+    write_lines_fmt(
+        output,
+        T.SWITCH_PERFORMED,
+        active_name=active["name"],
+        chosen_name=chosen["name"],
+    )
 
     # Wild Pokemon gets a free attack on the incoming Pokemon
     execute_wild_pokemon_turn(game_state, output)
@@ -910,35 +891,37 @@ def handle_battle_victory(
     wild = battle.wild_pokemon
     player = battle.player_pokemon
 
-    output.write("")
+    write_lines(output, T.TRAILING_BLANK)
 
     # Different messages for trainer vs wild
     if battle.is_trainer_battle:
         trainer = battle.trainer_data
-        output.write(f"[bold green]{trainer['name']}'s {wild['name']} fainted![/bold green]")
+        write_lines_fmt(
+            output,
+            T.OPPONENT_FAINTED_TRAINER,
+            trainer_name=trainer["name"],
+            wild_name=wild["name"],
+        )
     else:
-        output.write(f"[bold green]Wild {wild['name']} fainted![/bold green]")
+        write_lines_fmt(output, T.OPPONENT_FAINTED_WILD, wild_name=wild["name"])
 
     # Record KO in stats
     _stats.record_ko_dealt(game_state, player["name"])
     if not battle.is_trainer_battle:
         _stats.record_wild_battle_won(game_state)
 
-    output.write("")
+    write_lines(output, T.TRAILING_BLANK)
 
     # Award experience
     exp = battle.calculate_exp_yield()
     player["experience"] = player.get("experience", 0) + exp
-    output.write(f"[cyan]{player['name']} gained {exp} Exp. Points![/cyan]")
+    write_lines_fmt(output, T.EXP_GAINED, player_name=player["name"], exp=exp)
 
     # Check for level up (can trigger multiple times)
     while True:
         leveled_up, new_level = battle.check_level_up(player)
         if leveled_up:
-            output.write("")
-            output.write(
-                f"[bold yellow]★ {player['name']} grew to Level {new_level}! ★[/bold yellow]"
-            )
+            write_lines_fmt(output, T.LEVEL_UP, player_name=player["name"], new_level=new_level)
             # Check for new moves at this level
             new_move_names = battle.get_new_moves_at_level(player["name"].upper(), new_level)
             for move_name in new_move_names:
@@ -951,8 +934,11 @@ def handle_battle_victory(
                 new_move = MoveSlot(name=move_name, pp=move_data["pp"], max_pp=move_data["pp"])
                 if len(player.get("moves", [])) < 4:
                     player["moves"].append(new_move)
-                    output.write(
-                        f"[bold cyan]  ✦ {player['name']} learned {move_name}![/bold cyan]"
+                    write_lines_fmt(
+                        output,
+                        T.LEARNED_MOVE,
+                        player_name=player["name"],
+                        move_name=move_name,
                     )
                 else:
                     if queue_move_learn_callback:
@@ -972,8 +958,12 @@ def handle_battle_victory(
                     else:
                         old_move = player["moves"][-1]["name"]
                         player["moves"][-1] = new_move
-                        output.write(
-                            f"[bold cyan]  ✦ {player['name']} forgot {old_move} and learned {move_name}![/bold cyan]"
+                        write_lines_fmt(
+                            output,
+                            T.FORGOT_AND_LEARNED_MOVE,
+                            player_name=player["name"],
+                            old_move=old_move,
+                            move_name=move_name,
                         )
         else:
             break
@@ -1006,13 +996,15 @@ def handle_battle_victory(
     if battle.is_trainer_battle:
         if battle.has_more_pokemon():
             # Trainer switches to next Pokemon
-            output.write("")
             next_pokemon = battle.switch_to_next_pokemon()
             trainer = battle.trainer_data
-            output.write(
-                f"[yellow]{trainer['name']} sent out {next_pokemon['name']}! (Lv. {next_pokemon['level']})[/yellow]"
+            write_lines_fmt(
+                output,
+                T.TRAINER_SENT_NEXT,
+                trainer_name=trainer["name"],
+                next_name=next_pokemon["name"],
+                next_level=next_pokemon["level"],
             )
-            output.write("")
             show_battle_options_callback(output)
             pending_command_callback("battle")
         else:
@@ -1020,7 +1012,7 @@ def handle_battle_victory(
             handle_trainer_defeated_callback(output)
     else:
         # Wild battle - end battle
-        output.write("")
+        write_lines(output, T.TRAILING_BLANK)
         end_battle_callback(output)
 
 
@@ -1037,26 +1029,24 @@ def handle_trainer_defeated(game_state: "GameState", output: RichLog, end_battle
     trainer = battle.trainer_data
     player_name = game_state.game_data.get("player_name", "Trainer")
 
-    output.write("")
-    output.write("[bold green]═══════════════════════════════════════════[/bold green]")
-    output.write(
-        f"[bold green]🏆 You defeated {trainer['trainer_class']} {trainer['name']}! 🏆[/bold green]"
+    write_lines_fmt(
+        output,
+        T.TRAINER_DEFEATED_HEADER,
+        trainer_class=trainer["trainer_class"],
+        trainer_name=trainer["name"],
     )
-    output.write("[bold green]═══════════════════════════════════════════[/bold green]")
-    output.write("")
 
     # Show trainer defeat text
     for line in trainer.get("defeat_text", []):
         formatted_line = line.replace("{player_name}", player_name)
         output.write(formatted_line)
 
-    output.write("")
+    write_lines(output, T.TRAILING_BLANK)
 
     # Award prize money
     prize = battle.prize_money
     game_state.game_data["money"] = game_state.game_data.get("money", 0) + prize
-    output.write(f"[bold yellow]💰 You received ₽{prize} as prize money![/bold yellow]")
-    output.write("")
+    write_lines_fmt(output, T.PRIZE_MONEY, prize=prize)
 
     # Mark trainer as defeated
     defeated = game_state.game_data.get("defeated_trainers", [])
@@ -1073,10 +1063,16 @@ def handle_trainer_defeated(game_state: "GameState", output: RichLog, end_battle
 
     # Check if this was a gym leader and award badge
     if trainer.get("trainer_class") == "Gym Leader":
-        handle_gym_victory(game_state, trainer["id"], output)
+        if trainer["id"].endswith("_rematch"):
+            from ..gym_system import handle_rematch_gym_victory
+
+            handle_rematch_gym_victory(game_state, trainer["id"], output)
+        else:
+            handle_gym_victory(game_state, trainer["id"], output)
+    elif trainer.get("trainer_class") in ("Elite Four", "Champion"):
+        handle_elite_four_victory(game_state, trainer["id"], output)
     else:
-        output.write("[bold]You won the battle![/bold]")
-        output.write("")
+        write_lines(output, T.BATTLE_WON)
 
     end_battle_callback(output)
 
@@ -1101,9 +1097,7 @@ def handle_pokemon_fainted(
     battle = game_state.battle_state
     player = battle.player_pokemon
 
-    output.write("")
-    output.write(f"[bold red]{player['name']} fainted![/bold red]")
-    output.write("")
+    write_lines_fmt(output, T.PLAYER_FAINTED, player_name=player["name"])
 
     # Record faint in stats
     _stats.record_faint(game_state, player["name"])
@@ -1116,47 +1110,40 @@ def handle_pokemon_fainted(
     ]
 
     if other_ready:
-        # Heal the fainted Pokemon so it's ready after this battle
-        player["hp"] = player["max_hp"]
-        for m in player.get("moves", []):
-            m["pp"] = m.get("max_pp", m["pp"])
-        output.write("[yellow]Your other Pokemon are still standing![/yellow]")
+        write_lines(output, T.OTHER_POKEMON_STILL_STANDING)
         if show_faint_options_callback:
-            output.write("[dim]Choose your next Pokemon...[/dim]")
-            output.write("")
+            write_lines(output, T.CHOOSE_NEXT_POKEMON)
             is_trainer = bool(battle and battle.is_trainer_battle)
             show_faint_options_callback(not is_trainer)
         else:
-            # Legacy / test fallback
-            output.write(
-                "[cyan]Nurse Joy healed your fainted Pokemon at the Pokemon Center.[/cyan]"
-            )
-            output.write("")
+            # Legacy / test fallback keeps old behavior for callers that
+            # don't support the faint-switch interaction.
+            player["hp"] = player["max_hp"]
+            for m in player.get("moves", []):
+                m["pp"] = m.get("max_pp", m["pp"])
+            write_lines(output, T.NURSE_HEALED_FAINTED)
             end_battle_callback(output)
     else:
-        output.write("[bold red]You have no more Pokemon that can battle![/bold red]")
-        output.write("[dim]You black out...[/dim]")
+        write_lines(output, T.NO_MORE_POKEMON)
 
         # Determine respawn location
         last_pokemon_center = game_state.game_data.get("last_pokemon_center")
         if last_pokemon_center:
             respawn_location = last_pokemon_center
-            output.write(f"[cyan]You wake up at the {respawn_location} Pokemon Center.[/cyan]")
+            write_lines_fmt(output, T.WAKE_UP_CENTER, respawn_location=respawn_location)
         else:
             # Never visited a Pokemon Center, return home
             respawn_location = "Pallet Town"
-            output.write("[cyan]You wake up at home.[/cyan]")
-            output.write("[cyan]Mom took care of you and your Pokemon![/cyan]")
+            write_lines(output, T.WAKE_UP_HOME)
 
         # Transport player to respawn location
         game_state.game_data["location"] = respawn_location
         game_state.current_location = get_location(respawn_location)
 
-        output.write(
-            "[cyan]Nurse Joy has healed all your Pokemon![/cyan]"
-            if last_pokemon_center
-            else "[cyan]All your Pokemon have been healed![/cyan]"
-        )
+        if last_pokemon_center:
+            write_lines(output, T.ALL_HEALED_AFTER_BLACKOUT)
+        else:
+            write_lines(output, T.ALL_HEALED_AT_HOME)
 
         # Heal everyone
         for p in game_state.game_data.get("pokemon", []):
@@ -1165,7 +1152,7 @@ def handle_pokemon_fainted(
                 for m in p.get("moves", []):
                     m["pp"] = m.get("max_pp", m["pp"])
 
-        output.write("")
+        write_lines(output, T.TRAILING_BLANK)
         end_battle_callback(output)
 
 
@@ -1196,9 +1183,7 @@ def use_heal_item(
     player = battle.player_pokemon
 
     if count <= 0:
-        output.write("")
-        output.write(f"[red]❌ You have no {item_name}s![/red]")
-        output.write("")
+        write_lines_fmt(output, T.NO_ITEM_LEFT, item_name=item_name)
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
@@ -1209,9 +1194,12 @@ def use_heal_item(
     if items[item_name] <= 0:
         del items[item_name]
 
-    output.write("")
-    output.write(f"[green]💊 {player['name']} recovered {actual_heal} HP![/green]")
-    output.write("")
+    write_lines_fmt(
+        output,
+        T.HEAL_ITEM_USED,
+        player_name=player["name"],
+        heal_amount=actual_heal,
+    )
 
     execute_wild_pokemon_turn(game_state, output)
 
@@ -1252,17 +1240,13 @@ def use_status_cure(
     player = battle.player_pokemon
 
     if count <= 0:
-        output.write("")
-        output.write(f"[red]❌ You have no {item_name}s![/red]")
-        output.write("")
+        write_lines_fmt(output, T.NO_ITEM_LEFT, item_name=item_name)
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
 
     if player.get("status") != cures_status:
-        output.write("")
-        output.write(f"[yellow]⚠ {player['name']} doesn't have that condition![/yellow]")
-        output.write("")
+        write_lines_fmt(output, T.WRONG_STATUS_CONDITION, player_name=player["name"])
         show_battle_options_callback(output)
         pending_command_callback("battle")
         return
@@ -1273,9 +1257,68 @@ def use_status_cure(
     if items[item_name] <= 0:
         del items[item_name]
 
-    output.write("")
-    output.write(f"[green]✓ {player['name']} was {cure_msg}![/green]")
-    output.write("")
+    write_lines_fmt(output, T.STATUS_CURED, player_name=player["name"], cure_msg=cure_msg)
+
+    execute_wild_pokemon_turn(game_state, output)
+
+    if battle.player_pokemon["hp"] <= 0:
+        handle_pokemon_fainted_callback(output)
+        return
+
+    show_battle_options_callback(output)
+    pending_command_callback("battle")
+
+
+def use_full_restore(
+    game_state: "GameState",
+    output: RichLog,
+    pending_command_callback,
+    show_battle_options_callback,
+    handle_pokemon_fainted_callback,
+) -> None:
+    """
+    Use a Full Restore during battle.
+
+    Fully heals the player's active Pokemon and clears any status condition.
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+        pending_command_callback: Callback to set pending command
+        show_battle_options_callback: Callback to show battle options
+        handle_pokemon_fainted_callback: Callback to handle Pokemon fainted
+    """
+    item_name = "Full Restore"
+    items = game_state.game_data.get("items", {})
+    count = items.get(item_name, 0)
+    battle = game_state.battle_state
+    player = battle.player_pokemon
+
+    if count <= 0:
+        write_lines_fmt(output, T.NO_ITEM_LEFT, item_name=item_name)
+        show_battle_options_callback(output)
+        pending_command_callback("battle")
+        return
+
+    actual_heal = player["max_hp"] - player["hp"]
+    player["hp"] = player["max_hp"]
+    old_status = player.get("status")
+    player["status"] = None
+    player["sleep_count"] = 0
+    items[item_name] -= 1
+    if items[item_name] <= 0:
+        del items[item_name]
+
+    write_lines_fmt(
+        output,
+        T.HEAL_ITEM_USED,
+        player_name=player["name"],
+        heal_amount=actual_heal,
+    )
+    if old_status:
+        write_lines_fmt(
+            output, T.STATUS_CURED, player_name=player["name"], cure_msg="fully restored"
+        )
 
     execute_wild_pokemon_turn(game_state, output)
 

@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, List
 from textual.widgets import RichLog
 
 from ..data import get_move
-from ..ui.formatters import format_hp_bar
+from ..texts.en import battle_ui as T  # noqa: N812
+from ..ui.formatters import format_hp_bar, write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     from ..game_state import GameState
@@ -33,24 +34,15 @@ def get_battle_start_lines(game_state: "GameState") -> List[str]:
 
     if battle.is_safari:
         return [
-            "",
-            "[bold green]═══════════════════════════════════════════[/bold green]",
-            f"[bold green]🦁  A wild {wild['name']} appeared! (Lv. {wild['level']})  🦁[/bold green]",
-            "[bold green]═══════════════════════════════════════════[/bold green]",
-            "",
-            "[dim]You're in the Safari Zone — you can't battle here![/dim]",
-            "[dim]Use Bait, Rock, or throw a Safari Ball![/dim]",
-            "",
+            line.format(
+                wild_name=wild["name"], wild_level=wild["level"], player_name=player["name"]
+            )
+            for line in T.SAFARI_BATTLE_START
         ]
 
     return [
-        "",
-        "[bold red]═══════════════════════════════════════════[/bold red]",
-        f"[bold red]⚔️  A wild {wild['name']} appeared! (Lv. {wild['level']})  ⚔️[/bold red]",
-        "[bold red]═══════════════════════════════════════════[/bold red]",
-        "",
-        f"[bold]Go! {player['name']}![/bold]",
-        "",
+        line.format(wild_name=wild["name"], wild_level=wild["level"], player_name=player["name"])
+        for line in T.WILD_BATTLE_START
     ]
 
 
@@ -77,13 +69,7 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
     player = battle.player_pokemon
     player_name = game_state.game_data.get("player_name", "Trainer")
 
-    lines = [
-        "",
-        "[bold yellow]═══════════════════════════════════════════[/bold yellow]",
-        "[bold yellow]⚔️  TRAINER BATTLE!  ⚔️[/bold yellow]",
-        "[bold yellow]═══════════════════════════════════════════[/bold yellow]",
-        "",
-    ]
+    lines = list(T.TRAINER_BATTLE_HEADER)
 
     for intro_line in trainer.get("intro_text", []):
         lines.append(f"[yellow]{intro_line.replace('{player_name}', player_name)}[/yellow]")
@@ -94,12 +80,22 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
 
     num_pokemon = len(battle.trainer_pokemon_team)
     if num_pokemon > 1:
-        lines.append(f"[dim]{trainer['name']} sent out {trainer_pokemon['name']}![/dim]")
-        lines.append(f"[dim]They have {num_pokemon} Pokemon total[/dim]")
+        lines.extend(
+            [
+                line.format(trainer_name=trainer["name"], pokemon_name=trainer_pokemon["name"])
+                for line in T.TRAINER_BATTLE_SENT_OUT
+            ]
+        )
+        lines.extend([line.format(num_pokemon=num_pokemon) for line in T.TRAINER_BATTLE_TEAM_SIZE])
     else:
-        lines.append(f"[dim]{trainer['name']} sent out {trainer_pokemon['name']}![/dim]")
+        lines.extend(
+            [
+                line.format(trainer_name=trainer["name"], pokemon_name=trainer_pokemon["name"])
+                for line in T.TRAINER_BATTLE_SENT_OUT
+            ]
+        )
 
-    lines.extend(["", f"[bold]Go! {player['name']}![/bold]", ""])
+    lines.extend([line.format(player_name=player["name"]) for line in T.TRAINER_BATTLE_GO])
     return lines
 
 
@@ -122,7 +118,7 @@ def show_battle_options(game_state: "GameState", output: RichLog) -> None:
     player_bar = format_hp_bar(player["hp"], player["max_hp"])
 
     # Status condition icons (shown prominently in the HUD)
-    STATUS_ICONS = {
+    status_icons = {
         "BURN": "[bold red] 🔥BRN[/bold red]",
         "POISON": "[bold magenta] ☠PSN[/bold magenta]",
         "BAD_POISON": "[bold magenta] ☠☠TOX[/bold magenta]",
@@ -131,8 +127,8 @@ def show_battle_options(game_state: "GameState", output: RichLog) -> None:
         "FREEZE": "[bold cyan] ❄FRZ[/bold cyan]",
     }
 
-    wild_status = STATUS_ICONS.get(wild.get("status", "") or "", "")
-    player_status = STATUS_ICONS.get(player.get("status", "") or "", "")
+    wild_status = status_icons.get(wild.get("status", "") or "", "")
+    player_status = status_icons.get(player.get("status", "") or "", "")
 
     # Show opponent label differently for trainers
     if battle.is_trainer_battle:
@@ -142,18 +138,21 @@ def show_battle_options(game_state: "GameState", output: RichLog) -> None:
             f" [dim]Lv.{wild['level']}[/dim]{wild_status}"
         )
     else:
+        if battle.is_safari:
+            output.write("[bold green]🌿  Safari Zone Encounter  🌿[/bold green]")
         output.write(
             f"  [bold red]{wild['name']}[/bold red] [dim]Lv.{wild['level']}[/dim]{wild_status}"
         )
 
     output.write(f"  HP {wild_bar} {wild['hp']}/{wild['max_hp']}")
+    if not battle.is_safari:
+        output.write("")
+        output.write(
+            f"  [bold cyan]{player['name']}[/bold cyan] [dim]Lv.{player['level']}[/dim]{player_status}"
+        )
+        output.write(f"  HP {player_bar} {player['hp']}/{player['max_hp']}")
     output.write("")
-    output.write(
-        f"  [bold cyan]{player['name']}[/bold cyan] [dim]Lv.{player['level']}[/dim]{player_status}"
-    )
-    output.write(f"  HP {player_bar} {player['hp']}/{player['max_hp']}")
-    output.write("")
-    output.write("[bold yellow]What will you do?[/bold yellow]")
+    write_lines(output, T.BATTLE_WHAT_TO_DO)
     items = game_state.game_data.get("items", {})
 
     # Safari Zone: show Bait/Rock/Safari Ball/Run instead of normal options
@@ -165,32 +164,23 @@ def show_battle_options(game_state: "GameState", output: RichLog) -> None:
         if battle.safari_rock_turns > 0:
             status_parts.append(f"[red]🪨 Rock ({battle.safari_rock_turns}t)[/red]")
         if status_parts:
-            output.write("  " + "  |  ".join(status_parts))
+            write_lines_fmt(output, T.SAFARI_STATUS_LINE, status_text="  |  ".join(status_parts))
         if safari_balls > 0:
-            output.write(
-                f"  [green]Safari Ball[/green] ({safari_balls})"
-                "  |  [cyan]Bait[/cyan]  |  [cyan]Rock[/cyan]  |  [yellow]Run[/yellow]"
-            )
+            write_lines_fmt(output, T.SAFARI_OPTIONS_WITH_BALLS, safari_balls=safari_balls)
         else:
-            output.write(
-                "  [dim]No Safari Balls![/dim]"
-                "  |  [cyan]Bait[/cyan]  |  [cyan]Rock[/cyan]  |  [yellow]Run[/yellow]"
-            )
+            write_lines(output, T.SAFARI_OPTIONS_NO_BALLS)
     # Show different options for trainer battles
     elif battle.is_trainer_battle:
-        pokeballs = items.get("Pokeball", 0)
-        output.write("  [cyan]Fight[/cyan]  |  [cyan]Switch[/cyan]  |  [cyan]Item[/cyan]")
-        output.write("[dim]  (Can't flee or catch in trainer battles)[/dim]")
+        write_lines(output, T.BATTLE_OPTIONS_CORE)
+        write_lines(output, T.BATTLE_OPTIONS_TRAINER_HINT)
     else:
         pokeballs = items.get("Pokeball", 0)
-        output.write("  [cyan]Fight[/cyan]  |  [cyan]Switch[/cyan]  |  [cyan]Item[/cyan]")
+        write_lines(output, T.BATTLE_OPTIONS_CORE)
         if pokeballs > 0:
-            output.write(
-                f"  [green]Catch[/green] ({pokeballs} Pokeballs)  |  [yellow]Flee[/yellow]"
-            )
+            write_lines_fmt(output, T.BATTLE_OPTIONS_CATCH_AVAILABLE, pokeballs=pokeballs)
         else:
-            output.write("  [dim]Catch (No Pokeballs)[/dim]  |  [yellow]Flee[/yellow]")
-    output.write("")
+            write_lines(output, T.BATTLE_OPTIONS_CATCH_NONE)
+    write_lines(output, T.MENU_TRAILING_BLANK)
 
 
 def show_move_selection(game_state: "GameState", output: RichLog) -> None:
@@ -201,11 +191,9 @@ def show_move_selection(game_state: "GameState", output: RichLog) -> None:
 
     player = battle.player_pokemon
 
-    output.write("")
-    output.write("[bold yellow]Select a move:[/bold yellow]")
-    output.write("")
+    write_lines(output, T.MOVE_SELECTION_HEADER)
 
-    MOVE_TYPE_COLORS = {
+    move_type_colors = {
         "Normal": "white",
         "Fire": "red",
         "Water": "blue",
@@ -223,12 +211,12 @@ def show_move_selection(game_state: "GameState", output: RichLog) -> None:
         "Dragon": "blue_violet",
     }
 
-    for i, move in enumerate(player["moves"], 1):
+    for move in player["moves"]:
         move_data = get_move(move["name"])
         is_disabled = battle.player_disabled_move == move["name"]
         if move_data:
             move_type = move_data.get("type", "Normal")
-            color = MOVE_TYPE_COLORS.get(move_type, "white")
+            color = move_type_colors.get(move_type, "white")
             pp_text = f"PP: {move['pp']}/{move.get('max_pp', move['pp'])}"
             if is_disabled:
                 output.write(
@@ -245,9 +233,7 @@ def show_move_selection(game_state: "GameState", output: RichLog) -> None:
             else:
                 output.write(f"  • {move['name']}")
 
-    output.write("")
-    output.write("[dim]Type the move name or 'Back' to go back[/dim]")
-    output.write("")
+    write_lines(output, T.MOVE_SELECTION_PROMPT)
 
 
 def show_pokemon_switch_menu(game_state: "GameState", output: RichLog) -> None:
@@ -256,9 +242,7 @@ def show_pokemon_switch_menu(game_state: "GameState", output: RichLog) -> None:
     active = battle.player_pokemon
     pokemon_list = game_state.game_data.get("pokemon", [])
 
-    output.write("")
-    output.write("[bold cyan]Choose a Pokemon to switch in:[/bold cyan]")
-    output.write("")
+    write_lines(output, T.SWITCH_MENU_HEADER)
 
     for i, p in enumerate(pokemon_list, 1):
         if isinstance(p, str):
@@ -278,32 +262,12 @@ def show_pokemon_switch_menu(game_state: "GameState", output: RichLog) -> None:
         )
         output.write(f"     {hp_bar} {p['hp']}/{p['max_hp']} HP")
 
-    output.write("")
-    output.write("[yellow]Type the number or name of the Pokemon, or 'Back':[/yellow]")
-    output.write("")
+    write_lines(output, T.SWITCH_MENU_PROMPT)
 
 
 def show_battle_help(output: RichLog) -> None:
     """Display battle help information."""
-    output.write("")
-    output.write("[bold cyan]⚔️  BATTLE HELP ⚔️[/bold cyan]")
-    output.write("")
-    output.write("[bold yellow]Commands:[/bold yellow]")
-    output.write("  [cyan]Fight[/cyan]   - Choose a move to attack")
-    output.write("  [cyan]Switch[/cyan]  - Switch to another Pokemon")
-    output.write("  [cyan]Item[/cyan]    - Use an item (Potion, Pokeball, etc.)")
-    output.write("  [cyan]Catch[/cyan]   - Try to catch the wild Pokemon (needs Pokeball)")
-    output.write("  [cyan]Flee[/cyan]    - Try to escape from battle")
-    output.write("")
-    output.write("[bold yellow]Items you can use in battle:[/bold yellow]")
-    output.write("  [green]Potion[/green]        - Restores 20 HP")
-    output.write("  [green]Super Potion[/green]  - Restores 50 HP")
-    output.write("  [green]Antidote[/green]      - Cures poison")
-    output.write("  [green]Paralyze Heal[/green] - Cures paralysis")
-    output.write("  [green]Awakening[/green]     - Wakes sleeping Pokemon")
-    output.write("")
-    output.write("[dim]Trainer battles: Can't catch or flee[/dim]")
-    output.write("")
+    write_lines(output, T.BATTLE_HELP_BLOCK)
 
 
 def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
@@ -315,9 +279,14 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
         output: The RichLog widget to write to
     """
     items = game_state.game_data.get("items", {})
+    pokeballs = items.get("Pokeball", 0)
+    great_balls = items.get("Great Ball", 0)
+    ultra_balls = items.get("Ultra Ball", 0)
+    master_balls = items.get("Master Ball", 0)
     potions = items.get("Potion", 0)
     super_potions = items.get("Super Potion", 0)
-    pokeballs = items.get("Pokeball", 0)
+    hyper_potions = items.get("Hyper Potion", 0)
+    full_restores = items.get("Full Restore", 0)
     antidotes = items.get("Antidote", 0)
     par_heals = items.get("Paralyze Heal", 0)
     awakenings = items.get("Awakening", 0)
@@ -326,13 +295,27 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
         game_state.battle_state.player_pokemon.get("status") if game_state.battle_state else None
     )
 
-    output.write("")
-    output.write("[bold cyan]🎒 Battle Bag[/bold cyan]")
+    write_lines(output, T.BATTLE_BAG_HEADER)
 
     has_items = False
     if pokeballs > 0:
         output.write(
             f"  • [red]Pokeball[/red] x{pokeballs} - Catch wild Pokemon  [dim](type 'throw pokeball')[/dim]"
+        )
+        has_items = True
+    if great_balls > 0:
+        output.write(
+            f"  • [blue]Great Ball[/blue] x{great_balls} - Better catch rate  [dim](type 'throw great ball')[/dim]"
+        )
+        has_items = True
+    if ultra_balls > 0:
+        output.write(
+            f"  • [yellow]Ultra Ball[/yellow] x{ultra_balls} - High catch rate  [dim](type 'throw ultra ball')[/dim]"
+        )
+        has_items = True
+    if master_balls > 0:
+        output.write(
+            f"  • [magenta]Master Ball[/magenta] x{master_balls} - Never fails!  [dim](type 'throw master ball')[/dim]"
         )
         has_items = True
     if potions > 0:
@@ -343,6 +326,16 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
     if super_potions > 0:
         output.write(
             f"  • [green]Super Potion[/green] x{super_potions} - Restores 50 HP  [dim](type 'use super potion')[/dim]"
+        )
+        has_items = True
+    if hyper_potions > 0:
+        output.write(
+            f"  • [green]Hyper Potion[/green] x{hyper_potions} - Restores 200 HP  [dim](type 'use hyper potion')[/dim]"
+        )
+        has_items = True
+    if full_restores > 0:
+        output.write(
+            f"  • [bold green]Full Restore[/bold green] x{full_restores} - Fully heals + cures status  [dim](type 'use full restore')[/dim]"
         )
         has_items = True
     if antidotes > 0 and player_status == "POISON":
@@ -362,10 +355,7 @@ def show_bag_menu(game_state: "GameState", output: RichLog) -> None:
         has_items = True
 
     if not has_items:
-        output.write("  [dim]Your bag has no usable items![/dim]")
-        output.write("")
-        output.write("[dim]Buy items at the Pokemart. Type 'fight' or 'run'[/dim]")
+        write_lines(output, T.BATTLE_BAG_NO_ITEMS)
     else:
-        output.write("")
-        output.write("[dim]Or type 'fight'/'run' to cancel[/dim]")
-    output.write("")
+        write_lines(output, T.BATTLE_BAG_CANCEL_HINT)
+    write_lines(output, T.BATTLE_BAG_FOOTER)

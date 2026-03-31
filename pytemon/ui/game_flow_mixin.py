@@ -13,7 +13,11 @@ from textual.widgets import RichLog
 from .. import evolution as _evo
 from .. import pc_system
 from ..data.move_data import get_move as _get_move
+from ..data.move_data import MoveSlot as _MoveSlot
+from ..texts.en import buildings as buildings_text
+from ..texts.en import game_flow_mixin as T  # noqa: N812
 from ..ui import menus
+from .formatters import write_lines, write_lines_fmt
 
 if TYPE_CHECKING:
     pass  # Avoid circular imports — self is always a PokemonTerminal at runtime
@@ -47,16 +51,8 @@ class GameFlowMixin:
 
     def start_new_game(self, output: RichLog) -> None:
         """Start a new game."""
-        output.write("")
-        output.write("[bold green]✓ Starting new game...[/bold green]")
-        output.write("")
         self.game_state.start_new_game()
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("[bold green]🌟 Welcome to the Pokemon World! 🌟[/bold green]")
-        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
-        output.write("")
-        output.write("Before we begin your adventure...")
-        output.write("")
+        write_lines(output, T.NEW_GAME_START)
         self.show_name_selection_panel()
 
     def show_load_menu(self, output: RichLog) -> None:
@@ -101,17 +97,13 @@ class GameFlowMixin:
 
         if cmd_type == "move_to":
             if user_input.lower().strip() in ("cancel", "back", "exit", "exit building", "leave"):
-                output.write("")
-                output.write("[dim]Cancelled.[/dim]")
-                output.write("")
+                write_lines(output, T.ACTION_CANCELLED)
             else:
                 self.move_to_location(user_input, output)
 
         elif cmd_type == "enter_building":
             if user_input.lower().strip() in ("cancel", "back", "exit", "exit building", "leave"):
-                output.write("")
-                output.write("[dim]Cancelled.[/dim]")
-                output.write("")
+                write_lines(output, T.ACTION_CANCELLED)
             else:
                 self.enter_building(user_input, output)
 
@@ -136,6 +128,10 @@ class GameFlowMixin:
         elif cmd_type == "pokemon_center":
             self._handle_pokemon_center_command(user_input, output)
 
+        elif cmd_type == "pokemon_center_healing":
+            output.write("[dim]Nurse Joy is still healing your Pokemon...[/dim]")
+            self.pending_command = "pokemon_center_healing"
+
         elif cmd_type == "battle":
             output.write(f"[bold yellow]\U0001f3ae >[/bold yellow] {user_input}")
             self.process_battle_command(user_input, output)
@@ -146,6 +142,17 @@ class GameFlowMixin:
 
         elif cmd_type == "shop":
             self.process_shop_command(user_input, output)
+
+        elif cmd_type == "museum":
+            cmd = user_input.lower().strip()
+            if cmd in ("leave", "exit", "back", "go", "done", "bye"):
+                self._clear_active_building_context()
+                self.hide_all_panels()
+                write_lines(output, buildings_text.MUSEUM_LEAVE)
+                self._refresh_subtitle()
+            else:
+                write_lines(output, ["[dim]Type 'leave' to head back outside.[/dim]", ""])
+                self.pending_command = "museum"
 
         elif cmd_type == "switch_target":
             self.execute_switch(user_input, output)
@@ -184,17 +191,28 @@ class GameFlowMixin:
                 idx = int(choice) - 1
                 old_move = pokemon["moves"][idx]["name"]
                 move_data = _get_move(move_name)
-                new_move = (
-                    {"name": move_name, "pp": move_data["pp"], "max_pp": move_data["pp"]}
-                    if move_data
-                    else {"name": move_name, "pp": 5, "max_pp": 5}
-                )
+                if move_data:
+                    new_move = _MoveSlot(
+                        name=move_name,
+                        pp=move_data["pp"],
+                        max_pp=move_data["pp"],
+                    )
+                else:
+                    new_move = _MoveSlot(name=move_name, pp=5, max_pp=5)
                 pokemon["moves"][idx] = new_move
                 output.write(
                     f"  [bold cyan]✦ {pokemon.get('name', 'Pokemon')} forgot "
                     f"[red]{old_move}[/red] and learned [green]{move_name}[/green]![/bold cyan]"
                 )
                 output.write("")
+                # Consume TM from the bag for field TM teaches
+                consume_tm = self.pending_command_data.pop("learn_consume_item", None)
+                if consume_tm:
+                    bag = self.game_state.game_data.get("items", {})
+                    if bag.get(consume_tm, 0) > 0:
+                        bag[consume_tm] -= 1
+                        if bag[consume_tm] <= 0:
+                            del bag[consume_tm]
                 if remaining:
                     self._queue_move_learn(pokemon, remaining, post_action, output)
                 else:
@@ -205,6 +223,9 @@ class GameFlowMixin:
                     f"to forget, or 'no' to skip.[/yellow]"
                 )
                 self.pending_command = "learn_move_choice"
+
+        elif cmd_type == "choose_lead":
+            self._handle_choose_lead(user_input, output)
 
         elif cmd_type == "confirm_evolution":
             inp = user_input.lower().strip()
@@ -220,9 +241,7 @@ class GameFlowMixin:
                 pokemon_name = self.pending_command_data.get("evolving_pokemon", {}).get(
                     "name", "POKÉMON"
                 )
-                output.write("")
-                output.write(f"[cyan]{pokemon_name} did not evolve.[/cyan]")
-                output.write("")
+                write_lines_fmt(output, T.EVOLUTION_DECLINED, pokemon_name=pokemon_name)
                 self._resume_after_evolution(output)
 
         # Clear pending data unless we're mid-flow
@@ -236,6 +255,7 @@ class GameFlowMixin:
             "pc",
             "confirm_evolution",
             "learn_move_choice",
+            "choose_lead",
         }
         if cmd_type not in persisted or self.pending_command is None:
             if cmd_type not in {"battle", "select_move"}:
@@ -259,13 +279,11 @@ class GameFlowMixin:
     def prompt_for_quit(self, output: RichLog) -> None:
         """Show the quit destination panel (Close/Main Menu/Cancel) if in-game."""
         if self.game_state.in_game:
-            output.write("")
-            output.write("[bold yellow]⚠ Leaving the game?[/bold yellow]")
-            output.write("")
+            write_lines(output, T.LEAVING_GAME_PROMPT)
             self.hide_all_panels()
             self.query_one("#quit-panel").remove_class("hidden")
         else:
-            output.write("[cyan]👋 Goodbye![/cyan]")
+            write_lines(output, T.GOODBYE_SIMPLE)
             self.safe_exit()
 
     def confirm_quit_response(self, response: str, output: RichLog) -> None:
@@ -273,35 +291,24 @@ class GameFlowMixin:
         response_lower = response.lower().strip()
         if response_lower in ("yes", "y", "save"):
             if self.pending_command_data.get("failed_save_quit"):
-                output.write("")
-                output.write("[yellow]⚠ Progress not saved[/yellow]")
-                output.write("[cyan]👋 Goodbye, Trainer![/cyan]")
+                write_lines(output, T.PROGRESS_NOT_SAVED_AND_GOODBYE)
                 self.safe_exit()
                 return
             self.save_current_game(output)
             self.pending_command_data["quit_after_save"] = True
         elif response_lower in ("no", "n", "don't save", "dont save", "skip"):
             if self.pending_command_data.get("failed_save_quit"):
-                output.write("")
-                output.write("[green]✓ Continuing game...[/green]")
-                output.write("")
+                write_lines(output, T.CONTINUING_GAME)
                 self.pending_command_data["failed_save_quit"] = False
             else:
-                output.write("")
-                output.write("[yellow]⚠ Progress not saved[/yellow]")
+                write_lines(output, T.PROGRESS_NOT_SAVED)
                 self._do_quit_action(output)
         elif response_lower in ("cancel", "c", "back"):
-            output.write("")
-            output.write("[green]✓ Cancelled[/green]")
-            output.write("[dim]Continuing game...[/dim]")
-            output.write("")
+            write_lines(output, T.QUIT_CANCELLED)
             self.pending_command_data["quit_after_save"] = False
             self.pending_command_data["failed_save_quit"] = False
         else:
-            output.write("")
-            output.write("[red]❌ Invalid choice[/red]")
-            output.write("[dim]Please type: Yes, No, or Cancel[/dim]")
-            output.write("")
+            write_lines(output, T.INVALID_QUIT_CHOICE)
             self.pending_command = "confirm_quit"
 
     def _proceed_with_quit(self, output: RichLog) -> None:
@@ -310,17 +317,7 @@ class GameFlowMixin:
         if self.game_state.in_game and pokemon:
             dest = self.pending_command_data.get("quit_destination", "exit")
             dest_label = "Main Menu" if dest == "main_menu" else "quit"
-            output.write("")
-            output.write(
-                f"[bold yellow]⚠ Would you like to save before you {dest_label}?[/bold yellow]"
-            )
-            output.write("")
-            output.write("  [green]Yes[/green] - Save first")
-            output.write("  [red]No[/red] - Continue without saving")
-            output.write("  [cyan]Cancel[/cyan] - Go back")
-            output.write("")
-            output.write("[dim]Click a button or type your choice:[/dim]")
-            output.write("")
+            write_lines_fmt(output, T.SAVE_BEFORE_QUIT_PROMPT, dest_label=dest_label)
             self.show_confirmation_panel(
                 f"Save before you {dest_label}?",
                 "quit",
@@ -336,8 +333,69 @@ class GameFlowMixin:
         if dest == "main_menu":
             self._go_to_main_menu(output)
         else:
-            output.write("[cyan]👋 Goodbye, Trainer![/cyan]")
+            write_lines(output, T.GOODBYE_TRAINER)
             self.safe_exit()
+
+    # ── Lead-Pokemon selection ───────────────────────────────────────────────
+
+    def _handle_choose_lead(self, user_input: str, output: RichLog) -> None:
+        """
+        Handle the player's Pokemon selection before a battle begins.
+
+        Swaps the chosen Pokemon to the lead (first non-fainted) position
+        and then triggers the appropriate battle.
+
+        Args:
+            user_input: Player's choice, expected as a number 1-N.
+            output: The RichLog widget to write to.
+        """
+        battle_type = self.pending_command_data.get("battle_type", "wild")
+        trainer = self.pending_command_data.get("trainer")
+
+        party = self.game_state.game_data.get("pokemon", [])
+        non_fainted_indices = [
+            i for i, p in enumerate(party) if not isinstance(p, str) and p.get("hp", 0) > 0
+        ]
+
+        if user_input.lower().strip() in ("cancel", "back"):
+            if battle_type == "wild":
+                write_lines(output, T.CHOOSE_LEAD_WILD_USE_RUN)
+            else:
+                write_lines(output, T.CHOOSE_LEAD_TRAINER_NO_CANCEL)
+            self.pending_command = "choose_lead"
+            return
+
+        if not user_input.strip().isdigit():
+            write_lines(output, T.CHOOSE_LEAD_ENTER_NUMBER)
+            self.pending_command = "choose_lead"
+            return
+
+        slot = int(user_input.strip()) - 1  # 0-based index into non_fainted_indices
+        if slot < 0 or slot >= len(non_fainted_indices):
+            write_lines_fmt(output, T.CHOOSE_LEAD_RANGE, max_slot=len(non_fainted_indices))
+            self.pending_command = "choose_lead"
+            return
+
+        chosen_party_idx = non_fainted_indices[slot]
+        lead_party_idx = non_fainted_indices[0]
+
+        # Swap chosen Pokemon into the lead slot when a different one was picked
+        if chosen_party_idx != lead_party_idx:
+            party[lead_party_idx], party[chosen_party_idx] = (
+                party[chosen_party_idx],
+                party[lead_party_idx],
+            )
+
+        chosen = party[lead_party_idx]
+        write_lines_fmt(output, T.CHOOSE_LEAD_GO, chosen_name=chosen["name"])
+
+        self.hide_choose_lead_panel()
+        self.pending_command_data = {}
+
+        if battle_type == "wild":
+            self._do_trigger_wild_encounter(output)
+        else:
+            self._do_trigger_trainer_encounter(output, trainer)
 
     def _go_to_main_menu(self, output: RichLog) -> None:
         """Reset game state and return to the main menu screen."""
@@ -348,9 +406,7 @@ class GameFlowMixin:
         self.game_state.in_menu = True
         self.game_state.battle_state = None
         self.game_state.current_location = None
-        output.write("")
-        output.write("[dim]Returning to main menu...[/dim]")
-        output.write("")
+        write_lines(output, T.RETURNING_MAIN_MENU)
         self.show_main_menu(output)
 
     def handle_confirmation_response(
@@ -362,7 +418,11 @@ class GameFlowMixin:
         elif confirmation_type == "overwrite":
             self.handle_overwrite_confirmation(response, output)
         else:
-            output.write(f"[red]❌ Unknown confirmation type: {confirmation_type}[/red]")
+            write_lines_fmt(
+                output,
+                T.UNKNOWN_CONFIRMATION_TYPE,
+                confirmation_type=confirmation_type,
+            )
 
     # ── Save / load ──────────────────────────────────────────────────────────
 

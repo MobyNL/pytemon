@@ -73,6 +73,23 @@ class GameState:
             "previous_location": None,  # Last location before the current one
             "stats": {},  # Adventure statistics (see stats.py)
             "found_items": {},  # Ground items collected per location (see exploration.py)
+            "story_flags": {
+                "silph_co_cleared": False,
+                "received_master_ball": False,
+                "rescued_mr_fuji_silph": False,  # Cleared Silph Co. and freed Mr. Fuji's contact
+                "secret_key_found": False,
+                "fossil_revived": False,
+                "revived_dome_fossil": False,  # Kabuto revived at Cinnabar Lab
+                "revived_helix_fossil": False,  # Omanyte revived at Cinnabar Lab
+                "victory_road_clear": False,  # Completed Victory Road gauntlet
+            },
+            # ── Dungeon system (multi-floor support) ──────────────────────
+            "dungeon_state": {
+                "dungeon_id": None,  # Active dungeon id, or None when outside
+                "current_floor": None,  # Active floor_id, or None when outside
+            },
+            "dungeon_explored": {},  # dungeon_id -> [floor_ids visited]
+            "dungeon_checkpoints": {},  # dungeon_id -> floor_id (last checkpoint)
         }
         # Load settings from game_data
         self.autosave_enabled = True
@@ -132,6 +149,16 @@ class GameState:
                 self.game_data.get("found_items"), dict
             ):
                 self.game_data["found_items"] = {}
+            # Ensure dungeon_state exists (backward compatibility with old saves)
+            if "dungeon_state" not in self.game_data or not isinstance(
+                self.game_data.get("dungeon_state"), dict
+            ):
+                self.game_data["dungeon_state"] = {"dungeon_id": None, "current_floor": None}
+            # Ensure dungeon tracking dicts exist (backward compatibility)
+            if not isinstance(self.game_data.get("dungeon_explored"), dict):
+                self.game_data["dungeon_explored"] = {}
+            if not isinstance(self.game_data.get("dungeon_checkpoints"), dict):
+                self.game_data["dungeon_checkpoints"] = {}
             # Migrate Pokedex data for existing saves (register party Pokemon)
             self._migrate_pokedex()
             # Deserialize party pokemon to PartyPokemon objects

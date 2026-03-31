@@ -242,6 +242,62 @@ Footer {
     background: $warning 40%;
 }
 
+/* Choose Lead Panel */
+#choose-lead-panel {
+    height: auto;
+    margin: 0 1 1 1;
+    padding: 1;
+    border: solid $accent;
+    background: $panel;
+}
+
+#choose-lead-title {
+    color: $accent;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#choose-lead-grid {
+    grid-size: 3 2;
+    grid-columns: 1fr 1fr 1fr;
+    grid-rows: 3 3;
+    grid-gutter: 1 1;
+    height: 7;
+    margin-bottom: 1;
+}
+
+.lead-slot-button {
+    width: 1fr;
+    height: 3;
+    content-align: center middle;
+    background: $accent 40%;
+    color: white;
+    text-style: bold;
+    border: tall $accent 60%;
+}
+
+.lead-slot-button:hover {
+    background: $accent 60%;
+}
+
+.lead-slot-button:disabled {
+    background: $panel;
+    border: tall $panel-lighten-1;
+    color: $text-muted;
+    opacity: 0.7;
+}
+
+.lead-cancel-button {
+    width: 1fr;
+    height: 3;
+    background: $panel;
+    border: tall grey;
+}
+
+.lead-cancel-button:hover {
+    background: $panel-lighten-1;
+}
+
 /* Battle Bag Panel */
 #battle-bag {
     height: auto;
@@ -876,6 +932,24 @@ Footer {
 #pokemon-center-buttons {
     height: auto;
     width: 100%;
+}
+
+#pokemon-center-loading {
+    height: auto;
+    width: 100%;
+    margin-top: 1;
+    align: center middle;
+}
+
+#pokemon-center-loading LoadingIndicator {
+    height: 3;
+    color: $success;
+}
+
+#pokemon-center-loading-text {
+    color: $success;
+    margin-left: 1;
+    text-style: bold;
 }
 
 .pokemon-center-button {

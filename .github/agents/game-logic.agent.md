@@ -93,27 +93,38 @@ Restores full HP and clears status on every party member. Called from `BuildingM
 ### Adding a New Building
 
 1. Write a function in `buildings.py`:
-   ```python
-   def enter_bike_shop(game_state: "GameState", output: RichLog) -> None:
-       """Handle entering the Bike Shop in Cerulean City."""
-       output.write("[bold cyan]🚲 BIKE SHOP[/bold cyan]")
-       # Check story flags, give item, etc.
-   ```
+
+```python
+from pytemon.texts.en import buildings as T
+from pytemon.ui.formatters import write_lines
+
+def enter_bike_shop(game_state: "GameState", output: RichLog) -> None:
+    """Handle entering the Bike Shop in Cerulean City."""
+    if game_state.game_data["story_flags"].get("received_bicycle"):
+        write_lines(output, T.BIKE_SHOP_REPEAT)
+        return
+    game_state.game_data["story_flags"]["received_bicycle"] = True
+    game_state.game_data["bag"]["Bicycle"] = 1
+    write_lines(output, T.BIKE_SHOP_FIRST_VISIT)
+```
 2. Call it from `BuildingMixin.handle_building_entry` in `ui/building_mixin.py`
 3. Check `game_state.game_data["story_flags"]` for one-time events (item already received, etc.)
 
 ### NPC Interaction Pattern
 
 ```python
+from pytemon.texts.en import buildings as T   # or the appropriate module
+from pytemon.ui.formatters import write_lines
+
 def talk_to_npc(game_state: "GameState", npc_id: str, output: RichLog) -> None:
     flag_key = f"talked_to_{npc_id}"
     already_talked = game_state.game_data["story_flags"].get(flag_key, False)
     if not already_talked:
         game_state.game_data["story_flags"][flag_key] = True
-        output.write("[cyan]NPC: First-time dialogue here[/cyan]")
+        write_lines(output, T.NPC_FIRST_MEETING)   # defined in texts/en/buildings.py
         # Give item if applicable: game_state.add_item("Item Name", 1)
     else:
-        output.write("[cyan]NPC: Repeat dialogue here[/cyan]")
+        write_lines(output, T.NPC_REPEAT_VISIT)
 ```
 
 ---

@@ -201,7 +201,21 @@ GYM_TRAINERS: Dict[str, List[str]] = {
         "gym_trainer_fuchsia_juggler",
         "gym_trainer_fuchsia_lass",
     ],
-    # Future gyms can be populated here
+    "Saffron City": [
+        "psychic_cameron",
+        "medium_doris",
+        "psychic_brad",
+    ],
+    "Cinnabar Island": [
+        "super_nerd_ted",
+        "juggler_kaylee",
+        "blaine_trainee",
+    ],
+    "Viridian City": [
+        "cooltrainer_m_tucker",
+        "tamer_jake",
+        "giovanni_guard",
+    ],
 }
 
 
@@ -457,6 +471,26 @@ def can_challenge_gym(game_state: "GameState", location_name: str) -> tuple[bool
     if current < required:
         return False, f"You need at least {required} badge(s) to challenge this gym"
 
+    # Special gate: Saffron City Gym requires Silph Co. to be cleared first
+    if location_name == "Saffron City":
+        story_flags = game_state.game_data.get("story_flags", {})
+        cheat_mode = getattr(game_state, "cheat_mode", False)
+        if not story_flags.get("silph_co_cleared") and not cheat_mode:
+            return (
+                False,
+                "Sabrina won't battle anyone while Team Rocket occupies Silph Co. Clear them out first.",
+            )
+
+    # Special gate: Cinnabar Island Gym requires the Secret Key from Pokemon Mansion
+    if location_name == "Cinnabar Island":
+        story_flags = game_state.game_data.get("story_flags", {})
+        cheat_mode = getattr(game_state, "cheat_mode", False)
+        if not story_flags.get("secret_key_found") and not cheat_mode:
+            return (
+                False,
+                "The Gym is locked. \u26bf\ufe0f Find the Secret Key in the Pokemon Mansion first.",
+            )
+
     # Check if player has any Pokemon
     pokemon = game_state.game_data.get("pokemon", [])
     if not pokemon:
@@ -592,3 +626,173 @@ def handle_gym_victory(game_state: "GameState", trainer_id: str, output: RichLog
 
     # If we get here, trainer wasn't a gym leader
     output.write("[yellow]⚠ Warning: Trainer battle completed but no badge found[/yellow]")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Rematch system (post-Champion)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Maps each gym location to its rematch trainer ID
+REMATCH_LEADER_IDS: Dict[str, str] = {
+    "Pewter City": "gym_leader_brock_rematch",
+    "Cerulean City": "gym_leader_misty_rematch",
+    "Vermillion City": "gym_leader_lt_surge_rematch",
+    "Celadon City": "gym_leader_erika_rematch",
+    "Fuchsia City": "gym_leader_koga_rematch",
+    "Saffron City": "gym_leader_sabrina_rematch",
+    "Cinnabar Island": "gym_leader_blaine_rematch",
+    "Viridian City": "gym_leader_giovanni_rematch",
+}
+
+
+def can_rematch_gym(game_state: "GameState", location_name: str) -> bool:
+    """
+    Return True if the player is the Pokemon Champion and has already earned
+    the badge for the gym at this location.
+
+    Args:
+        game_state: The game state
+        location_name: Name of the location with the gym
+
+    Returns:
+        True if a rematch is available
+    """
+    story_flags = game_state.game_data.get("story_flags", {})
+    if not story_flags.get("is_champion"):
+        return False
+
+    gym_data = get_gym_data(location_name)
+    if not gym_data:
+        return False
+
+    badge_id = BADGES[gym_data["badge"]]["id"]
+    badges = game_state.game_data.get("badges", [])
+    return badge_id in badges
+
+
+def handle_elite_four_victory(
+    game_state: "GameState",
+    trainer_id: str,
+    output: RichLog,
+) -> None:
+    """
+    Handle post-battle victory against an Elite Four member or Champion.
+
+    Sets the appropriate story flag for the defeated trainer.  For the Champion,
+    also sets is_champion, saves a Hall of Fame party snapshot, and displays the
+    full championship celebration text.
+
+    Args:
+        game_state: The game state object
+        trainer_id: ID of the defeated trainer
+        output: The RichLog widget to write to
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    elite_flag_map = {
+        "elite_lorelei": "defeated_lorelei",
+        "elite_bruno": "defeated_bruno",
+        "elite_agatha": "defeated_agatha",
+        "elite_lance": "defeated_lance",
+    }
+    champion_ids = {
+        "champion_gary_bulbasaur",
+        "champion_gary_charmander",
+        "champion_gary_squirtle",
+    }
+
+    if trainer_id in elite_flag_map:
+        flag = elite_flag_map[trainer_id]
+        story_flags[flag] = True
+        output.write("[bold]You won the battle![/bold]")
+        output.write("")
+        output.write("[dim]The next chamber awaits...[/dim]")
+        output.write("")
+    elif trainer_id in champion_ids:
+        story_flags["defeated_champion"] = True
+        story_flags["is_champion"] = True
+        # Save party snapshot for the Hall of Fame
+        pokemon = game_state.game_data.get("pokemon", [])
+        story_flags["hall_of_fame_party"] = [
+            {"name": p["name"], "level": p.get("level", 1)}
+            for p in pokemon
+            if not isinstance(p, str)
+        ]
+        player_name = game_state.game_data.get("player_name", "Trainer")
+        output.write("")
+        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+        output.write("[bold yellow]★ ★ ★  CONGRATULATIONS!  ★ ★ ★[/bold yellow]")
+        output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+        output.write("")
+        output.write(f"[bold green]{player_name} is the new Pokémon League Champion![/bold green]")
+        output.write("")
+        output.write("[bold green]🏆 You are the Pokémon Champion! 🏆[/bold green]")
+        output.write("[green]Your name is written in the Hall of Fame forever.[/green]")
+        output.write("[green]The Pokédex awaits completion — your legend begins here.[/green]")
+        output.write("")
+        output.write("[dim]Visit the Hall of Fame to see your eternal record.[/dim]")
+        output.write("")
+    else:
+        output.write("[bold]You won the battle![/bold]")
+        output.write("")
+
+
+def handle_rematch_gym_victory(game_state: "GameState", trainer_id: str, output: RichLog) -> None:
+    """
+    Handle a successful gym rematch — display rematch victory message (no badge awarded).
+    Prize money is already awarded by handle_trainer_defeated before this is called.
+
+    Args:
+        game_state: The game state
+        trainer_id: ID of the rematch trainer defeated
+        output: The RichLog widget to write to
+    """
+    output.write("[bold cyan]═══════════════════════════════════════════[/bold cyan]")
+    output.write("")
+    output.write(
+        "[bold cyan]🔄 Rematch complete! Your skills as Champion are undisputed![/bold cyan]"
+    )
+    output.write("")
+
+
+def enter_gym_rematch(
+    game_state: "GameState",
+    output: RichLog,
+    trigger_trainer_battle_callback,
+) -> None:
+    """
+    Enter a gym rematch against the upgraded gym leader.
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+        trigger_trainer_battle_callback: Callback ``(trainer_id, output, is_gym_battle)``
+    """
+    if not game_state.current_location:
+        output.write("[red]❌ No current location[/red]")
+        return
+
+    location_name = game_state.current_location.name
+
+    if not can_rematch_gym(game_state, location_name):
+        output.write("")
+        output.write("[yellow]⚠ No rematch available here.[/yellow]")
+        output.write("[dim]Rematches unlock after you become the Pokemon Champion.[/dim]")
+        output.write("")
+        return
+
+    rematch_id = REMATCH_LEADER_IDS.get(location_name)
+    if not rematch_id:
+        output.write("[yellow]⚠ No rematch trainer data for this gym.[/yellow]")
+        return
+
+    gym_data = get_gym_data(location_name)
+    badge_data = get_badge_data(gym_data["badge"]) if gym_data else None
+    color = badge_data["color"] if badge_data else "orange3"
+
+    output.write("")
+    output.write(f"[bold {color}]🔄 GYM REMATCH — {gym_data['name'].upper()}![/bold {color}]")
+    output.write(f"[{color}]The Gym Leader has powered up since your last battle.[/{color}]")
+    output.write("")
+
+    trigger_trainer_battle_callback(rematch_id, output, is_gym_battle=False)

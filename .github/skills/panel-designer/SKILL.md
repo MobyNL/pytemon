@@ -94,10 +94,10 @@ def hide_heal_confirm_panel(self) -> None:
 ```
 
 ## Dependencies
-- `PokemonLibrary/terminal.py` — compose tree
-- `PokemonLibrary/terminal.tcss` — styles
-- `PokemonLibrary/ui/panel_mixin.py` — show/hide methods
-- `PokemonLibrary/ui/game_flow_mixin.py` — if using `pending_command`
+- `pytemon/terminal.py` — compose tree
+- `pytemon/terminal.tcss` — styles
+- `pytemon/ui/panel_mixin.py` — show/hide methods
+- `pytemon/ui/game_flow_mixin.py` — if using `pending_command`
 
 ## Error Handling
 - **ID clash**: rename with a more specific prefix (e.g. `#center-heal-panel` instead of `#heal-panel`)

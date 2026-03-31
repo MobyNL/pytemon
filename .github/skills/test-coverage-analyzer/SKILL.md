@@ -16,10 +16,10 @@ Reads coverage reports, maps uncovered lines to code branches, and produces a pr
 
 ```bash
 # Full report with missing lines
-poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1 | tee coverage.txt
+poetry run pytest tests/ -q --cov=pytemon --cov-report=term-missing 2>&1 | tee coverage.txt
 
 # Single file focus
-poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1 | grep "buildings\|exploration\|items"
+poetry run pytest tests/ -q --cov=pytemon --cov-report=term-missing 2>&1 | grep "buildings\|exploration\|items"
 ```
 
 ### 2. Reading the Report
@@ -27,9 +27,9 @@ poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1 
 ```
 Name                                Stmts   Miss  Cover   Missing
 -----------------------------------------------------------------
-PokemonLibrary/buildings.py            87     14    84%   45-52, 88, 101-110
-PokemonLibrary/exploration.py         120     38    68%   34, 67-89, 112-140
-PokemonLibrary/items.py                65      8    88%   78-85
+pytemon/buildings.py            87     14    84%   45-52, 88, 101-110
+pytemon/exploration.py         120     38    68%   34, 67-89, 112-140
+pytemon/items.py                65      8    88%   78-85
 ```
 
 - **Cover < 80%** = must add tests (hard CI requirement)
@@ -38,9 +38,9 @@ PokemonLibrary/items.py                65      8    88%   78-85
 ### 3. Excluded Files (do NOT add to coverage target)
 
 ```
-PokemonLibrary/terminal.py
-PokemonLibrary/library.py
-PokemonLibrary/ui/text_animation.py
+pytemon/terminal.py
+pytemon/library.py
+pytemon/ui/text_animation.py
 ```
 
 ### 4. Mapping Missing Lines to Branches
@@ -70,14 +70,14 @@ Produce:
 
 **Run and analyse:**
 ```bash
-poetry run pytest tests/ -q --cov=PokemonLibrary --cov-report=term-missing 2>&1 \
+poetry run pytest tests/ -q --cov=pytemon --cov-report=term-missing 2>&1 \
   | awk '/TOTAL/{p=0} p; /Name/{p=1}' \
   | awk '$4 < 80 {print $0}'
 ```
 
 **Report any file under 80%:**
 ```
-PokemonLibrary/exploration.py   120   38   68%   34, 67-89
+pytemon/exploration.py   120   38   68%   34, 67-89
 → Need ~15 more statements covered. Add tests for:
   - Line 34: early-return when destination == current location
   - Lines 67-89: blocked exit message path
@@ -87,7 +87,7 @@ PokemonLibrary/exploration.py   120   38   68%   34, 67-89
 ## Dependencies
 - `pytest` with `pytest-cov`
 - `tests/` — existing test suite
-- `PokemonLibrary/` — source under measurement
+- `pytemon/` — source under measurement
 
 ## Error Handling
 - **Coverage not changing**: confirm the new test file is discovered (filename must start with `test_`)

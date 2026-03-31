@@ -668,6 +668,10 @@ def show_help(game_state: "GameState", output: RichLog) -> None:
             output.write(
                 "  [green]Map[/green]                             Show the Kanto region map"
             )
+            output.write(
+                "  [dim]Tip: type a city name directly — e.g. 'Saffron City', 'Cinnabar Island'[/dim]"
+            )
+            output.write("  [dim]     'Victory Road', 'Pokemon League', 'revive fossil'[/dim]")
             output.write("")
 
             # ── Party & Items ─────────────────────────────────────────────────

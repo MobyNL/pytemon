@@ -960,6 +960,54 @@ class TestEndBattleExtra:
         assert ext_term.game_state.battle_state is None
 
 
+class TestBattleBannerVisibility:
+    def test_show_battle_options_hides_location_banner(self, ext_term, ext_output):
+        setup_wild_ext(ext_term)
+        calls = []
+
+        class _BannerWidget:
+            def add_class(self, cls):
+                calls.append(("add", cls))
+
+            def remove_class(self, cls):
+                calls.append(("remove", cls))
+
+        def _query_one(selector, *args, **kwargs):
+            if selector == "#welcome":
+                return _BannerWidget()
+            return type(
+                "W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None}
+            )()
+
+        ext_term.query_one = _query_one
+        BattleMixin.show_battle_options(ext_term, ext_output)
+
+        assert ("add", "hidden") in calls
+
+    def test_end_battle_restores_location_banner(self, ext_term, ext_output):
+        setup_wild_ext(ext_term)
+        calls = []
+
+        class _BannerWidget:
+            def add_class(self, cls):
+                calls.append(("add", cls))
+
+            def remove_class(self, cls):
+                calls.append(("remove", cls))
+
+        def _query_one(selector, *args, **kwargs):
+            if selector == "#welcome":
+                return _BannerWidget()
+            return type(
+                "W", (), {"add_class": lambda s, c: None, "remove_class": lambda s, c: None}
+            )()
+
+        ext_term.query_one = _query_one
+        ext_term.end_battle(ext_output)
+
+        assert ("remove", "hidden") in calls
+
+
 # ===========================================================================
 # _queue_evolution_pending
 # ===========================================================================
@@ -1693,9 +1741,9 @@ class TestFightMoveAnimation:
         for _, _, lines in ext_term.text_animator.recorded_calls:
             all_lines.extend(lines)
         combined = " ".join(all_lines)
-        assert move_name.lower() in combined.lower(), (
-            f"Expected '{move_name}' in animated lines: {combined}"
-        )
+        assert (
+            move_name.lower() in combined.lower()
+        ), f"Expected '{move_name}' in animated lines: {combined}"
 
     def test_opponent_attack_triggers_animation(self, ext_term, ext_output):
         """Opponent counter-attack should also fire text_animator."""
@@ -1711,9 +1759,9 @@ class TestFightMoveAnimation:
 
         # At least 2 write_fast calls expected: player turn + opponent turn
         fast_calls = [c for c in ext_term.text_animator.recorded_calls if c[0] == "write_fast"]
-        assert len(fast_calls) >= 2, (
-            f"Expected >=2 write_fast calls (player+opp), got {len(fast_calls)}"
-        )
+        assert (
+            len(fast_calls) >= 2
+        ), f"Expected >=2 write_fast calls (player+opp), got {len(fast_calls)}"
 
     def test_no_animation_on_back_command(self, ext_term, ext_output):
         """Typing 'back' should not trigger any animation."""
@@ -1722,9 +1770,9 @@ class TestFightMoveAnimation:
 
         ext_term.execute_player_move("back", ext_output)
 
-        assert ext_term.text_animator.recorded_calls == [], (
-            "No animation expected for 'back' command"
-        )
+        assert (
+            ext_term.text_animator.recorded_calls == []
+        ), "No animation expected for 'back' command"
 
     def test_no_animation_on_unknown_move(self, ext_term, ext_output):
         """Unknown move name should not trigger animation."""
@@ -1783,9 +1831,37 @@ class TestCatchAnimation:
         for _, _, lines in ext_term.text_animator.recorded_calls:
             all_lines.extend(lines)
         combined = " ".join(str(line) for line in all_lines)
-        assert "●" in combined or "○" in combined, (
-            f"Expected wiggle dots in animated lines: {combined}"
-        )
+        assert (
+            "●" in combined or "○" in combined
+        ), f"Expected wiggle dots in animated lines: {combined}"
+
+    def test_failed_catch_uses_short_pause_before_followup(self, ext_term, ext_output):
+        """Failed catches should pause briefly before enemy follow-up text."""
+        setup_wild_ext(ext_term)
+        self._give_pokeballs(ext_term)
+
+        timer_delays: list[float] = []
+
+        class _FakeTimer:
+            def stop(self) -> None:
+                return
+
+        def fake_set_timer(delay, callback):
+            timer_delays.append(delay)
+            callback()
+            return _FakeTimer()
+
+        ext_term.set_timer = fake_set_timer
+
+        original_randint = random.randint
+        try:
+            random.randint = lambda a, b: b  # Force failed catch checks
+            ext_term.attempt_catch_pokemon(ext_output)
+        finally:
+            random.randint = original_randint
+
+        assert timer_delays, "Expected a post-failure pause timer to be used"
+        assert ext_term.FAILED_CATCH_PAUSE_SECONDS in timer_delays
 
     def test_no_catch_animation_without_pokeballs(self, ext_term, ext_output):
         """No animation should fire when there are no Pokeballs."""
@@ -1795,9 +1871,9 @@ class TestCatchAnimation:
 
         ext_term.attempt_catch_pokemon(ext_output)
 
-        assert ext_term.text_animator.recorded_calls == [], (
-            "No animation expected when Pokeballs are missing"
-        )
+        assert (
+            ext_term.text_animator.recorded_calls == []
+        ), "No animation expected when Pokeballs are missing"
 
     def test_great_ball_also_animated(self, ext_term, ext_output):
         """Great Ball throw should also trigger animation with delay > 0."""
@@ -1819,6 +1895,6 @@ class TestCatchAnimation:
 
         ext_term.attempt_catch_pokemon(ext_output)
 
-        assert ext_term.text_animator.recorded_calls == [], (
-            "No animation expected for trainer battle catch attempt"
-        )
+        assert (
+            ext_term.text_animator.recorded_calls == []
+        ), "No animation expected for trainer battle catch attempt"

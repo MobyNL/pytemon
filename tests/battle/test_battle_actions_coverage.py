@@ -25,9 +25,11 @@ from pytemon.battle.battle_actions import (
     handle_battle_victory,
     handle_safari_action,
     trigger_wild_encounter,
+    use_full_restore,
     use_heal_item,
     use_status_cure,
 )
+from pytemon.battle.battle_ui import show_bag_menu
 from pytemon.engine import BattleState
 from pytemon.game_state import GameState
 from pytemon.locations import get_location
@@ -541,3 +543,137 @@ class TestUseStatusCure:
             lambda out: fainted.append(True),
         )
         assert len(output.lines) > 0
+
+
+# ===========================================================================
+# use_full_restore
+# ===========================================================================
+
+
+class TestUseFullRestore:
+    def test_use_full_restore_heals_to_max_hp(self, gs, output):
+        """Player at half HP uses Full Restore -> heal message written and item consumed."""
+        bs = setup_wild_battle(gs)
+        gs.game_data["items"] = {"Full Restore": 1}
+        player = bs.player_pokemon
+        player["hp"] = player["max_hp"] // 2
+        pending = []
+        use_full_restore(
+            gs,
+            output,
+            lambda cmd: pending.append(cmd),
+            noop,
+            noop,
+        )
+        # Item was consumed
+        assert gs.game_data["items"].get("Full Restore", 0) == 0
+        # Heal message confirms the restoration ran
+        assert "💊" in output.combined
+
+    def test_use_full_restore_clears_status(self, gs, output):
+        """Player has POISON status -> Full Restore writes both heal and status-cure messages."""
+        bs = setup_wild_battle(gs)
+        gs.game_data["items"] = {"Full Restore": 1}
+        player = bs.player_pokemon
+        player["hp"] = player["max_hp"] // 2
+        player["status"] = "POISON"
+        pending = []
+        use_full_restore(
+            gs,
+            output,
+            lambda cmd: pending.append(cmd),
+            noop,
+            noop,
+        )
+        # Item consumed
+        assert gs.game_data["items"].get("Full Restore", 0) == 0
+        # Heal message written
+        assert "💊" in output.combined
+        # Status-cure message written (T.STATUS_CURED contains "✓")
+        assert "✓" in output.combined
+
+    def test_use_full_restore_no_item(self, gs, output):
+        """No Full Restore in bag -> error message shown, HP unchanged."""
+        bs = setup_wild_battle(gs)
+        gs.game_data["items"] = {}
+        player = bs.player_pokemon
+        original_hp = player["hp"]
+        pending = []
+        use_full_restore(
+            gs,
+            output,
+            lambda cmd: pending.append(cmd),
+            noop,
+            noop,
+        )
+        assert player["hp"] == original_hp
+        assert "❌" in output.combined
+        assert "battle" in pending
+
+    def test_use_full_restore_already_healthy(self, gs, output):
+        """Player at full HP with no status -> item still consumed, no status-cure message."""
+        bs = setup_wild_battle(gs)
+        gs.game_data["items"] = {"Full Restore": 1}
+        player = bs.player_pokemon
+        player["hp"] = player["max_hp"]
+        player["status"] = None
+        pending = []
+        use_full_restore(
+            gs,
+            output,
+            lambda cmd: pending.append(cmd),
+            noop,
+            noop,
+        )
+        # Item consumed even when pokemon was already healthy
+        assert gs.game_data["items"].get("Full Restore", 0) == 0
+        # Heal confirmation written (0 HP recovered)
+        assert "💊" in output.combined
+        # No status-cure line since there was no status
+        assert "✓" not in output.combined
+
+
+# ===========================================================================
+# show_bag_menu
+# ===========================================================================
+
+
+class TestShowBagMenu:
+    def test_show_bag_menu_shows_great_ball_when_available(self, gs, output):
+        """Bag has 3 Great Balls -> output contains 'Great Ball'."""
+        setup_wild_battle(gs)
+        gs.game_data["items"] = {"Great Ball": 3}
+        show_bag_menu(gs, output)
+        assert "Great Ball" in output.combined
+
+    def test_show_bag_menu_shows_ultra_ball_when_available(self, gs, output):
+        """Bag has 1 Ultra Ball -> output contains 'Ultra Ball'."""
+        setup_wild_battle(gs)
+        gs.game_data["items"] = {"Ultra Ball": 1}
+        show_bag_menu(gs, output)
+        assert "Ultra Ball" in output.combined
+
+    def test_show_bag_menu_shows_hyper_potion_when_available(self, gs, output):
+        """Bag has 2 Hyper Potions -> output contains 'Hyper Potion'."""
+        setup_wild_battle(gs)
+        gs.game_data["items"] = {"Hyper Potion": 2}
+        show_bag_menu(gs, output)
+        assert "Hyper Potion" in output.combined
+
+    def test_show_bag_menu_shows_full_restore_when_available(self, gs, output):
+        """Bag has 1 Full Restore -> output contains 'Full Restore'."""
+        setup_wild_battle(gs)
+        gs.game_data["items"] = {"Full Restore": 1}
+        show_bag_menu(gs, output)
+        assert "Full Restore" in output.combined
+
+    def test_show_bag_menu_hides_missing_items(self, gs, output):
+        """Empty bag -> no item entries shown, displays no-items message."""
+        setup_wild_battle(gs)
+        gs.game_data["items"] = {}
+        show_bag_menu(gs, output)
+        assert "Great Ball" not in output.combined
+        assert "Ultra Ball" not in output.combined
+        assert "Hyper Potion" not in output.combined
+        assert "Full Restore" not in output.combined
+        assert "no usable items" in output.combined

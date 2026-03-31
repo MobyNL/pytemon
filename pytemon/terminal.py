@@ -19,6 +19,7 @@ import asyncio
 import math
 import os
 from pathlib import Path
+from typing import Optional
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -51,9 +52,11 @@ from . import stats as _stats
 from .buildings import SHOP_CATALOG
 from .data.pokemon_data import POKEMON, get_pokemon
 from .game_state import GameState
+from .texts.en import terminal as terminal_text
 from .ui import displays
 from .ui.battle_mixin import BattleMixin
 from .ui.building_mixin import BuildingMixin
+from .ui.formatters import write_lines, write_lines_fmt
 from .ui.game_flow_mixin import GameFlowMixin
 
 # Mixin modules
@@ -85,10 +88,19 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
     # ── Lifecycle ────────────────────────────────────────────────────────────
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        lock_file: Optional[str] = None,
+        command_file: Optional[str] = None,
+        text_file: Optional[str] = None,
+        **kwargs,
+    ):
         """Initialize the Pokemon Terminal."""
         super().__init__(*args, **kwargs)
-        self.lock_file_path = os.environ.get("POKEMON_LOCK_FILE")
+        self.lock_file_path = lock_file or os.environ.get("POKEMON_LOCK_FILE")
+        self.command_file_path = command_file or os.environ.get("POKEMON_COMMAND_FILE")
+        self.text_file_path = text_file or os.environ.get("POKEMON_TEXT_FILE")
         self.game_state = GameState()
         self.pending_command = None
         self.pending_command_data = {}
@@ -189,17 +201,43 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             yield Static("🎒 Battle Bag", id="battle-bag-title")
             with Horizontal(id="battle-bag-row1", classes="button-row"):
                 yield Button(
-                    "🔴 Throw Pokeball",
+                    "🔴 Pokeball",
                     id="btn-bag-pokeball",
                     classes="bag-button bag-button-catch",
                 )
+                yield Button(
+                    "🔵 Great Ball",
+                    id="btn-bag-great-ball",
+                    classes="bag-button bag-button-catch",
+                )
+                yield Button(
+                    "🟡 Ultra Ball",
+                    id="btn-bag-ultra-ball",
+                    classes="bag-button bag-button-catch",
+                )
+                yield Button(
+                    "⚪ Master Ball",
+                    id="btn-bag-master-ball",
+                    classes="bag-button bag-button-catch",
+                )
+            with Horizontal(id="battle-bag-row2", classes="button-row"):
                 yield Button("💊 Potion", id="btn-bag-potion", classes="bag-button bag-button-heal")
                 yield Button(
                     "💊 Super Potion",
                     id="btn-bag-super-potion",
                     classes="bag-button bag-button-heal",
                 )
-            with Horizontal(id="battle-bag-row2", classes="button-row"):
+                yield Button(
+                    "💊 Hyper Potion",
+                    id="btn-bag-hyper-potion",
+                    classes="bag-button bag-button-heal",
+                )
+                yield Button(
+                    "✨ Full Restore",
+                    id="btn-bag-full-restore",
+                    classes="bag-button bag-button-heal",
+                )
+            with Horizontal(id="battle-bag-row3", classes="button-row"):
                 yield Button(
                     "💜 Antidote", id="btn-bag-antidote", classes="bag-button bag-button-status"
                 )
@@ -232,6 +270,17 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             yield Button("Slot 5", id="btn-faint-slot-4", classes="switch-slot-button")
             yield Button("Slot 6", id="btn-faint-slot-5", classes="switch-slot-button")
             yield Button("🏃 Run Away", id="btn-faint-run", classes="faint-run-button")
+
+        with Container(id="choose-lead-panel", classes="hidden"):
+            yield Static("👥 Choose your lead Pokemon!", id="choose-lead-title")
+            with Grid(id="choose-lead-grid"):
+                yield Button("Slot 1", id="btn-lead-slot-0", classes="lead-slot-button")
+                yield Button("Slot 2", id="btn-lead-slot-1", classes="lead-slot-button")
+                yield Button("Slot 3", id="btn-lead-slot-2", classes="lead-slot-button")
+                yield Button("Slot 4", id="btn-lead-slot-3", classes="lead-slot-button")
+                yield Button("Slot 5", id="btn-lead-slot-4", classes="lead-slot-button")
+                yield Button("Slot 6", id="btn-lead-slot-5", classes="lead-slot-button")
+            yield Button("← Cancel", id="btn-lead-cancel", classes="lead-cancel-button")
 
         with Container(id="location-selection", classes="hidden"):
             yield Static("🗺️  Where would you like to go?", id="location-selection-title")
@@ -371,6 +420,9 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                 )
                 yield Button("💾 Use PC", id="btn-pc-center-usepc", classes="pokemon-center-button")
                 yield Button("🚪 Leave", id="btn-pc-center-leave", classes="pokemon-center-button")
+            with Horizontal(id="pokemon-center-loading", classes="hidden"):
+                yield LoadingIndicator(id="pokemon-center-loading-indicator")
+                yield Static("Healing in progress...", id="pokemon-center-loading-text")
 
         with Container(id="pc-panel", classes="hidden"):
             yield Static("💾 Bill's PC Storage System", id="pc-panel-title")
@@ -417,7 +469,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             with Horizontal(id="pokemart-shop-row"):
                 yield Select([], id="shop-item-select", prompt="📦 Choose an item...")
                 with Horizontal(id="shop-qty-controls"):
-                    yield Button("−", id="btn-shop-qty-minus", classes="shop-qty-button")
+                    yield Button("-", id="btn-shop-qty-minus", classes="shop-qty-button")
                     yield Input(value="1", id="shop-qty-input", restrict=r"[0-9]*", max_length=2)
                     yield Button("+", id="btn-shop-qty-plus", classes="shop-qty-button")
                 yield Button("🛒 Buy", id="btn-shop-buy", classes="shop-buy-button")
@@ -473,7 +525,12 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                     classes="gym-button gym-button-leader",
                 )
                 yield Button(
-                    "🚪 Leave Gym", id="btn-gym-leave", classes="gym-button gym-button-leave"
+                    "� Rematch Leader",
+                    id="btn-gym-rematch",
+                    classes="gym-button gym-button-rematch hidden",
+                )
+                yield Button(
+                    "�🚪 Leave Gym", id="btn-gym-leave", classes="gym-button gym-button-leave"
                 )
 
         with Container(id="input-container"):
@@ -487,12 +544,69 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         output = self.query_one("#output", RichLog)
         self.show_main_menu(output)
         self.query_one("#command-input", Input).focus()
+        if self.command_file_path:
+            self.set_interval(0.5, self._poll_command_file)
+        if self.text_file_path:
+            self.set_interval(0.5, self._poll_text_file)
+
+    def _poll_text_file(self) -> None:
+        """Poll the text file for externally injected styled text."""
+        if not self.text_file_path:
+            return
+        txt_path = Path(self.text_file_path)
+        if not txt_path.exists():
+            return
+        try:
+            content = txt_path.read_text()
+            txt_path.write_text("")  # clear after reading
+        except Exception:
+            return
+        if not content.strip():
+            return
+        output = self.query_one("#output", RichLog)
+        for line in content.split("\n"):
+            output.write(line)
+
+    def _poll_command_file(self) -> None:
+        """Poll the command file for externally injected commands."""
+        if not self.command_file_path:
+            return
+        cmd_path = Path(self.command_file_path)
+        if not cmd_path.exists():
+            return
+        try:
+            command = cmd_path.read_text().strip()
+            cmd_path.write_text("")  # clear after reading
+        except Exception:
+            return
+        if not command:
+            return
+        output = self.query_one("#output", RichLog)
+        input_field = self.query_one("#command-input", Input)
+        output.write(f"[bold yellow]🎮 >[/bold yellow] {command}")
+        if self.pending_command:
+            self.handle_pending_command(command, output)
+        elif self.game_state.in_menu:
+            self.process_menu_command(command, output)
+        else:
+            self.process_command(command, output)
+        self.command_count += 1
+        self._refresh_subtitle()
+        input_field.focus()
 
     def _refresh_subtitle(self) -> None:
         """Update the #welcome banner to show the current location and its description."""
         try:
             welcome = self.query_one("#welcome", Static)
             if self.game_state.in_game and self.game_state.current_location:
+                active_building = self.game_state.game_data.get("_active_building")
+                if active_building:
+                    location_name = self.game_state.current_location.name
+                    welcome.update(
+                        f"[bold yellow]🏛 {active_building}[/bold yellow]\n"
+                        f"[dim]Inside {location_name}[/dim]"
+                    )
+                    return
                 loc = self.game_state.current_location
                 welcome.update(
                     f"[bold cyan]📍 {loc.name}[/bold cyan]\n[dim]{loc.description}[/dim]"
@@ -532,20 +646,44 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 
         # Battle action buttons
         elif button_id == "btn-fight":
-            output.write("[bold yellow]🎮 >[/bold yellow] Fight")
-            self.process_battle_command("fight", output)
+            if self.game_state.battle_state and self.game_state.battle_state.is_safari:
+                output.write("[bold yellow]🎮 >[/bold yellow] Bait")
+                self.process_battle_command("bait", output)
+            else:
+                output.write("[bold yellow]🎮 >[/bold yellow] Fight")
+                self.process_battle_command("fight", output)
         elif button_id == "btn-switch":
-            output.write("[bold yellow]🎮 >[/bold yellow] Switch")
-            self.process_battle_command("switch", output)
+            if self.game_state.battle_state and self.game_state.battle_state.is_safari:
+                output.write("[bold yellow]🎮 >[/bold yellow] Rock")
+                self.process_battle_command("rock", output)
+            else:
+                output.write("[bold yellow]🎮 >[/bold yellow] Switch")
+                self.process_battle_command("switch", output)
         elif button_id == "btn-item":
-            output.write("[bold yellow]🎮 >[/bold yellow] Item")
-            self.process_battle_command("bag", output)
+            if self.game_state.battle_state and self.game_state.battle_state.is_safari:
+                output.write("[bold yellow]🎮 >[/bold yellow] Throw Safari Ball")
+                self.process_battle_command("safari ball", output)
+            else:
+                output.write("[bold yellow]🎮 >[/bold yellow] Item")
+                self.process_battle_command("bag", output)
 
         # Battle bag item buttons
         elif button_id == "btn-bag-pokeball":
             output.write("[bold yellow]🎮 >[/bold yellow] Throw Pokeball")
             self.hide_all_battle_panels()
             self.process_battle_command("throw pokeball", output)
+        elif button_id == "btn-bag-great-ball":
+            output.write("[bold yellow]🎮 >[/bold yellow] Throw Great Ball")
+            self.hide_all_battle_panels()
+            self.process_battle_command("throw great ball", output)
+        elif button_id == "btn-bag-ultra-ball":
+            output.write("[bold yellow]🎮 >[/bold yellow] Throw Ultra Ball")
+            self.hide_all_battle_panels()
+            self.process_battle_command("throw ultra ball", output)
+        elif button_id == "btn-bag-master-ball":
+            output.write("[bold yellow]🎮 >[/bold yellow] Throw Master Ball")
+            self.hide_all_battle_panels()
+            self.process_battle_command("throw master ball", output)
         elif button_id == "btn-bag-potion":
             output.write("[bold yellow]🎮 >[/bold yellow] Use Potion")
             self.hide_all_battle_panels()
@@ -554,6 +692,14 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Use Super Potion")
             self.hide_all_battle_panels()
             self.process_battle_command("use super potion", output)
+        elif button_id == "btn-bag-hyper-potion":
+            output.write("[bold yellow]🎮 >[/bold yellow] Use Hyper Potion")
+            self.hide_all_battle_panels()
+            self.process_battle_command("use hyper potion", output)
+        elif button_id == "btn-bag-full-restore":
+            output.write("[bold yellow]🎮 >[/bold yellow] Use Full Restore")
+            self.hide_all_battle_panels()
+            self.process_battle_command("use full restore", output)
         elif button_id == "btn-bag-antidote":
             output.write("[bold yellow]🎮 >[/bold yellow] Use Antidote")
             self.hide_all_battle_panels()
@@ -603,6 +749,15 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Run Away")
             self.hide_all_battle_panels()
             self.end_battle(output)
+
+        # Choose-lead slot buttons (pre-battle lead selection)
+        elif button_id.startswith("btn-lead-slot-"):
+            slot_idx = int(button_id.split("-")[-1])
+            self.hide_choose_lead_panel()
+            self.handle_pending_command(str(slot_idx + 1), output)
+        elif button_id == "btn-lead-cancel":
+            output.write("[bold yellow]🎮 >[/bold yellow] Cancel")
+            self.handle_pending_command("cancel", output)
 
         elif button_id == "btn-run":
             output.write("[bold yellow]🎮 >[/bold yellow] Run")
@@ -668,10 +823,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             elif button_id == "btn-save-new":
                 output.write("[bold yellow]🎮 >[/bold yellow] Create new save file")
                 self.hide_all_panels()
-                output.write("")
-                output.write("[yellow]Enter a name for your new save file:[/yellow]")
-                output.write("[dim]Or press Enter to use a timestamp[/dim]")
-                output.write("")
+                write_lines(output, terminal_text.SAVE_NEW_FILE_PROMPT)
 
         # Load game buttons
         elif button_id.startswith("btn-load-"):
@@ -682,9 +834,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                     self.hide_all_panels()
                     self.load_selected_save(selected_value, output)
                 else:
-                    output.write("")
-                    output.write("[red]❌ Please click a save file in the list first![/red]")
-                    output.write("")
+                    write_lines(output, terminal_text.LOAD_SELECT_SAVE_REQUIRED)
             elif button_id == "btn-load-cancel":
                 output.write("[bold yellow]🎮 >[/bold yellow] Back to menu")
                 self.hide_all_panels()
@@ -703,9 +853,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                     self.hide_all_panels()
                     self.handle_pending_command(location_name, output)
                 else:
-                    output.write("")
-                    output.write("[red]❌ Please select a destination first![/red]")
-                    output.write("")
+                    write_lines(output, terminal_text.LOCATION_SELECT_REQUIRED)
             elif button_id == "btn-location-cancel":
                 output.write("[bold yellow]🎮 >[/bold yellow] Cancel")
                 self.hide_all_panels()
@@ -722,9 +870,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                     self.hide_all_panels()
                     self.handle_pending_command(building_name, output)
                 else:
-                    output.write("")
-                    output.write("[red]❌ Please select a building first![/red]")
-                    output.write("")
+                    write_lines(output, terminal_text.BUILDING_SELECT_REQUIRED)
             elif button_id == "btn-building-cancel":
                 output.write("[bold yellow]🎮 >[/bold yellow] Cancel")
                 self.hide_all_panels()
@@ -746,9 +892,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         elif button_id == "btn-pokedex-close":
             output.write("[bold yellow]🎮 >[/bold yellow] Close Pokedex")
             self.hide_pokedex_navigation()
-            output.write("")
-            output.write("[dim]Pokedex closed.[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.POKEDEX_CLOSED)
 
         # Party panel close
         elif button_id == "btn-party-close":
@@ -765,36 +909,26 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             buildings.perform_mom_heal(self.game_state, output)
         elif button_id == "btn-nurse-joy-no":
             output.write("[bold yellow]🎮 >[/bold yellow] No")
+            self._clear_active_building_context()
             self.hide_all_panels()
             self.pending_command = None
             self.pending_command_data = {}
-            output.write("")
-            output.write(
-                "[bold]Mom:[/bold] [magenta]Okay! Come back anytime you need to rest![/magenta]"
-            )
-            output.write("")
-            output.write("[dim]You leave the house[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.MOM_HEAL_DECLINED)
 
         # Pokemon Center lobby buttons
         elif button_id == "btn-pc-center-heal":
             output.write("[bold yellow]🎮 >[/bold yellow] Heal Pokemon")
-            self.hide_all_panels()
-            buildings.perform_pokemon_center_heal(self.game_state, output)
-            self._return_to_pokemon_center(output)
+            self._handle_pokemon_center_command("heal", output)
         elif button_id == "btn-pc-center-usepc":
             output.write("[bold yellow]🎮 >[/bold yellow] Use PC")
             self._open_pc_from_center(output)
         elif button_id == "btn-pc-center-leave":
             output.write("[bold yellow]🎮 >[/bold yellow] Leave")
+            self._clear_active_building_context()
             self.hide_all_panels()
             self.pending_command = None
             self.pending_command_data = {}
-            output.write("")
-            output.write(
-                "[dim]You leave the Pokemon Center. Come back if your Pokemon need healing![/dim]"
-            )
-            output.write("")
+            write_lines(output, terminal_text.LEAVE_POKEMON_CENTER)
 
         # Bill's PC panel buttons
         elif button_id.startswith("btn-pc-view-box-"):
@@ -811,9 +945,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         elif button_id == "btn-pc-leave":
             output.write("[bold yellow]🎮 >[/bold yellow] Leave PC")
             self.hide_all_panels()
-            output.write("")
-            output.write("[dim]You log out of the PC.[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.PC_LOG_OUT)
             self.pending_command = None
             self.pending_command_data = {}
             self._return_to_pokemon_center(output)
@@ -854,13 +986,11 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         # Pokemart shop panel buttons
         elif button_id == "btn-shop-leave":
             output.write("[bold yellow]🎮 >[/bold yellow] Leave Shop")
+            self._clear_active_building_context()
             self.hide_all_panels()
             self.pending_command = None
             self.pending_command_data = {}
-            output.write("")
-            output.write("[bold]Clerk:[/bold] [yellow]Thank you! Come again![/yellow]")
-            output.write("[dim]You leave the Pokemart.[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.SHOP_THANK_YOU_LEAVE)
         elif button_id in ("btn-shop-qty-minus", "btn-shop-qty-plus"):
             qty_input = self.query_one("#shop-qty-input", Input)
             try:
@@ -913,10 +1043,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         elif button_id == "btn-quit-cancel":
             output.write("[bold yellow]🎮 >[/bold yellow] Cancel")
             self.hide_all_panels()
-            output.write("")
-            output.write("[green]✓ Cancelled[/green]")
-            output.write("[dim]Continuing game...[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.QUIT_CANCELLED)
 
         # Gym panel buttons
         elif button_id == "btn-gym-challenge":
@@ -927,12 +1054,14 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Fight Gym Trainer")
             self.hide_all_panels()
             self._gym_fight_trainer(output)
+        elif button_id == "btn-gym-rematch":
+            output.write("[bold yellow]🎮 >[/bold yellow] Rematch Gym Leader")
+            self.hide_all_panels()
+            self._gym_rematch_leader(output)
         elif button_id == "btn-gym-leave":
             output.write("[bold yellow]🎮 >[/bold yellow] Leave Gym")
             self.hide_all_panels()
-            output.write("")
-            output.write("[dim]You leave the Gym. Come back when you're ready![/dim]")
-            output.write("")
+            write_lines(output, terminal_text.GYM_LEAVE)
             self.look_around(output)
 
         # Evolution confirmation buttons
@@ -976,9 +1105,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.write("[bold yellow]🎮 >[/bold yellow] Stop")
             self.hide_all_panels()
             self.pending_command = None
-            output.write("")
-            output.write(f"[cyan]{pokemon_name} did not evolve.[/cyan]")
-            output.write("")
+            write_lines_fmt(output, terminal_text.EVOLUTION_STOPPED, pokemon_name=pokemon_name)
             self._resume_after_evolution(output)
 
         self._refresh_subtitle()
@@ -1005,11 +1132,25 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         input_field.value = ""
 
         if not command:
+            input_field.focus()
             return
 
         if self.pending_command:
+            # Allow cheat commands to bypass battle pending states so that
+            # e.g. "cheat win" works while waiting for a battle action.
+            _battle_pending = {"battle", "select_move", "switch_target", "faint_switch"}
+            if (
+                self.game_state.cheat_mode
+                and command.lower().strip().startswith("cheat ")
+                and self.pending_command in _battle_pending
+            ):
+                output.write(f"[bold yellow]🎮 >[/bold yellow] {command}")
+                self.process_command(command, output)
+                self._refresh_subtitle()
+                return
             self.handle_pending_command(command, output)
             self._refresh_subtitle()
+            input_field.focus()
             return
 
         output.write(f"[bold yellow]🎮 >[/bold yellow] {command}")
@@ -1023,6 +1164,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         self._refresh_subtitle()
         if self.game_state.in_game:
             self.check_autosave(command, output)
+        input_field.focus()
 
     # ── In-game command router ────────────────────────────────────────────────
 
@@ -1037,6 +1179,9 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         cmd = command.lower()
 
         if cheat_commands.check_secret_phrase(command, self.game_state, output):
+            # If a forced encounter was queued (e.g. Mew secret phrase), trigger it now
+            if self.game_state.game_data.get("_forced_encounter"):
+                self.trigger_wild_encounter(output)
             return
 
         if self.game_state.cheat_mode and cmd.startswith("cheat "):
@@ -1050,6 +1195,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
                 lambda: self.show_battle_action_panel(),
                 self.handle_battle_victory,
                 self.handle_pokemon_fainted,
+                queue_move_learn_callback=self._queue_move_learn,
             )
             return
 
@@ -1137,10 +1283,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             if page_token.isdigit():
                 self.pokedex_goto_page(output, int(page_token))
             else:
-                output.write("")
-                output.write("[yellow]⚠ Usage: Show Pokedex Page <number>[/yellow]")
-                output.write("[dim]Example: 'Show Pokedex Page 3'[/dim]")
-                output.write("")
+                write_lines(output, terminal_text.USAGE_SHOW_POKEDEX_PAGE)
         elif cmd.startswith("show pokedex entry "):
             self.show_pokedex_entry(output, command[19:].strip())
         elif (
@@ -1171,56 +1314,45 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             if target:
                 self.inspect_pokemon(output, target)
             else:
-                output.write("")
-                output.write("[yellow]⚠ Usage: Inspect <name|number>[/yellow]")
-                output.write("[dim]Example: 'Inspect Pikachu' or 'Inspect 25'[/dim]")
-                output.write("")
+                write_lines(output, terminal_text.USAGE_INSPECT)
 
         # Autosave settings
         elif cmd in ("show settings", "settings"):
             self.show_settings(output)
         elif cmd == "enable autosave":
             self.game_state.autosave_enabled = True
-            output.write("")
-            output.write("[green]✓ Autosave enabled[/green]")
-            output.write(
-                f"[dim]Game will autosave every {self.game_state.autosave_frequency} commands[/dim]"
+            write_lines_fmt(
+                output,
+                terminal_text.AUTOSAVE_ENABLED,
+                frequency=self.game_state.autosave_frequency,
             )
-            output.write("")
         elif cmd == "disable autosave":
             self.game_state.autosave_enabled = False
-            output.write("")
-            output.write("[yellow]⚠ Autosave disabled[/yellow]")
-            output.write("[dim]Remember to save manually![/dim]")
-            output.write("")
+            write_lines(output, terminal_text.AUTOSAVE_DISABLED)
         elif cmd.startswith("set autosave frequency ") or cmd.startswith("autosave "):
             parts = cmd.split()
             setting = parts[-1]
             if setting == "on":
                 self.game_state.autosave_enabled = True
-                output.write("")
-                output.write("[green]✓ Autosave enabled[/green]")
-                output.write(
-                    f"[dim]Game will autosave every {self.game_state.autosave_frequency} commands[/dim]"
+                write_lines_fmt(
+                    output,
+                    terminal_text.AUTOSAVE_ENABLED,
+                    frequency=self.game_state.autosave_frequency,
                 )
-                output.write("")
             elif setting == "off":
                 self.game_state.autosave_enabled = False
-                output.write("")
-                output.write("[yellow]⚠ Autosave disabled[/yellow]")
-                output.write("[dim]Remember to save manually![/dim]")
-                output.write("")
+                write_lines(output, terminal_text.AUTOSAVE_DISABLED)
             elif setting.isdigit():
                 frequency = int(setting)
                 if 5 <= frequency <= 100:
                     self.game_state.autosave_frequency = frequency
-                    output.write("")
-                    output.write(f"[green]✓ Autosave frequency set to {frequency} commands[/green]")
-                    output.write("")
+                    write_lines_fmt(
+                        output,
+                        terminal_text.AUTOSAVE_FREQUENCY_SET,
+                        frequency=frequency,
+                    )
                 else:
-                    output.write("")
-                    output.write("[red]❌ Autosave frequency must be between 5 and 100[/red]")
-                    output.write("")
+                    write_lines(output, terminal_text.AUTOSAVE_FREQUENCY_RANGE_ERROR)
             else:
                 self.show_settings(output)
         elif cmd == "autosave":
@@ -1237,42 +1369,24 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             output.clear()
             output.write("[dim]Output cleared[/dim]")
         elif cmd in ("pc", "use pc", "bill's pc", "check pc"):
-            output.write("")
-            output.write("[yellow]⚠ Bill's PC is only accessible at a Pokemon Center.[/yellow]")
-            output.write("[dim]Enter the Pokemon Center to access the PC.[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.PC_CENTER_REQUIRED)
         elif cmd in ("ride bike", "ride bicycle", "use bike", "use bicycle", "cycle", "bike"):
             items = self.game_state.game_data.get("items", {})
             if not items.get("Bicycle"):
-                output.write("")
-                output.write("[yellow]⚠ You don't have a Bicycle![/yellow]")
-                output.write("[dim]Visit the Bike Shop in Cerulean City to get one[/dim]")
-                output.write("")
+                write_lines(output, terminal_text.NO_BICYCLE)
             elif (
                 not self.game_state.current_location
                 or not self.game_state.current_location.can_explore()
             ):
-                output.write("")
-                output.write(
-                    "[yellow]⚠ You can only ride your Bicycle in routes, forests, and caves![/yellow]"
-                )
-                output.write("[dim]Get to an explorable area first, then hop on your bike[/dim]")
-                output.write("")
+                write_lines(output, terminal_text.BICYCLE_LOCATION_RESTRICTED)
             else:
                 cycling = self.game_state.game_data.get("cycling", False)
                 if cycling:
                     self.game_state.game_data["cycling"] = False
-                    output.write("")
-                    output.write("[cyan]🚶 You hop off your Bicycle[/cyan]")
-                    output.write("[dim]Back to walking pace[/dim]")
-                    output.write("")
+                    write_lines(output, terminal_text.BICYCLE_OFF)
                 else:
                     self.game_state.game_data["cycling"] = True
-                    output.write("")
-                    output.write("[bold cyan]🚲 You hop on your Bicycle![/bold cyan]")
-                    output.write("[cyan]   You zoom along the route at high speed![/cyan]")
-                    output.write("[dim]Wild encounter rate reduced while cycling[/dim]")
-                    output.write("")
+                    write_lines(output, terminal_text.BICYCLE_ON)
 
         # Fishing
         elif (
@@ -1300,16 +1414,99 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             else:
                 self._handle_hm_field(output, "FLY")
 
+        elif cmd in ("exit safari zone", "leave safari zone"):
+            if (
+                self.game_state.current_location
+                and self.game_state.current_location.name == "Safari Zone"
+            ):
+                from .locations import get_location
+
+                fuchsia = get_location("Fuchsia City")
+                if fuchsia:
+                    self.game_state.game_data["previous_location"] = "Safari Zone"
+                    self.game_state.current_location = fuchsia
+                    self.game_state.game_data["location"] = "Fuchsia City"
+                    output.write("")
+                    output.write(
+                        "[bold cyan]➜ You leave the Safari Zone through the gatehouse...[/bold cyan]"
+                    )
+                    output.write("")
+                    self.show_location_arrival(output)
+            else:
+                output.write("")
+                output.write("[yellow]⚠  You're not in the Safari Zone.[/yellow]")
+                output.write("")
+
         elif cmd in ("exit", "exit building", "leave building"):
-            output.write("")
-            output.write("[yellow]⚠ You're not inside a building.[/yellow]")
-            output.write("[dim]Walk into a building first with 'Enter <building>'[/dim]")
-            output.write("[dim]To close the game use 'Stop' or 'Stop Playing'[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.NOT_INSIDE_BUILDING)
             return
 
         elif cmd in ("quit game", "quit", "stop", "stop playing", "q"):
             self.prompt_for_quit(output)
+
+        # ── Phase 4 building shortcuts ────────────────────────────────────────
+        elif cmd in ("silph co", "silph co.", "silph"):
+            self.enter_building("Silph Co.", output)
+        elif cmd in ("pokemon mansion", "mansion"):
+            self.enter_building("Pokemon Mansion", output)
+        elif cmd in ("pokemon lab", "cinnabar lab"):
+            self.enter_building("Pokemon Lab", output)
+
+        # ── Phase 4 location shortcuts ───────────────────────────────────────
+        elif cmd in (
+            "go saffron city",
+            "go saffron",
+            "saffron city",
+            "saffron",
+            "move saffron",
+            "move saffron city",
+        ):
+            self.move_to_location("Saffron City", output)
+        elif cmd in (
+            "go cinnabar island",
+            "go cinnabar",
+            "cinnabar island",
+            "cinnabar",
+            "move cinnabar",
+            "move cinnabar island",
+        ):
+            self.move_to_location("Cinnabar Island", output)
+        elif cmd in ("go victory road", "victory road", "move victory road"):
+            self.move_to_location("Victory Road", output)
+        elif cmd in (
+            "go pokemon league",
+            "pokemon league",
+            "move pokemon league",
+            "indigo plateau",
+        ):
+            self.move_to_location("Pokemon League", output)
+
+        # ── Phase 5 building shortcuts ────────────────────────────────────────
+        elif cmd in ("elite four", "enter elite four", "challenge elite four", "face elite four"):
+            self.enter_building("Elite Four", output)
+        elif cmd in ("hall of fame", "enter hall of fame"):
+            self.enter_building("Hall of Fame", output)
+        elif cmd in ("reception", "league reception", "pokemon league reception"):
+            self.enter_building("Pokemon League Reception", output)
+
+        # ── Fossil revival shortcut ─────────────────────────────────────────
+        elif cmd in ("revive fossil", "fossil revival", "revive fossils"):
+            if (
+                not self.game_state.current_location
+                or self.game_state.current_location.name != "Cinnabar Island"
+            ):
+                output.write("")
+                output.write(
+                    "[yellow]⚠ You need to go to the Pokemon Lab on Cinnabar Island"
+                    " to revive fossils.[/yellow]"
+                )
+                output.write("[dim]Travel to Cinnabar Island and enter the Pokemon Lab.[/dim]")
+                output.write("")
+            else:
+                from . import buildings as _bld
+
+                _bld.enter_pokemon_lab(self.game_state, output)
+
         else:
             output.write(f"[red]❌ Unknown command:[/red] {command}")
             output.write("[dim]Type 'help' to see available commands[/dim]")
@@ -1354,14 +1551,17 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             target_raw = None
 
         if not item_name_raw:
-            output.write("")
-            output.write("[yellow]⚠ Usage:  use <item>  or  use <item> on <pokemon>[/yellow]")
-            output.write("[dim]Example: use potion  /  use fire stone on eevee[/dim]")
-            output.write("")
+            write_lines(output, terminal_text.USAGE_USE_ITEM)
             return
 
         # Delegate all logic (including error messages) to items module
-        _items.use_item_outside_battle(self.game_state, item_name_raw, target_raw, output)
+        _items.use_item_outside_battle(
+            self.game_state,
+            item_name_raw,
+            target_raw,
+            output,
+            queue_move_learn_callback=self._queue_move_learn,
+        )
 
     def show_badge_case(self, output: RichLog) -> None:
         """Display the badge case."""
@@ -1392,7 +1592,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         species_data = get_pokemon(species_upper)
         if species_data is None:
             # Fallback: stub entry
-            for num, pdata in POKEMON.items():
+            for _num, pdata in POKEMON.items():
                 if pdata.name == species_upper:
                     species_data = pdata
                     break
@@ -1425,7 +1625,9 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         """Display battle and exploration statistics."""
         _stats.show_stats(self.game_state, output)
 
-    def show_pokedex(self, output: RichLog, filter_mode: str = "all", page: int = None) -> None:
+    def show_pokedex(
+        self, output: RichLog, filter_mode: str = "all", page: Optional[int] = None
+    ) -> None:
         """Display the Pokedex with pagination."""
         pokedex.show_pokedex(self.game_state, output, filter_mode, page)
         self.show_pokedex_navigation()
@@ -1451,9 +1653,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
             )
             self.show_pokedex_navigation()
         else:
-            output.write("")
-            output.write("[yellow]⚠ Already on first page[/yellow]")
-            output.write("")
+            write_lines(output, terminal_text.POKEDEX_FIRST_PAGE_ALREADY)
 
     def pokedex_first_page(self, output: RichLog) -> None:
         """Navigate to the first Pokedex page."""
@@ -1486,9 +1686,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
         """Go to specific Pokedex page."""
         view_state = pokedex.get_pokedex_state(self.game_state)
         if page_num < 1:
-            output.write("")
-            output.write("[yellow]⚠ Page number must be at least 1[/yellow]")
-            output.write("")
+            write_lines(output, terminal_text.POKEDEX_PAGE_MINIMUM)
         else:
             pokedex.show_pokedex(
                 self.game_state, output, view_state.get("filter_mode", "all"), page_num
@@ -1538,16 +1736,29 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
 # ── Module entry point ───────────────────────────────────────────────────────
 
 
-def launch_terminal() -> None:
-    """Launch the Pokemon terminal application."""
-    app = PokemonTerminal()
+def launch_terminal(
+    lock_file: Optional[str] = None,
+    command_file: Optional[str] = None,
+    text_file: Optional[str] = None,
+) -> None:
+    """Launch the Pokemon terminal application.
+
+    File paths can be passed directly or via environment variables
+    (POKEMON_LOCK_FILE, POKEMON_COMMAND_FILE, POKEMON_TEXT_FILE).
+    Direct arguments take precedence over env vars.
+    """
+    app = PokemonTerminal(
+        lock_file=lock_file,
+        command_file=command_file,
+        text_file=text_file,
+    )
     try:
         app.run()
     finally:
-        lock_file = os.environ.get("POKEMON_LOCK_FILE")
-        if lock_file:
+        resolved_lock = lock_file or os.environ.get("POKEMON_LOCK_FILE")
+        if resolved_lock:
             try:
-                Path(lock_file).unlink()
+                Path(resolved_lock).unlink()
             except Exception:
                 pass
 

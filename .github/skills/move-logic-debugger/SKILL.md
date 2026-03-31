@@ -28,7 +28,7 @@ damage = int(damage * type_effectiveness * stab_bonus * random_factor)
 ### 2. Type Effectiveness Lookup
 
 ```python
-from PokemonLibrary.data.type_chart import TYPE_CHART
+from pytemon.data.type_chart import TYPE_CHART
 
 effectiveness = TYPE_CHART.get(move_type, {}).get(defender_type, 1.0)
 # Dual-type defender: multiply both
@@ -55,6 +55,9 @@ if pokemon.get("status") == "poison":
 ### 4. PP Tracking
 
 ```python
+from pytemon.texts.en import battle_ui as T
+from pytemon.ui.formatters import write_lines
+
 # Each move in party Pokemon's move list should track current PP
 # Structure: {"name": "TACKLE", "pp": 35, "max_pp": 35}
 
@@ -63,7 +66,7 @@ move_entry["pp"] = max(0, move_entry["pp"] - 1)
 
 # Check before allowing use
 if move_entry["pp"] <= 0:
-    output.write("[red]No PP left for this move![/red]")
+    write_lines(output, T.NO_PP_LEFT)  # "No PP left for this move!"
     return
 ```
 
@@ -96,10 +99,10 @@ for def_type in defender["types"]:
 ```
 
 ## Dependencies
-- `PokemonLibrary/battle/battle_actions.py` — damage calculation
-- `PokemonLibrary/engine/battle_engine.py` — `BattleState`, status effects, turn resolution
-- `PokemonLibrary/data/type_chart.py` — `TYPE_CHART`
-- `PokemonLibrary/data/move_data.py` — `MOVES`
+- `pytemon/battle/battle_actions.py` — damage calculation
+- `pytemon/engine/battle_engine.py` — `BattleState`, status effects, turn resolution
+- `pytemon/data/type_chart.py` — `TYPE_CHART`
+- `pytemon/data/move_data.py` — `MOVES`
 
 ## Error Handling
 - **Damage = 0**: check if `power` is 0 (status move) or if effectiveness chain results in 0 (Immunity)

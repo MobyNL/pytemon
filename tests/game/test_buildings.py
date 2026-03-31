@@ -390,6 +390,9 @@ class TestChooseStarterPokemon:
         choose_starter_pokemon(gs, "bulbasaur", output, lambda cmd: pending.append(cmd))
         names = [p.get("name") for p in gs.game_data.get("pokemon", [])]
         assert "BULBASAUR" in names
+        pokedex_data = gs.game_data.get("pokedex", {})
+        assert "BULBASAUR" in pokedex_data.get("caught", [])
+        assert "BULBASAUR" in pokedex_data.get("seen", [])
 
     def test_choose_charmander(self, gs, output):
         gs.game_data["pokemon"] = []
@@ -432,6 +435,9 @@ class TestChooseStarterPokemon:
         choose_starter_pokemon(gs, "pikachu", output, lambda cmd: pending.append(cmd))
         # May trigger a battle with rival, so check if pikachu was added or battle started
         assert len(output.lines) > 0
+        pokedex_data = gs.game_data.get("pokedex", {})
+        assert "PIKACHU" in pokedex_data.get("caught", [])
+        assert "PIKACHU" in pokedex_data.get("seen", [])
 
     def test_gives_starter_potions(self, gs, output):
         gs.game_data["pokemon"] = []
@@ -507,37 +513,37 @@ class TestEnterBillsHouse:
 class TestEnterMuseumFossilScientist:
     def test_no_fossil_flag_scientist_block_absent(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = False
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda cmd: None)
         assert "Scientist" not in output.combined
 
     def test_dome_fossil_mentions_kabuto(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Dome Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda cmd: None)
         assert "KABUTO" in output.combined
 
     def test_dome_fossil_mentions_cinnabar(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Dome Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda cmd: None)
         assert "Cinnabar" in output.combined
 
     def test_helix_fossil_mentions_omanyte(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Helix Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda cmd: None)
         assert "OMANYTE" in output.combined
 
     def test_helix_fossil_mentions_cinnabar(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Helix Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda cmd: None)
         assert "Cinnabar" in output.combined
 
     def test_flag_set_no_fossil_in_bag_asks_if_passed_along(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda cmd: None)
         assert "already pass" in output.combined.lower() or "pass it" in output.combined.lower()
 
 

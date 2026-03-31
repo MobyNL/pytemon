@@ -26,15 +26,22 @@ Ask / check:
 ```python
 # ❌ Flag check is correct but set is inside an else — never actually runs
 if not flags.get("received_moon_stone"):
-    output.write("You found a Moon Stone!")
+    output.write("You found a Moon Stone!")   # no Rich markup, and...
     # forgot: flags["received_moon_stone"] = True   ← missing!
 ```
 ```python
-# ✅ Set the flag BEFORE the reward display
+# ✅ Set the flag BEFORE the reward display; use texts/en/ for the message
+# texts/en/exploration.py:
+# MOON_STONE_FOUND: list[str] = [
+#     "[bold yellow]★  You found a MOON STONE![/bold yellow]",
+# ]
+from pytemon.texts.en import exploration as T
+from pytemon.ui.formatters import write_lines
+
 if not flags.get("received_moon_stone"):
     flags["received_moon_stone"] = True          # set first
     bag["Moon Stone"] = bag.get("Moon Stone", 0) + 1
-    output.write("[bold yellow]You found a Moon Stone![/bold yellow]")
+    write_lines(output, T.MOON_STONE_FOUND)
 ```
 
 **Bug: event never fires (wrong trigger location)**
@@ -80,21 +87,31 @@ if location_name.lower() == "mt. moon":
 
 **Fix:**
 ```python
+# texts/en/buildings.py:
+# BIKE_SHOP_REPEAT: list[str] = ["[italic]\"Enjoying that Bicycle?\"[/italic]"]
+# BIKE_SHOP_FIRST_VISIT: list[str] = [
+#     "[italic]\"Here, take this BICYCLE on the house!\"[/italic]",
+#     "",
+#     "[bold cyan]You received a BICYCLE![/bold cyan]",
+# ]
+from pytemon.texts.en import buildings as T
+from pytemon.ui.formatters import write_lines
+
 def enter_bike_shop(game_state, output):
     flags = game_state.game_data["story_flags"]
     if flags.get("received_bicycle"):
-        output.write("[italic]\"Enjoying that Bicycle?\"[/italic]")
+        write_lines(output, T.BIKE_SHOP_REPEAT)
         return
     flags["received_bicycle"] = True          # guard set FIRST
     game_state.game_data["bag"]["Bicycle"] = 1
-    output.write("[bold cyan]You received a BICYCLE![/bold cyan]")
+    write_lines(output, T.BIKE_SHOP_FIRST_VISIT)
 ```
 
 ## Dependencies
-- `PokemonLibrary/exploration.py` — arrival events
-- `PokemonLibrary/buildings.py` — building handlers
-- `PokemonLibrary/game_state.py` — `story_flags` storage and save/load
-- `PokemonLibrary/ui/building_mixin.py` — building entry routing
+- `pytemon/exploration.py` — arrival events
+- `pytemon/buildings.py` — building handlers
+- `pytemon/game_state.py` — `story_flags` storage and save/load
+- `pytemon/ui/building_mixin.py` — building entry routing
 
 ## Error Handling
 - **KeyError on `story_flags["key"]`**: always use `.get("key")` or `.get("key", False)`

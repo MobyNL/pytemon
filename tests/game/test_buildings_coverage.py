@@ -157,19 +157,19 @@ class TestEnterMuseumBothFossils:
     def test_museum_with_both_fossils(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Dome Fossil": 1, "Helix Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda _: None)
         assert "Dome Fossil" in output.combined or "Helix Fossil" in output.combined
 
     def test_museum_with_dome_only(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Dome Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda _: None)
         assert "Dome" in output.combined
 
     def test_museum_with_helix_only(self, gs, output):
         gs.game_data.setdefault("story_flags", {})["received_mt_moon_fossil"] = True
         gs.game_data["bag"] = {"Helix Fossil": 1}
-        enter_museum(gs, output)
+        enter_museum(gs, output, lambda _: None)
         assert "Helix" in output.combined
 
 

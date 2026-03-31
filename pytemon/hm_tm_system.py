@@ -61,20 +61,27 @@ def teach_move(
     item_name: str,
     is_hm: bool,
     output: RichLog,
+    queue_move_learn_callback=None,
 ) -> bool:
     """
     Teach *move_name* to *pokemon*.
 
-    If the Pokemon already knows 4 moves the player is informed; no move is
-    replaced automatically (a future improvement could add a replacement UI).
+    If the Pokemon already knows 4 moves and *queue_move_learn_callback* is
+    provided, the interactive "which move to forget?" flow is triggered via
+    the callback and ``False`` is returned immediately (the callback owns the
+    rest of the interaction).  Without a callback the player is simply told
+    the moveset is full.
 
     Args:
-        game_state: Current game state (used for Pokedex checks etc.).
-        move_name:  Upper-case move name (e.g. ``"SURF"``).
-        pokemon:    Target PartyPokemon dict.
-        item_name:  Display name of the teaching item (e.g. ``"HM03 Surf"``).
-        is_hm:      True for HMs (not consumed), False for TMs (consumed).
-        output:     RichLog widget.
+        game_state:               Current game state (used for Pokedex checks etc.).
+        move_name:                Upper-case move name (e.g. ``"SURF"``).
+        pokemon:                  Target PartyPokemon dict.
+        item_name:                Display name of the teaching item (e.g. ``"HM03 Surf"``).
+        is_hm:                    True for HMs (not consumed), False for TMs (consumed).
+        output:                   RichLog widget.
+        queue_move_learn_callback: Optional callable ``(pokemon, [move_name], post_action,
+                                   output, *, consume_item)`` that starts the interactive
+                                   move-replacement flow.
 
     Returns:
         True if the move was taught (or already known).
@@ -130,11 +137,16 @@ def teach_move(
         output.write("")
         return True
 
-    # Movepool is full — inform the player
+    # Movepool is full — trigger interactive replacement flow if available
+    if queue_move_learn_callback is not None:
+        queue_move_learn_callback(pokemon, [move_upper], "field", output)
+        return False  # callback owns the rest of the interaction
+
+    # No interactive callback — inform the player
     output.write("")
     output.write(f"[yellow]⚠ {poke_name} already knows 4 moves![/yellow]")
     output.write("[dim]  A Pokemon can only know 4 moves at a time.[/dim]")
-    output.write("[dim]  Future update: move replacement will be added.[/dim]")
+    output.write("[dim]  Use 'use <TM> on <pokemon>' to replace a move interactively.[/dim]")
     output.write("")
     return False
 

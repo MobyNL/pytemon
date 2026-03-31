@@ -91,8 +91,8 @@ self.query_one("#my-panel").display = True
 ```
 
 ## Dependencies
-- `PokemonLibrary/terminal.tcss` — all styles live here
-- `PokemonLibrary/terminal.py` — widget IDs and classes defined in `compose()`
+- `pytemon/terminal.tcss` — all styles live here
+- `pytemon/terminal.py` — widget IDs and classes defined in `compose()`
 - Textual CSS reference: https://textual.textualize.io/guide/CSS/
 
 ## Error Handling

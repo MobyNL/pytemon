@@ -261,6 +261,12 @@ class TestProcessShopCommand:
         result = term.process_shop_command("back", output)
         assert result == "leave"
 
+    def test_leave_clears_active_building_context(self, term, output):
+        term.game_state.game_data["_active_building"] = "Pokemart"
+        result = term.process_shop_command("leave", output)
+        assert result == "leave"
+        assert "_active_building" not in term.game_state.game_data
+
 
 # ===========================================================================
 # show_shop_menu
@@ -303,6 +309,11 @@ class TestEnterBuilding:
         term.game_state.current_location = get_location("Pallet Town")
         term.enter_building("Fake Building 9999", output)
         assert "❌" in output.combined or "not found" in output.combined.lower()
+
+    def test_enter_building_sets_active_building_context(self, term, output):
+        term.game_state.current_location = get_location("Pallet Town")
+        term.enter_building("Professor Oak's Lab", output)
+        assert term.game_state.game_data.get("_active_building") == "Professor Oak's Lab"
 
 
 # ===========================================================================

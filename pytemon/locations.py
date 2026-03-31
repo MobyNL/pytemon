@@ -152,10 +152,9 @@ LOCATIONS: Dict[str, Location] = {
                 "blocked": False,
                 "min_explores": 6,
             },
-            "Pokemon League Gate": {
+            "Victory Road": {
                 "direction": "west",
-                "blocked": True,
-                "reason": "You need all 8 Gym Badges to enter the Pokemon League",
+                "blocked": False,
                 "min_explores": 6,
             },
         },
@@ -292,6 +291,11 @@ LOCATIONS: Dict[str, Location] = {
                 "blocked": True,
                 "reason": "Nugget Bridge — You must earn the Cascade Badge first",
             },
+            "Cerulean Cave": {
+                "direction": "northwest",
+                "blocked": True,
+                "reason": "The cave is sealed. Only the Pokemon Champion may enter.",
+            },
         },
         buildings=["Pokemon Center", "Pokemart", "Gym", "Bike Shop", "Nugget Bridge"],
     ),
@@ -325,8 +329,7 @@ LOCATIONS: Dict[str, Location] = {
             "Pallet Town": {"direction": "north", "blocked": False},
             "Cinnabar Island": {
                 "direction": "south",
-                "blocked": True,
-                "reason": "Cinnabar Island is not yet accessible",
+                "blocked": False,
                 "min_explores": 4,
             },
         },
@@ -505,6 +508,11 @@ LOCATIONS: Dict[str, Location] = {
         exits={
             "Route 9": {"direction": "west", "blocked": False, "min_explores": 6},
             "Rock Tunnel": {"direction": "south", "blocked": False, "min_explores": 6},
+            "Power Plant": {
+                "direction": "east",
+                "blocked": True,
+                "reason": "You need HM Surf to reach the Power Plant across the river",
+            },
         },
         wild_pokemon=["VOLTORB", "MAGNEMITE", "SPEAROW"],
         wild_level_range=(17, 23),
@@ -562,8 +570,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Saffron City": {
                 "direction": "west",
-                "blocked": True,
-                "reason": "Saffron City's gates are sealed — the Silph Co. employees won't let anyone in",
+                "blocked": False,
             },
         },
         wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE"],
@@ -588,8 +595,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Saffron City": {
                 "direction": "east",
-                "blocked": True,
-                "reason": "Saffron City's gates are sealed — the Silph Co. employees won't let anyone in",
+                "blocked": False,
             },
         },
         wild_pokemon=["PIDGEY", "DROWZEE", "SLOWPOKE", "MEOWTH"],
@@ -816,7 +822,7 @@ LOCATIONS: Dict[str, Location] = {
                 "reason": "You need HM Surf to cross the water — defeat Koga and teach Surf to a Pokemon",
             },
         },
-        buildings=["Pokemon Center", "Pokemart", "Gym", "Safari Zone"],
+        buildings=["Pokemon Center", "Pokemart", "Gym", "Safari Zone Reception"],
     ),
     # ── Safari Zone ───────────────────────────────────────────────────────────
     "Safari Zone": Location(
@@ -879,7 +885,8 @@ LOCATIONS: Dict[str, Location] = {
         description=(
             "The sea route curving around the south coast toward Cinnabar Island. "
             "Sea Swimmers patrol the choppy waters, and the volcanic silhouette of "
-            "Cinnabar Island grows larger on the western horizon."
+            "Cinnabar Island grows larger on the western horizon. Rumour has it the "
+            "Seafoam Islands lie somewhere along this frozen stretch of sea."
         ),
         exits={
             "Route 19": {
@@ -889,8 +896,12 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Cinnabar Island": {
                 "direction": "west",
+                "blocked": False,
+            },
+            "Seafoam Islands": {
+                "direction": "north",
                 "blocked": True,
-                "reason": "Cinnabar Island awaits — you'll need HM Surf to reach it",
+                "reason": "You need HM Surf to reach the Seafoam Islands",
             },
         },
         wild_pokemon=["TENTACOOL", "TENTACRUEL", "HORSEA", "SEADRA", "GOLDEEN"],
@@ -898,6 +909,140 @@ LOCATIONS: Dict[str, Location] = {
         trainers=4,
         trainer_encounter_rate=0.30,
         wild_encounter_rate=0.65,
+    ),
+    # ── Saffron City ──────────────────────────────────────────────────────────────
+    "Saffron City": Location(
+        name="Saffron City",
+        location_type=TYPE_TOWN,
+        description=(
+            "A thriving metropolis in central Kanto. "
+            "The imposing Silph Co. headquarters dominates the skyline."
+        ),
+        exits={
+            "Route 7": {"direction": "west", "blocked": False},
+            "Route 8": {"direction": "east", "blocked": False},
+        },
+        buildings=["Silph Co.", "Sabrina's Gym", "Pokemon Center", "Pokemart"],
+    ),
+    # ── Cinnabar Island ──────────────────────────────────────────────────────────
+    "Cinnabar Island": Location(
+        name="Cinnabar Island",
+        location_type=TYPE_TOWN,
+        description=(
+            "A small volcanic island in the south. "
+            "Home to a world-famous research lab and the ruins of a Pokémon Mansion."
+        ),
+        exits={
+            "Route 20": {"direction": "east", "blocked": False},
+            "Route 21": {"direction": "north", "blocked": False},
+        },
+        buildings=["Pokemon Lab", "Pokemon Mansion", "Blaine's Gym", "Pokemon Center", "Pokemart"],
+    ),
+    # ── Pokemon League ───────────────────────────────────────────────────────────────
+    "Pokemon League": Location(
+        name="Pokemon League",
+        location_type=TYPE_TOWN,
+        description=(
+            "The Indigo Plateau — seat of the Pokemon League. "
+            "The greatest trainers in Kanto have gathered here. "
+            "Four Elite trainers and the reigning Champion stand between you and glory."
+        ),
+        exits={
+            "Victory Road": {"direction": "south", "blocked": False},
+        },
+        buildings=["Pokemon League Reception", "Elite Four", "Hall of Fame"],
+        blocked_buildings={
+            "Hall of Fame": "You haven't become Champion yet.",
+        },
+        wild_pokemon=[],
+    ),
+    # ── Victory Road ─────────────────────────────────────────────────────────────────
+    "Victory Road": Location(
+        name="Victory Road",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A treacherous mountain cave on the path to the Pokemon League. "
+            "Only the strongest trainers make it through. "
+            "Legends speak of a fiery bird deep within the cave — Moltres, the legendary fire Pokemon."
+        ),
+        exits={
+            "Route 22": {"direction": "west", "blocked": False},
+            "Pokemon League": {
+                "direction": "east",
+                "blocked": True,
+                "reason": "The Pokemon League awaits beyond Victory Road — finish the cave first",
+            },
+        },
+        wild_pokemon=["MACHOKE", "GEODUDE", "GRAVELER", "ONIX", "VENOMOTH"],
+        wild_level_range=(36, 44),
+        trainers=4,
+        trainer_encounter_rate=0.35,
+        wild_encounter_rate=0.55,
+    ),
+    # ── Power Plant ───────────────────────────────────────────────────────────────────
+    "Power Plant": Location(
+        name="Power Plant",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "An abandoned power station on the banks of Route 10. "
+            "Electric-type Pokemon lurk behind every generator and inside every machine. "
+            "A powerful presence crackles in the deepest room — Zapdos, the legendary electric Pokemon."
+        ),
+        exits={
+            "Route 10": {
+                "direction": "west",
+                "blocked": True,
+                "reason": "You need HM Surf to cross back to Route 10",
+            },
+        },
+        wild_pokemon=["VOLTORB", "ELECTRODE", "MAGNEMITE", "MAGNETON", "ELECTABUZZ"],
+        wild_level_range=(30, 46),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.60,
+    ),
+    # ── Seafoam Islands ────────────────────────────────────────────────────────────────
+    "Seafoam Islands": Location(
+        name="Seafoam Islands",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "A pair of icy caverns embedded in the sea south of Cinnabar Island. "
+            "Freezing mist rolls through the tunnels, Water and Ice Pokemon make their home here, "
+            "and a legendary frozen bird slumbers deep inside — Articuno, the legendary ice Pokemon."
+        ),
+        exits={
+            "Route 20": {
+                "direction": "south",
+                "blocked": True,
+                "reason": "You need HM Surf to return to Route 20",
+            },
+        },
+        wild_pokemon=["SEEL", "DEWGONG", "SLOWPOKE", "PSYDUCK", "GOLDUCK"],
+        wild_level_range=(35, 48),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.55,
+    ),
+    # ── Cerulean Cave ──────────────────────────────────────────────────────────────────
+    "Cerulean Cave": Location(
+        name="Cerulean Cave",
+        location_type=TYPE_DUNGEON,
+        description=(
+            "An eerie cave northwest of Cerulean City, sealed to all but the Pokemon Champion. "
+            "Strong Pokemon wander its labyrinthine passages, drawn by an overwhelming psychic presence. "
+            "At the deepest level waits Mewtwo — the most powerful Pokemon ever created."
+        ),
+        exits={
+            "Cerulean City": {
+                "direction": "southeast",
+                "blocked": False,
+            },
+        },
+        wild_pokemon=["DITTO", "GOLBAT", "PARASECT", "RHYDON", "KADABRA"],
+        wild_level_range=(46, 60),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.55,
     ),
 }
 
