@@ -20,6 +20,8 @@ CHEAT_ACTIVATED: list[str] = [
     "  [green]cheat remove <pokemon/slot>[/green]     - Remove Pokemon from party",
     "  [green]cheat level <pokemon/slot> <lvl>[/green] - Set Pokemon level",
     "  [green]cheat evolve <pokemon/slot>[/green]     - Force Pokemon evolution",
+    "  [green]cheat catch[/green]                     - Instantly catch current wild Pokemon",
+    "  [green]cheat champion[/green]                  - Unlock all 8 badges",
     "  [green]cheat win[/green]                       - Instantly win current battle",
     "  [green]cheat lose[/green]                      - Instantly lose current battle",
     "  [green]cheat faint <pokemon/slot>[/green]      - Make a party Pokemon faint",
@@ -62,6 +64,8 @@ CHEAT_HELP: list[str] = [
     "  [green]cheat trainer <id>[/green]              - Battle a specific trainer",
     "  [green]cheat win[/green]                       - Instantly win current battle",
     "  [green]cheat lose[/green]                      - Instantly lose current battle",
+    "  [green]cheat catch[/green]                     - Instantly catch current wild Pokemon",
+    "  [green]cheat champion[/green]                  - Unlock all 8 badges",
     "  [green]cheat faint <pokemon/slot>[/green]      - Make a party Pokemon faint",
     "  [green]cheat learn <pokemon/slot> <move>[/green] - Teach any move to a Pokemon",
     "  [green]cheat warp <location>[/green]           - Teleport to any location",
@@ -291,5 +295,55 @@ CHEAT_MOVE_NOT_FOUND: list[str] = [
     "",
     "[red]❌ Move not found: {move_name}[/red]",
     "[dim]Check the move name and try again[/dim]",
+    "",
+]
+
+# ── catch_wild_pokemon_cheat ──────────────────────────────────────────────────
+
+CHEAT_CATCH_SUCCESS: list[str] = [
+    "",
+    "[bold yellow]🎮 [CHEAT MODE] Gotcha! {wild_name} was caught![/bold yellow]",
+    "",
+]
+
+CHEAT_CATCH_SUCCESS_PC: list[str] = [
+    "",
+    "[bold yellow]🎮 [CHEAT MODE] Gotcha! {wild_name} was caught![/bold yellow]",
+]
+
+CHEAT_CATCH_SENT_TO_PC: list[str] = [
+    "[cyan]Transferred to Box {box_name}.[/cyan]",
+    "[dim]Your party is full. Visit a Pokemon Center to access Bill's PC.[/dim]",
+    "",
+]
+
+CHEAT_CATCH_PC_FULL: list[str] = [
+    "",
+    "[bold yellow]Gotcha! {wild_name} was caught![/bold yellow]",
+    "[red]⚠️ All PC boxes are full! {wild_name} was released.[/red]",
+    "",
+]
+
+CHEAT_CATCH_POKEDEX_REGISTERED: list[str] = [
+    "[green]✓ {wild_name}'s data was added to the Pokedex![/green]",
+    "",
+]
+
+# ── become_champion ──────────────────────────────────────────────────────────
+
+CHEAT_CHAMPION_SUCCESS: list[str] = [
+    "",
+    "[bold yellow]═══════════════════════════════════════════[/bold yellow]",
+    "[bold yellow]    🏆 CHAMPION STATUS UNLOCKED! 🏆[/bold yellow]",
+    "[bold yellow]═══════════════════════════════════════════[/bold yellow]",
+    "",
+    "[bold green]🎮 [CHEAT MODE] Unlocked {new_badge_count} badge(s)![/bold green]",
+    "[cyan]You are now the Pokemon League Champion![/cyan]",
+]
+
+CHEAT_ALREADY_CHAMPION: list[str] = [
+    "",
+    "[bold yellow]🏆 You already have all 8 badges![/bold yellow]",
+    "[cyan]You are already a Pokemon League Champion![/cyan]",
     "",
 ]

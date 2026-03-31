@@ -11,12 +11,15 @@ from textual.widgets import RichLog
 
 from . import evolution as _evo
 from . import exploration
+from . import pc_system
+from . import pokedex
 from .battle import battle_ui
 from .buildings import SHOP_CATALOG
 from .data.move_data import MOVES
 from .data.pokemon_data import POKEMON
 from .data.trainer_data import TRAINERS
 from .engine import BattleState
+from .gym_system import BADGES
 from .hm_tm_system import teach_move
 from .locations import LOCATIONS, get_location
 from .texts.en import cheat_commands as T  # noqa: N812
@@ -249,6 +252,25 @@ def process_cheat_command(
 
         identifier = " ".join(parts[1:])
         evolve_pokemon(game_state, identifier, output)
+        return True
+
+    # Instantly catch the current wild Pokemon
+    elif action == "catch":
+        if not game_state.in_battle or not game_state.battle_state:
+            output.write("[red]❌ Not in a battle! Use 'cheat catch' during a battle.[/red]")
+            return True
+        battle = game_state.battle_state
+        if battle.is_trainer_battle:
+            output.write(
+                "[red]❌ Can't catch trainer Pokemon! Use 'cheat catch' only in wild battles.[/red]"
+            )
+            return True
+        catch_wild_pokemon_cheat(game_state, output, handle_battle_victory_callback)
+        return True
+
+    # Become champion (unlock all badges)
+    elif action == "champion":
+        become_champion(game_state, output)
         return True
 
     # Instantly win the current battle
@@ -777,6 +799,103 @@ def teach_move_cheat(
         output,
         queue_move_learn_callback,
     )
+
+
+def catch_wild_pokemon_cheat(
+    game_state: "GameState",
+    output: RichLog,
+    handle_battle_victory_callback=None,
+) -> None:
+    """
+    Instantly catch the current wild Pokemon (cheat command).
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+        handle_battle_victory_callback: Optional callback to handle battle victory
+    """
+    battle = game_state.battle_state
+    wild = battle.wild_pokemon
+
+    # Create the caught Pokemon
+    caught_pokemon = {
+        "name": wild["name"],
+        "number": wild.get("number", 0),
+        "level": wild["level"],
+        "types": wild["types"],
+        "hp": wild["hp"],
+        "max_hp": wild["max_hp"],
+        "stats": wild["stats"],
+        "moves": wild["moves"],
+        "experience": 0,
+        "next_level_exp": battle.calculate_exp_for_level(wild["level"] + 1),
+        "status": wild.get("status"),
+        "no_evolve": False,
+    }
+
+    pokemon_party = game_state.game_data.get("pokemon", [])
+
+    # Check if party is full
+    if len(pokemon_party) >= 6:
+        # Send to PC
+        placed_box = pc_system.send_to_pc(game_state, caught_pokemon)
+        if placed_box:
+            write_lines_fmt(output, T.CHEAT_CATCH_SUCCESS_PC, wild_name=wild["name"])
+            write_lines_fmt(output, T.CHEAT_CATCH_SENT_TO_PC, box_name=placed_box)
+        else:
+            write_lines_fmt(output, T.CHEAT_CATCH_PC_FULL, wild_name=wild["name"])
+            return
+    else:
+        # Add to party
+        pokemon_party.append(caught_pokemon)
+        write_lines_fmt(output, T.CHEAT_CATCH_SUCCESS, wild_name=wild["name"])
+
+    # Mark as caught in Pokedex
+    species = wild.get("species", wild["name"]).upper()
+    if pokedex.mark_as_caught(game_state, species):
+        write_lines_fmt(output, T.CHEAT_CATCH_POKEDEX_REGISTERED, wild_name=wild["name"])
+
+    # End the battle
+    if handle_battle_victory_callback:
+        handle_battle_victory_callback(output)
+
+
+def become_champion(game_state: "GameState", output: RichLog) -> None:
+    """
+    Unlock all badges to become champion (cheat command).
+
+    Args:
+        game_state: The game state
+        output: The RichLog widget to write to
+    """
+    badges = game_state.game_data.get("badges", [])
+
+    # Get all badge IDs
+    all_badge_ids = [badge["id"] for badge in BADGES.values()]
+
+    # Count how many new badges we're adding
+    new_badges = [badge_id for badge_id in all_badge_ids if badge_id not in badges]
+
+    if not new_badges:
+        write_lines(output, T.CHEAT_ALREADY_CHAMPION)
+        return
+
+    # Add all badges
+    for badge_id in all_badge_ids:
+        if badge_id not in badges:
+            badges.append(badge_id)
+
+    game_state.game_data["badges"] = badges
+
+    write_lines_fmt(output, T.CHEAT_CHAMPION_SUCCESS, new_badge_count=len(new_badges))
+
+    # Show all earned badges
+    output.write("")
+    output.write("[bold cyan]🏆 Your Badge Collection:[/bold cyan]")
+    for badge_name, badge_data in BADGES.items():
+        emoji = badge_data.get("emoji", "🏅")
+        output.write(f"  {emoji} [green]{badge_name}[/green] - {badge_data['description']}")
+    output.write("")
 
 
 def _trigger_mew_encounter(game_state: "GameState", output: RichLog) -> None:

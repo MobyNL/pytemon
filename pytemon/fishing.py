@@ -27,19 +27,29 @@ from .ui.formatters import write_lines, write_lines_fmt
 # Higher weight = more common catch.
 _ROD_TABLES: dict[str, list[tuple[str, int]]] = {
     "Old Rod": [
-        ("MAGIKARP", 90),
-        ("GOLDEEN", 10),
+        ("MAGIKARP", 70),
+        ("GOLDEEN", 15),
+        ("POLIWAG", 10),
+        ("KRABBY", 5),
     ],
     "Good Rod": [
-        ("MAGIKARP", 60),
-        ("GOLDEEN", 30),
-        ("TENTACOOL", 10),
+        ("MAGIKARP", 40),
+        ("GOLDEEN", 25),
+        ("POLIWAG", 15),
+        ("KRABBY", 10),
+        ("TENTACOOL", 5),
+        ("SHELLDER", 5),
     ],
     "Super Rod": [
-        ("MAGIKARP", 40),
-        ("GOLDEEN", 35),
-        ("TENTACOOL", 20),
-        ("GYARADOS", 5),
+        ("MAGIKARP", 25),
+        ("GOLDEEN", 20),
+        ("POLIWAG", 15),
+        ("KRABBY", 15),
+        ("TENTACOOL", 10),
+        ("SHELLDER", 5),
+        ("STARYU", 5),
+        ("GYARADOS", 3),
+        ("DRATINI", 2),
     ],
 }
 

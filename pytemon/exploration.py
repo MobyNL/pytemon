@@ -146,6 +146,18 @@ def move_to_location(
                 ),
             }
 
+    # Gate D: Champion's Garden — requires being Champion
+    if matching_exit == "Champion's Garden":
+        story_flags = game_state.game_data.get("story_flags", {})
+        if story_flags.get("is_champion"):
+            exit_data = {**exit_data, "blocked": False}
+        else:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": exit_data.get("reason", "This hidden path is only visible to Champions."),
+            }
+
     # Seafoam Islands and Power Plant require Surf
     if matching_exit in ("Seafoam Islands", "Power Plant"):
         surf_unlocked = game_state.game_data.get("surf_unlocked", [])

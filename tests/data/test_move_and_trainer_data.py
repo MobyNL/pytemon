@@ -117,6 +117,24 @@ class TestGetMove:
     def test_moves_dict_is_populated(self):
         assert len(MOVES) > 50  # Gen 1 has many moves
 
+    def test_space_to_hyphen_normalization(self):
+        """Test that moves with hyphens can be looked up with spaces."""
+        # DOUBLE-EDGE is stored with a hyphen in MOVES dict
+        move_hyphen = get_move("DOUBLE-EDGE")
+        move_space = get_move("DOUBLE EDGE")
+
+        assert move_hyphen is not None
+        assert move_space is not None
+        assert move_hyphen.name == "DOUBLE-EDGE"
+        assert move_space.name == "DOUBLE-EDGE"
+        assert move_hyphen is move_space  # Should be the same object
+
+    def test_normalization_case_insensitive(self):
+        """Test that normalization works with any case."""
+        move = get_move("double edge")
+        assert move is not None
+        assert move.name == "DOUBLE-EDGE"
+
 
 # ===========================================================================
 # TrainerPokemon dataclass

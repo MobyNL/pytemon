@@ -359,23 +359,24 @@ class BattleState:
                     1, int(defense_stat * _stat_stage_mult(def_stages.get("special", 0)))
                 )
 
-        # Gen 1 damage formula
+        # Gen 1 damage formula: Base calculation
+        # Damage = ((((2 * Level / 5 + 2) * AttackStat * AttackPower / DefenseStat) / 50) + 2)
         level_factor = 2 * attacker["level"] / 5 + 2
         damage = int(level_factor * power * attack_stat / defense_stat / 50) + 2
 
-        # STAB (Same Type Attack Bonus)
-        if move_type in attacker["types"]:
-            damage = int(damage * 1.5)
-
-        # Critical hit doubles damage
+        # Critical hit doubles damage (applied before other modifiers)
         if is_critical:
             damage *= 2
 
-        # Type effectiveness
-        damage = int(damage * effectiveness)
+        # Random factor (85-100 / 100)
+        damage = int(damage * random.randint(85, 100) / 100)
 
-        # Random factor (85% to 100%)
-        damage = int(damage * random.uniform(0.85, 1.0))
+        # STAB (Same Type Attack Bonus) - applied after random
+        if move_type in attacker["types"]:
+            damage = int(damage * 1.5)
+
+        # Type effectiveness - applied last
+        damage = int(damage * effectiveness)
 
         # Minimum 1 damage if move connects
         damage = max(1, damage)
@@ -495,6 +496,24 @@ class BattleState:
 
         if not move:
             messages.append(f"[red]Move {move_name} not found![/red]")
+            _store_result()
+            return messages
+
+        # ── Semi-invulnerable check: defender using Fly/Dig ───────────────
+        # Check if defender is currently charging a semi-invulnerable move
+        defender_charging_attr = "enemy_charging" if is_player else "player_charging"
+        defender_charging = getattr(self, defender_charging_attr)
+
+        if defender_charging in ("FLY", "DIG"):
+            # Defender is invulnerable - most attacks miss
+            # (Some moves like Earthquake can still hit Dig, but implement basic version first)
+            charge_state = {"FLY": "flying", "DIG": "underground"}.get(
+                defender_charging, "invulnerable"
+            )
+            messages.append(
+                f"[yellow]{defender['name']} avoided the attack while {charge_state}![/yellow]"
+            )
+            move_result["missed"] = True
             _store_result()
             return messages
 

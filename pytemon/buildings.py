@@ -1068,6 +1068,9 @@ def enter_oaks_lab(
         # Check for Pokedex completion award (first visit after catching all 151)
         check_pokedex_completion(game_state, output)
 
+        # Check for Champion reward starters (first visit after becoming Champion)
+        give_champion_reward_starters(game_state, output)
+
     write_lines(output, T.OAKS_LAB_EXIT)
 
 
@@ -1185,6 +1188,10 @@ def choose_starter_pokemon(
     starter_data["no_evolve"] = False
     game_state.game_data["pokemon"].append(starter_data)
     pokedex.mark_as_caught(game_state, str(starter_data.get("name", "")).upper())
+
+    # Record which starter was chosen (for Champion reward later)
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+    story_flags["chosen_starter"] = selected_starter["name"].upper()
 
     # Rival gets the Pokemon with type advantage
     rival_pokemon = selected_starter["rival"]
@@ -1578,7 +1585,7 @@ def enter_pokemon_lab(
     Enter the Pokemon Lab on Cinnabar Island.
 
     Scientists here can revive ancient Pokemon from fossils. Bring a Dome Fossil
-    to receive a Kabuto, or a Helix Fossil for an Omanyte.
+    to receive a Kabuto, Helix Fossil for Omanyte, or Old Amber for Aerodactyl.
 
     Args:
         game_state: The game state object
@@ -1594,16 +1601,17 @@ def enter_pokemon_lab(
         "[bold]Lab Researcher:[/bold] [cyan]Welcome! This is the famous Cinnabar Pokemon Lab.[/cyan]"
     )
     output.write("[cyan]   We specialise in restoring Pokemon from ancient fossils.[/cyan]")
-    output.write("[cyan]   If you have a Dome Fossil or Helix Fossil, we can help![/cyan]")
+    output.write("[cyan]   We can revive Dome Fossil, Helix Fossil, or Old Amber![/cyan]")
     output.write("")
 
     items = game_state.game_data.setdefault("items", {})
     has_dome = items.get("Dome Fossil", 0) > 0
     has_helix = items.get("Helix Fossil", 0) > 0
+    has_amber = items.get("Old Amber", 0) > 0
 
-    if not has_dome and not has_helix:
+    if not has_dome and not has_helix and not has_amber:
         output.write("[dim]   You don't have any fossils to revive right now.[/dim]")
-        output.write("[dim]   (Fossils can be found in Mt. Moon)[/dim]")
+        output.write("[dim]   (Dome & Helix Fossils in Mt. Moon, Old Amber in Pewter Museum)[/dim]")
         output.write("")
         return
 
@@ -1674,10 +1682,47 @@ def enter_pokemon_lab(
             output.write("   [yellow]Your party is full — Omanyte was sent to Bill's PC![/yellow]")
         output.write("")
 
-    if (has_dome and story_flags.get("revived_dome_fossil")) or (
-        has_helix and story_flags.get("revived_helix_fossil")
+    if has_amber and not story_flags.get("revived_old_amber"):
+        items["Old Amber"] -= 1
+        if items["Old Amber"] <= 0:
+            del items["Old Amber"]
+
+        story_flags["revived_old_amber"] = True
+        story_flags["fossil_revived"] = True
+
+        aerodactyl = BattleState().generate_wild_pokemon("AERODACTYL", 5)
+        aerodactyl["no_evolve"] = False
+
+        party = game_state.game_data.get("pokemon", [])
+        if len(party) < 6:
+            party.append(aerodactyl)
+            game_state.game_data["pokemon"] = party
+            output.write("[bold yellow]⏳ The scientists get to work...[/bold yellow]")
+            output.write("[dim]   Hours pass as they extract DNA from the amber...[/dim]")
+            output.write("")
+            output.write(
+                "[bold green]✓ The Old Amber was restored to Aerodactyl (Lv. 5)![/bold green]"
+            )
+            output.write("   [cyan]Aerodactyl joined your party![/cyan]")
+        else:
+            send_to_pc(game_state, aerodactyl)
+            output.write("[bold yellow]⏳ The scientists get to work...[/bold yellow]")
+            output.write("[dim]   Hours pass as they extract DNA from the amber...[/dim]")
+            output.write("")
+            output.write(
+                "[bold green]✓ The Old Amber was restored to Aerodactyl (Lv. 5)![/bold green]"
+            )
+            output.write(
+                "   [yellow]Your party is full — Aerodactyl was sent to Bill's PC![/yellow]"
+            )
+        output.write("")
+
+    if (
+        (has_dome and story_flags.get("revived_dome_fossil"))
+        or (has_helix and story_flags.get("revived_helix_fossil"))
+        or (has_amber and story_flags.get("revived_old_amber"))
     ):
-        if not has_dome and not has_helix:
+        if not has_dome and not has_helix and not has_amber:
             pass
         else:
             output.write("[dim]Researcher: You've already revived the fossils you brought![/dim]")
@@ -2142,4 +2187,269 @@ def check_pokedex_completion(game_state: "GameState", output: RichLog) -> bool:
     output.write("[cyan]has completed the Pokédex by catching all 151 Pokémon.[/cyan]")
     output.write("[dim cyan]Signed: Professor Samuel Oak[/dim cyan]")
     output.write("")
+    return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Gift Pokemon Functions
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def give_lapras_gift(game_state: "GameState", output: RichLog) -> bool:
+    """
+    Give Lapras as a gift after clearing Silph Co.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+
+    Returns:
+        True if Lapras was given, False if already received
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    if story_flags.get("received_lapras"):
+        output.write('[dim]The employee waves: "Take good care of that Lapras!"[/dim]')
+        return False
+
+    if not story_flags.get("cleared_silph_co"):
+        return False
+
+    story_flags["received_lapras"] = True
+
+    lapras = BattleState().generate_wild_pokemon("LAPRAS", 25)
+    lapras["no_evolve"] = False
+
+    party = game_state.game_data.get("pokemon", [])
+    if len(party) < 6:
+        party.append(lapras)
+        output.write("")
+        output.write(
+            "[bold cyan]Silph Co. Employee:[/bold cyan] [green]Thank you for saving us![/green]"
+        )
+        output.write(
+            "[green]   Please accept this rare Pokemon as a token of our gratitude![/green]"
+        )
+        output.write("")
+        output.write("[bold green]✓ Received Lapras (Lv. 25)![/bold green]")
+        output.write("   [cyan]Lapras joined your party![/cyan]")
+        output.write("")
+    else:
+        send_to_pc(game_state, lapras)
+        output.write("")
+        output.write(
+            "[bold cyan]Silph Co. Employee:[/bold cyan] [green]Thank you for saving us![/green]"
+        )
+        output.write(
+            "[green]   Please accept this rare Pokemon as a token of our gratitude![/green]"
+        )
+        output.write("")
+        output.write("[bold green]✓ Received Lapras (Lv. 25)![/bold green]")
+        output.write("   [yellow]Your party is full — Lapras was sent to Bill's PC![/yellow]")
+        output.write("")
+
+    return True
+
+
+def give_eevee_gift(game_state: "GameState", output: RichLog) -> bool:
+    """
+    Give Eevee as a gift from Bill's friend in Celadon City.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+
+    Returns:
+        True if Eevee was given, False if already received
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    if story_flags.get("received_eevee"):
+        output.write('[dim]Pokemon Researcher: "That Eevee has amazing potential!"[/dim]')
+        return False
+
+    if not story_flags.get("visited_bills_house"):
+        output.write('[cyan]Pokemon Researcher: "Come back after you\'ve met Bill!"[/cyan]')
+        return False
+
+    story_flags["received_eevee"] = True
+
+    eevee = BattleState().generate_wild_pokemon("EEVEE", 20)
+    eevee["no_evolve"] = False
+
+    party = game_state.game_data.get("pokemon", [])
+    if len(party) < 6:
+        party.append(eevee)
+        output.write("")
+        output.write(
+            "[bold cyan]Pokemon Researcher:[/bold cyan] [green]You know Bill, right?[/green]"
+        )
+        output.write(
+            "[green]   He asked me to give this rare Pokemon to any trainer he trusts![/green]"
+        )
+        output.write("")
+        output.write("[bold green]✓ Received Eevee (Lv. 20)![/bold green]")
+        output.write("   [cyan]Eevee joined your party![/cyan]")
+        output.write("[dim]   (Eevee can evolve into Vaporeon, Jolteon, or Flareon!)[/dim]")
+        output.write("")
+    else:
+        send_to_pc(game_state, eevee)
+        output.write("")
+        output.write(
+            "[bold cyan]Pokemon Researcher:[/bold cyan] [green]You know Bill, right?[/green]"
+        )
+        output.write(
+            "[green]   He asked me to give this rare Pokemon to any trainer he trusts![/green]"
+        )
+        output.write("")
+        output.write("[bold green]✓ Received Eevee (Lv. 20)![/bold green]")
+        output.write("   [yellow]Your party is full — Eevee was sent to Bill's PC![/yellow]")
+        output.write("[dim]   (Eevee can evolve into Vaporeon, Jolteon, or Flareon!)[/dim]")
+        output.write("")
+
+    return True
+
+
+def give_fighting_dojo_pokemon(
+    game_state: "GameState",
+    choice: str,
+    output: RichLog,
+) -> bool:
+    """
+    Give either Hitmonlee or Hitmonchan after defeating the Fighting Dojo.
+
+    Args:
+        game_state: The game state object
+        choice: "hitmonlee" or "hitmonchan"
+        output: The RichLog widget to write to
+
+    Returns:
+        True if Pokemon was given, False if already received or invalid choice
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    if story_flags.get("received_dojo_pokemon"):
+        output.write('[dim]Karate Master: "Train hard with your chosen fighter!"[/dim]')
+        return False
+
+    if not story_flags.get("defeated_dojo_master"):
+        output.write('[cyan]Karate Master: "Defeat me first to prove your worth!"[/cyan]')
+        return False
+
+    choice = choice.lower().strip()
+    if "hitmonlee" in choice:
+        pokemon_name = "HITMONLEE"
+        display_name = "Hitmonlee"
+    elif "hitmonchan" in choice:
+        pokemon_name = "HITMONCHAN"
+        display_name = "Hitmonchan"
+    else:
+        output.write('[yellow]Karate Master: "Choose either Hitmonlee or Hitmonchan!"[/yellow]')
+        return False
+
+    story_flags["received_dojo_pokemon"] = True
+
+    fighter = BattleState().generate_wild_pokemon(pokemon_name, 25)
+    fighter["no_evolve"] = False
+
+    party = game_state.game_data.get("pokemon", [])
+    if len(party) < 6:
+        party.append(fighter)
+        output.write("")
+        output.write("[bold cyan]Karate Master:[/bold cyan] [green]You have defeated me![/green]")
+        output.write("[green]   Choose one of these Fighting-type Pokemon as your prize![/green]")
+        output.write("")
+        output.write(f"[bold green]✓ Received {display_name} (Lv. 25)![/bold green]")
+        output.write(f"   [cyan]{display_name} joined your party![/cyan]")
+        output.write("")
+    else:
+        send_to_pc(game_state, fighter)
+        output.write("")
+        output.write("[bold cyan]Karate Master:[/bold cyan] [green]You have defeated me![/green]")
+        output.write("[green]   Choose one of these Fighting-type Pokemon as your prize![/green]")
+        output.write("")
+        output.write(f"[bold green]✓ Received {display_name} (Lv. 25)![/bold green]")
+        output.write(
+            f"   [yellow]Your party is full — {display_name} was sent to Bill's PC![/yellow]"
+        )
+        output.write("")
+
+    return True
+
+
+def give_champion_reward_starters(
+    game_state: "GameState",
+    output: RichLog,
+) -> bool:
+    """
+    Give the two starters the player didn't choose after becoming Champion.
+
+    Args:
+        game_state: The game state object
+        output: The RichLog widget to write to
+
+    Returns:
+        True if starters were given, False if already received or not Champion
+    """
+    story_flags = game_state.game_data.setdefault("story_flags", {})
+
+    if story_flags.get("received_champion_starters"):
+        output.write('[dim]Professor Oak: "Take good care of those Pokemon!"[/dim]')
+        return False
+
+    if not story_flags.get("is_champion"):
+        output.write('[cyan]Professor Oak: "Come back after you\'ve become Champion!"[/cyan]')
+        return False
+
+    # Figure out which starter the player chose
+    original_starter = story_flags.get("chosen_starter", "").upper()
+
+    starters_to_give = []
+    if original_starter == "BULBASAUR":
+        starters_to_give = [("CHARMANDER", "Charmander"), ("SQUIRTLE", "Squirtle")]
+    elif original_starter == "CHARMANDER":
+        starters_to_give = [("BULBASAUR", "Bulbasaur"), ("SQUIRTLE", "Squirtle")]
+    elif original_starter == "SQUIRTLE":
+        starters_to_give = [("BULBASAUR", "Bulbasaur"), ("CHARMANDER", "Charmander")]
+    else:
+        # Default if we can't determine (give all three)
+        starters_to_give = [
+            ("BULBASAUR", "Bulbasaur"),
+            ("CHARMANDER", "Charmander"),
+            ("SQUIRTLE", "Squirtle"),
+        ]
+
+    story_flags["received_champion_starters"] = True
+
+    output.write("")
+    output.write("[bold cyan]Professor Oak:[/bold cyan] [green]Congratulations, Champion![/green]")
+    output.write("[green]   You've proven yourself as the greatest trainer in Kanto![/green]")
+    output.write(
+        "[green]   I'd like you to have these Pokemon — complete your starter collection![/green]"
+    )
+    output.write("")
+
+    party = game_state.game_data.get("pokemon", [])
+
+    for pokemon_name, display_name in starters_to_give:
+        starter = BattleState().generate_wild_pokemon(pokemon_name, 5)
+        starter["no_evolve"] = False
+
+        if len(party) < 6:
+            party.append(starter)
+            output.write(f"[bold green]✓ Received {display_name} (Lv. 5)![/bold green]")
+            output.write(f"   [cyan]{display_name} joined your party![/cyan]")
+        else:
+            send_to_pc(game_state, starter)
+            output.write(f"[bold green]✓ Received {display_name} (Lv. 5)![/bold green]")
+            output.write(
+                f"   [yellow]Your party is full — {display_name} was sent to Bill's PC![/yellow]"
+            )
+
+    output.write("")
+    output.write(
+        '[green]Professor Oak: "Now you have all three Kanto starters! Go forth and explore!"[/green]'
+    )
+    output.write("")
+
     return True
