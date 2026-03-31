@@ -158,6 +158,90 @@ class TestTwoTurnMoves:
         assert bs.player_charging is None
         assert bs.enemy_charging is None
 
+    def test_fly_user_is_invulnerable_during_charge(self):
+        """Pokemon using Fly should be invulnerable on their charge turn."""
+        bs, player, enemy = setup_battle(
+            player_moves=[MoveSlot(name="FLY", pp=15, max_pp=15)],
+            enemy_moves=[MoveSlot(name="TACKLE", pp=35, max_pp=35)],
+        )
+
+        # Player uses Fly (charge turn)
+        bs.execute_move(player, enemy, "FLY")
+        assert bs.player_charging == "FLY"
+
+        # Enemy attacks player while they're flying
+        initial_player_hp = player["hp"]
+        msgs = bs.execute_move(enemy, player, "TACKLE")
+
+        # Player should not take damage
+        assert player["hp"] == initial_player_hp
+        # Message should indicate the attack missed
+        combined = " ".join(msgs).lower()
+        assert "avoided" in combined or "miss" in combined or "flying" in combined
+
+    def test_dig_user_is_invulnerable_during_charge(self):
+        """Pokemon using Dig should be invulnerable on their charge turn."""
+        bs, player, enemy = setup_battle(
+            player_moves=[MoveSlot(name="DIG", pp=10, max_pp=10)],
+            enemy_moves=[MoveSlot(name="TACKLE", pp=35, max_pp=35)],
+        )
+
+        # Player uses Dig (charge turn)
+        bs.execute_move(player, enemy, "DIG")
+        assert bs.player_charging == "DIG"
+
+        # Enemy attacks player while they're underground
+        initial_player_hp = player["hp"]
+        msgs = bs.execute_move(enemy, player, "TACKLE")
+
+        # Player should not take damage
+        assert player["hp"] == initial_player_hp
+        # Message should indicate the attack missed
+        combined = " ".join(msgs).lower()
+        assert "avoided" in combined or "miss" in combined or "underground" in combined
+
+    def test_enemy_fly_user_is_invulnerable(self):
+        """Enemy using Fly should be invulnerable during charge turn."""
+        bs, player, enemy = setup_battle(
+            player_moves=[MoveSlot(name="EMBER", pp=25, max_pp=25)],
+            enemy_moves=[MoveSlot(name="FLY", pp=15, max_pp=15)],
+        )
+
+        # Enemy uses Fly (charge turn)
+        bs.execute_move(enemy, player, "FLY")
+        assert bs.enemy_charging == "FLY"
+
+        # Player attacks enemy while they're flying
+        initial_enemy_hp = enemy["hp"]
+        msgs = bs.execute_move(player, enemy, "EMBER")
+
+        # Enemy should not take damage
+        assert enemy["hp"] == initial_enemy_hp
+        # Message should indicate the attack missed
+        combined = " ".join(msgs).lower()
+        assert "avoided" in combined or "miss" in combined
+
+    def test_invulnerable_pokemon_can_still_be_hit_on_release_turn(self):
+        """After release turn, Pokemon should be hittable again."""
+        bs, player, enemy = setup_battle(
+            player_moves=[MoveSlot(name="FLY", pp=15, max_pp=15)],
+            enemy_moves=[MoveSlot(name="WATER_GUN", pp=25, max_pp=25)],
+        )
+
+        # Charge turn
+        bs.execute_move(player, enemy, "FLY")
+        assert bs.player_charging == "FLY"
+
+        # Release turn
+        bs.execute_move(player, enemy, "FLY")
+        assert bs.player_charging is None
+
+        # Now enemy should be able to hit player
+        bs.execute_move(enemy, player, "WATER_GUN")
+        # Should either deal damage or miss naturally (not due to invulnerability)
+        # The key is that charging state is None, so no invulnerability message
+        assert bs.player_charging is None
+
 
 # ---------------------------------------------------------------------------
 # Trapping moves

@@ -452,7 +452,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Diglett's Cave": {"direction": "north", "blocked": False},
         },
-        wild_pokemon=["EKANS", "SPEAROW", "DROWZEE", "KOFFING"],
+        wild_pokemon=["EKANS", "SPEAROW", "DROWZEE", "KOFFING", "SANDSHREW", "MR_MIME"],
         wild_level_range=(13, 19),
         trainers=3,
         trainer_encounter_rate=0.30,
@@ -491,7 +491,7 @@ LOCATIONS: Dict[str, Location] = {
             },
             "Route 10": {"direction": "east", "blocked": False, "min_explores": 7},
         },
-        wild_pokemon=["RATTATA", "EKANS", "SPEAROW", "NIDORAN♀", "NIDORAN♂"],
+        wild_pokemon=["RATTATA", "EKANS", "SPEAROW", "NIDORAN♀", "NIDORAN♂", "SANDSHREW"],
         wild_level_range=(15, 21),
         trainers=3,
         trainer_encounter_rate=0.35,
@@ -573,7 +573,7 @@ LOCATIONS: Dict[str, Location] = {
                 "blocked": False,
             },
         },
-        wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE"],
+        wild_pokemon=["GROWLITHE", "VULPIX", "MEOWTH", "DROWZEE", "PONYTA"],
         wild_level_range=(19, 25),
         trainers=4,
         trainer_encounter_rate=0.35,
@@ -598,7 +598,7 @@ LOCATIONS: Dict[str, Location] = {
                 "blocked": False,
             },
         },
-        wild_pokemon=["PIDGEY", "DROWZEE", "SLOWPOKE", "MEOWTH"],
+        wild_pokemon=["PIDGEY", "DROWZEE", "SLOWPOKE", "MEOWTH", "POLIWAG"],
         wild_level_range=(22, 28),
         trainers=3,
         trainer_encounter_rate=0.30,
@@ -847,6 +847,7 @@ LOCATIONS: Dict[str, Location] = {
             "CHANSEY",
             "PINSIR",
             "EXEGGCUTE",
+            "RHYHORN",
         ],
         wild_level_range=(22, 35),
         trainers=0,
@@ -995,7 +996,7 @@ LOCATIONS: Dict[str, Location] = {
                 "reason": "You need HM Surf to cross back to Route 10",
             },
         },
-        wild_pokemon=["VOLTORB", "ELECTRODE", "MAGNEMITE", "MAGNETON", "ELECTABUZZ"],
+        wild_pokemon=["VOLTORB", "ELECTRODE", "MAGNEMITE", "MAGNETON", "ELECTABUZZ", "ZAPDOS"],
         wild_level_range=(30, 46),
         trainers=0,
         trainer_encounter_rate=0.0,
@@ -1017,7 +1018,7 @@ LOCATIONS: Dict[str, Location] = {
                 "reason": "You need HM Surf to return to Route 20",
             },
         },
-        wild_pokemon=["SEEL", "DEWGONG", "SLOWPOKE", "PSYDUCK", "GOLDUCK"],
+        wild_pokemon=["SEEL", "DEWGONG", "SLOWPOKE", "PSYDUCK", "GOLDUCK", "JYNX", "ARTICUNO"],
         wild_level_range=(35, 48),
         trainers=0,
         trainer_encounter_rate=0.0,
@@ -1037,12 +1038,43 @@ LOCATIONS: Dict[str, Location] = {
                 "direction": "southeast",
                 "blocked": False,
             },
+            "Champion's Garden": {
+                "direction": "hidden path north",
+                "blocked": True,
+                "reason": (
+                    "A narrow passage leads deeper into the mountain, but it's obscured by mist. "
+                    "Only a Champion's eyes could see the way through."
+                ),
+            },
         },
-        wild_pokemon=["DITTO", "GOLBAT", "PARASECT", "RHYDON", "KADABRA"],
+        wild_pokemon=["DITTO", "GOLBAT", "PARASECT", "RHYDON", "KADABRA", "LICKITUNG", "MEWTWO"],
         wild_level_range=(46, 60),
         trainers=0,
         trainer_encounter_rate=0.0,
         wild_encounter_rate=0.55,
+    ),
+    # ── Champion's Garden ──────────────────────────────────────────────────────────────
+    "Champion's Garden": Location(
+        name="Champion's Garden",
+        location_type=TYPE_ROUTE,
+        description=(
+            "A hidden sanctuary beyond Cerulean Cave, where rare Pokemon thrive in peaceful seclusion. "
+            "Sunlight streams through the canopy overhead, illuminating a clearing where the first partners — "
+            "Bulbasaur, Charmander, and Squirtle — can be found alongside the elusive Eevee. "
+            "The Fighting Dojo's prized students, Hitmonlee and Hitmonchan, also train here in solitude. "
+            "This place exists only for Champions who have proven their worth."
+        ),
+        exits={
+            "Cerulean Cave": {
+                "direction": "south",
+                "blocked": False,
+            },
+        },
+        wild_pokemon=["BULBASAUR", "CHARMANDER", "SQUIRTLE", "EEVEE", "HITMONLEE", "HITMONCHAN"],
+        wild_level_range=(25, 30),
+        trainers=0,
+        trainer_encounter_rate=0.0,
+        wild_encounter_rate=0.65,
     ),
 }
 

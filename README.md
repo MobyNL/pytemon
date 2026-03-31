@@ -21,15 +21,55 @@ poetry install
 
 ## Run the game
 
+### Interactive Terminal
+
 ```bash
 poetry run python run_terminal.py
 ```
+
+Note: The game won't run very well in the VSCode terminal. Use another terminal, use the robotframework-pokemon package, or use the browser variant (see below)
+
+### Python Examples
+
+See the [`examples/`](examples/) directory for Python code examples showing how to:
+
+- Launch the terminal programmatically
+- Manipulate game state without the UI
+- Run battle simulations
+- Build custom interfaces on top of the game engine
+
+```bash
+# Run any example
+poetry run python examples/basic_launch.py
+poetry run python examples/programmatic_game.py
+poetry run python examples/battle_simulation.py
+```
+
+See [`examples/README.md`](examples/README.md) for detailed documentation.
+
+## Run in the browser (experimental)
+
+The game can also be served locally and played entirely in a browser tab using a
+built-in PTY WebSocket server.  No cloud account or extra installs are needed —
+`aiohttp` is already a transitive dependency.
+
+```bash
+poetry run python run_web_local.py
+```
+
+Then open **http://localhost:7681** in your browser.  Each tab launches a
+separate game session.  Press `Ctrl+C` in the terminal to stop the server.
+
+The terminal fills the full browser window; the layout automatically adapts when
+you resize the tab.
 
 ---
 
 ## How to play
 
-The game is controlled entirely by typing commands into the input bar at the bottom of the screen. Press `Enter` to submit a command.
+The game is controlled entirely by typing commands into the input bar at the bottom of the screen., or using the textual widgets on screen. Press `Enter` to submit a command.
+
+For programmatic control (Python API), see the [`examples/`](examples/) directory.
 
 ### Starting a new game
 
@@ -302,39 +342,6 @@ Bring a fossil to the Pokémon Lab on Cinnabar Island:
 > use cut                   # Clear obstacles on Route 2 South
 ```
 
----
-
-## Cheat / dev mode
-
-Type the secret phrase to unlock cheat commands:
-
-```
-> i am professor oak
-```
-
-Then use `cheat <command>`:
-
-```
-> cheat add Pikachu 50       # Add a level 50 Pikachu to your party
-> cheat give Master Ball 1   # Give yourself a Master Ball
-> cheat warp Cerulean City   # Teleport to any location
-> cheat battle Mewtwo 70     # Start a wild battle against Mewtwo
-> cheat money 99999          # Add money
-> cheat level Charmander 36  # Set a Pokémon's level
-> cheat evolve Charmander    # Force evolution
-> cheat win                  # Instantly win the current battle
-```
-
-Disable cheat mode:
-
-```
-> i am not professor oak
-```
-
-> **Easter egg:** Type `the truck is real` anywhere for a surprise encounter.
-
----
-
 ## Useful shortcuts
 
 | Command | What it does |
@@ -378,8 +385,15 @@ pytemon/
 │   ├── data/          # Pokemon, move, trainer data
 │   ├── texts/         # All in-game dialog strings
 │   └── ui/            # TUI mixin modules
+├── examples/          # Python usage examples
 ├── tests/             # Pytest unit tests
 ├── saves/             # Save files (auto-created)
-├── run_terminal.py    # Direct launcher
+├── run_terminal.py    # Terminal launcher
+├── run_web_local.py   # Browser launcher (PTY WebSocket server)
 └── pyproject.toml
 ```
+
+
+### Disclaimer
+
+Large parts of this project have been build using Copilot. Many bugs, and many improvements can probably be made, but since it is just a simple joke, not everything is going to be perfect(ed).

@@ -113,6 +113,45 @@ class TestCheckSecretPhrase:
         result = check_secret_phrase("", gs, output)
         assert result is False
 
+    def test_mew_secret_phrase_queues_forced_encounter(self, gs, output):
+        from pytemon.locations import get_location
+
+        # Set up a valid game state
+        make_party_pokemon(gs, "PIKACHU", 10)
+        gs.current_location = get_location("Pallet Town")
+
+        # Trigger Mew secret phrase
+        result = check_secret_phrase("the truck is real", gs, output)
+
+        # Should return True and queue a forced encounter
+        assert result is True
+        assert "_forced_encounter" in gs.game_data
+        assert gs.game_data["_forced_encounter"]["species"] == "MEW"
+        assert gs.game_data["_forced_encounter"]["level"] == 5
+        # Should set the story flag
+        assert gs.game_data.get("story_flags", {}).get("found_mew") is True
+        # Should show the special message
+        assert "TRUCK" in output.combined.upper() and "REAL" in output.combined.upper()
+
+    def test_mew_secret_phrase_only_once(self, gs, output):
+        from pytemon.locations import get_location
+
+        # Set up and trigger Mew once
+        make_party_pokemon(gs, "PIKACHU", 10)
+        gs.current_location = get_location("Pallet Town")
+        check_secret_phrase("the truck is real", gs, output)
+
+        # Clear output and try again
+        output.lines.clear()
+        gs.game_data.pop("_forced_encounter", None)
+
+        result = check_secret_phrase("the truck is real", gs, output)
+
+        # Should return True but not queue another encounter
+        assert result is True
+        assert "_forced_encounter" not in gs.game_data
+        assert "already revealed" in output.combined.lower()
+
 
 # ===========================================================================
 # process_cheat_command

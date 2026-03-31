@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytemon"
-version = "0.1.0"
+version = "1.0.0"
 description = "Unofficial fan project: interactive Pokémon-inspired game library for the terminal, built with Textual TUI"
 authors = ["Mark Moberts <markmoberts@gmail.com>"]
 license = "MIT"
@@ -35,6 +35,8 @@ pytest-cov = "^7.0"
 ruff = "^0.4"
 mypy = "^1.10"
 pytest-asyncio = ">=0.23,<1.0"
+robotframework = "^7.0"
+robotframework-pythonlibcore = "^4.4"
 
 [build-system]
 requires = ["poetry-core"]

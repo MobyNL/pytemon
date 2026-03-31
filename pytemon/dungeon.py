@@ -392,6 +392,7 @@ DUNGEONS: Dict[str, DungeonDefinition] = {
                 description=(
                     "The final stretch. You can see the lights of the Pokemon League ahead. "
                     "One last group of elite trainers guard the passage. "
+                    "A fiery presence emanates from a hidden alcove — Moltres roosts here. "
                     "Beyond them, the Pokemon League waits."
                 ),
                 exits=[
@@ -407,19 +408,126 @@ DUNGEONS: Dict[str, DungeonDefinition] = {
                         target_location="Pokemon League",
                     ),
                 ],
-                wild_pokemon=["MACHOP", "GEODUDE", "ONIX", "MACHOKE", "MAROWAK"],
+                wild_pokemon=["MACHOP", "GEODUDE", "ONIX", "MACHOKE", "MAROWAK", "MOLTRES"],
                 level_range=(44, 50),
                 encounter_rate=0.55,
                 encounter_weights={
                     "MACHOP": 25,
                     "GEODUDE": 25,
                     "ONIX": 20,
-                    "MACHOKE": 20,
+                    "MACHOKE": 18,
                     "MAROWAK": 10,
+                    "MOLTRES": 2,
                 },
                 trainer_ids=["veteran_trainer"],
                 is_checkpoint=False,
                 event_hook="victory_road_rival",
+            ),
+        },
+    ),
+    # ══════════════════════════════════════════════════════════════════════
+    # POKEMON MANSION  (3 floors - B1F, 1F, 2F)
+    # ══════════════════════════════════════════════════════════════════════
+    "pokemon_mansion": DungeonDefinition(
+        dungeon_id="pokemon_mansion",
+        name="Pokemon Mansion",
+        location_name="Pokemon Mansion",
+        entrance_floor="mansion_1f",
+        escape_to="Cinnabar Island",
+        completion_flag="pokemon_mansion_explored",
+        floors={
+            "mansion_1f": DungeonFloor(
+                floor_id="mansion_1f",
+                name="Pokemon Mansion 1F",
+                description=(
+                    "The burnt-out remains of a research facility. Charred furniture and "
+                    "scorched lab equipment litter the halls. Grimer ooze from broken pipes. "
+                    "Stairs lead down to the basement and up to the second floor."
+                ),
+                exits=[
+                    DungeonFloorExit(
+                        direction="down",
+                        label="Stairs to B1F",
+                        target_floor="mansion_b1f",
+                    ),
+                    DungeonFloorExit(
+                        direction="up",
+                        label="Stairs to 2F",
+                        target_floor="mansion_2f",
+                    ),
+                ],
+                wild_pokemon=["RATTATA", "RATICATE", "GRIMER", "PONYTA", "KOFFING", "GROWLITHE"],
+                level_range=(30, 38),
+                encounter_rate=0.60,
+                encounter_weights={
+                    "RATTATA": 30,
+                    "RATICATE": 20,
+                    "GRIMER": 20,
+                    "PONYTA": 15,
+                    "KOFFING": 10,
+                    "GROWLITHE": 5,
+                },
+                trainer_ids=[],
+                is_checkpoint=True,
+            ),
+            "mansion_b1f": DungeonFloor(
+                floor_id="mansion_b1f",
+                name="Pokemon Mansion B1F",
+                description=(
+                    "The underground laboratory. Broken cryo-pods line the walls. "
+                    "Diary entries on burned scraps of paper hint at twisted genetic experiments. "
+                    "Grimer and Muk infest the chemical storage rooms."
+                ),
+                exits=[
+                    DungeonFloorExit(
+                        direction="up",
+                        label="Stairs to 1F",
+                        target_floor="mansion_1f",
+                    ),
+                ],
+                wild_pokemon=["GRIMER", "MUK", "KOFFING", "WEEZING", "MAGMAR"],
+                level_range=(32, 42),
+                encounter_rate=0.65,
+                encounter_weights={
+                    "GRIMER": 30,
+                    "MUK": 20,
+                    "KOFFING": 20,
+                    "WEEZING": 15,
+                    "MAGMAR": 15,
+                },
+                trainer_ids=[],
+                item_pickups=["Secret Key"],
+                item_flag="received_secret_key",
+                is_checkpoint=True,
+                event_hook="mansion_secret_key",
+            ),
+            "mansion_2f": DungeonFloor(
+                floor_id="mansion_2f",
+                name="Pokemon Mansion 2F",
+                description=(
+                    "The upper floor. Collapsed ceilings expose the night sky. "
+                    "Ponyta gallop through the rubble, and Fire Pokemon nest in the rafters. "
+                    "You can see the ocean from the broken windows."
+                ),
+                exits=[
+                    DungeonFloorExit(
+                        direction="down",
+                        label="Stairs to 1F",
+                        target_floor="mansion_1f",
+                    ),
+                ],
+                wild_pokemon=["PONYTA", "RAPIDASH", "MAGMAR", "GROWLITHE", "RATICATE"],
+                level_range=(34, 40),
+                encounter_rate=0.60,
+                encounter_weights={
+                    "PONYTA": 30,
+                    "RAPIDASH": 20,
+                    "MAGMAR": 20,
+                    "GROWLITHE": 15,
+                    "RATICATE": 15,
+                },
+                trainer_ids=[],
+                is_checkpoint=False,
             ),
         },
     ),

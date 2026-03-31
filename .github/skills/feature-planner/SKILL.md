@@ -89,7 +89,6 @@ Run: ruff format --check, ruff check tests/, pytest -q
 
 ## Dependencies
 - All specialist agents: `game-content`, `game-logic`, `tui-specialist`, `battle-system`, `test-writer`, `ci-quality`
-- `NEXT_STEPS.md` — for priority and context
 
 ## Error Handling
 - **Scope too large**: split into sub-features (e.g. "Route 24 data" as one feature, "Bill's House logic" as another)

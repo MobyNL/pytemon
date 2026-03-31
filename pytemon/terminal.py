@@ -80,7 +80,7 @@ class PokemonTerminal(PanelMixin, GameFlowMixin, BuildingMixin, BattleMixin, App
     ]
 
     TITLE = "Pokemon Terminal Game"
-    SUB_TITLE = "A Robot Framework Adventure"
+    SUB_TITLE = "A Python Based Adventure"
 
     command_count = reactive(0)
     typewriter_enabled = True

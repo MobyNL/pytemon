@@ -124,7 +124,11 @@ class BattleMixin:
         """Trigger a wild Pokemon battle, prompting the player to choose their lead first."""
         # Pre-generate the encounter if not already set (fishing sets it before calling us).
         # Storing it as _fishing_encounter means battle_actions re-uses the same species.
-        if "_fishing_encounter" not in self.game_state.game_data:
+        # BUT: don't override if a forced encounter (e.g. Mew, legendary) is queued.
+        if (
+            "_fishing_encounter" not in self.game_state.game_data
+            and "_forced_encounter" not in self.game_state.game_data
+        ):
             location = self.game_state.current_location
             if location and location.wild_pokemon:
                 wild_species = random.choice(location.wild_pokemon)
@@ -136,18 +140,25 @@ class BattleMixin:
                 }
 
         # Build the pre-battle announcement with a type-based flavor hint.
-        enc = self.game_state.game_data.get("_fishing_encounter", {})
+        # Check for forced encounter first (e.g. Mew), then fishing encounter.
+        enc = self.game_state.game_data.get("_forced_encounter") or self.game_state.game_data.get(
+            "_fishing_encounter", {}
+        )
         wild_species = enc.get("species")
-        species_types: list = []
-        if wild_species:
-            for _spec in _POKEMON.values():
-                if _spec["name"] == wild_species.upper():
-                    species_types = _spec.get("types", [])
-                    break
-        primary_type = species_types[0] if species_types else "Normal"
-        flavor = _TYPE_ENCOUNTER_HINTS.get(primary_type, "Something is lurking nearby...")
 
-        output.write(f"[bold red]A wild Pokémon appeared![/bold red] [dim]{flavor}[/dim]")
+        # Skip the "wild Pokemon appeared" message if a forced encounter is active,
+        # because legendary/special encounters already printed their own message.
+        if not self.game_state.game_data.get("_forced_encounter"):
+            species_types: list = []
+            if wild_species:
+                for _spec in _POKEMON.values():
+                    if _spec["name"] == wild_species.upper():
+                        species_types = _spec.get("types", [])
+                        break
+            primary_type = species_types[0] if species_types else "Normal"
+            flavor = _TYPE_ENCOUNTER_HINTS.get(primary_type, "Something is lurking nearby...")
+
+            output.write(f"[bold red]A wild Pokémon appeared![/bold red] [dim]{flavor}[/dim]")
 
         location = self.game_state.current_location
         if location and location.name == "Safari Zone":

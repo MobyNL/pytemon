@@ -87,6 +87,16 @@ MOVES: dict[str, MoveData] = {
         effect="absorb",
         effect_chance=100,
     ),
+    "ACID ARMOR": MoveData(
+        name="ACID ARMOR",
+        type=PSYCHIC,
+        category="status",
+        power=0,
+        accuracy=0,
+        pp=40,
+        effect="raise_defense_2",
+        effect_chance=100,
+    ),
     "AGILITY": MoveData(
         name="AGILITY",
         type=PSYCHIC,
@@ -397,6 +407,16 @@ MOVES: dict[str, MoveData] = {
         effect="raise_evasion",
         effect_chance=100,
     ),
+    "DOUBLESLAP": MoveData(
+        name="DOUBLESLAP",
+        type=NORMAL,
+        category="physical",
+        power=15,
+        accuracy=85,
+        pp=10,
+        effect="multi_hit",
+        effect_chance=100,
+    ),
     "DRAGON RAGE": MoveData(
         name="DRAGON RAGE",
         type=DRAGON,
@@ -636,6 +656,16 @@ MOVES: dict[str, MoveData] = {
         pp=15,
         effect="flinch",
         effect_chance=30,
+    ),
+    "HAZE": MoveData(
+        name="HAZE",
+        type=ICE,
+        category="status",
+        power=0,
+        accuracy=0,
+        pp=30,
+        effect="reset_stats",
+        effect_chance=100,
     ),
     "HIGH JUMP KICK": MoveData(
         name="HIGH JUMP KICK",
@@ -1307,6 +1337,16 @@ MOVES: dict[str, MoveData] = {
         effect="lower_accuracy",
         effect_chance=100,
     ),
+    "SMOG": MoveData(
+        name="SMOG",
+        type=POISON,
+        category="special",
+        power=20,
+        accuracy=70,
+        pp=20,
+        effect="poison",
+        effect_chance=40,
+    ),
     "SOFT-BOILED": MoveData(
         name="SOFT-BOILED",
         type=NORMAL,
@@ -1345,6 +1385,16 @@ MOVES: dict[str, MoveData] = {
         accuracy=100,
         pp=15,
         effect="multi_hit",
+        effect_chance=100,
+    ),
+    "SPORE": MoveData(
+        name="SPORE",
+        type=GRASS,
+        category="status",
+        power=0,
+        accuracy=100,
+        pp=15,
+        effect="sleep",
         effect_chance=100,
     ),
     "STOMP": MoveData(
@@ -1537,6 +1587,16 @@ MOVES: dict[str, MoveData] = {
         effect="paralysis",
         effect_chance=10,
     ),
+    "THRASH": MoveData(
+        name="THRASH",
+        type=NORMAL,
+        category="physical",
+        power=90,
+        accuracy=100,
+        pp=20,
+        effect="thrash",
+        effect_chance=100,
+    ),
     "THUNDER PUNCH": MoveData(
         name="THUNDER PUNCH",
         type=ELECTRIC,
@@ -1681,4 +1741,29 @@ MOVES: dict[str, MoveData] = {
 
 
 def get_move(name: str) -> Optional[MoveData]:
-    return MOVES.get(name.upper())
+    """
+    Get move data by name, with normalization fallback.
+
+    Handles both "DOUBLE EDGE" and "DOUBLE-EDGE" style names by trying:
+    1. Exact match (uppercased)
+    2. Space-to-hyphen normalization fallback
+
+    Args:
+        name: Move name (case-insensitive)
+
+    Returns:
+        MoveData if found, None otherwise
+    """
+    upper_name = name.upper()
+
+    # Try exact match first
+    move = MOVES.get(upper_name)
+    if move:
+        return move
+
+    # Fallback: try replacing spaces with hyphens (for moves like "DOUBLE-EDGE")
+    normalized = upper_name.replace(" ", "-")
+    if normalized != upper_name:
+        return MOVES.get(normalized)
+
+    return None
