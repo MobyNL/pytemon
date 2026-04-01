@@ -396,4 +396,4 @@ pytemon/
 
 ### Disclaimer
 
-Large parts of this project have been build using Copilot. Many bugs, and many improvements can probably be made, but since it is just a simple joke, not everything is going to be perfect(ed).
+Large parts of this project have been build using Copilot, to explore and learn more about using AI to code. Many bugs, and many improvements can probably be made, but since it is build for April 1st, not everything is going to be perfect(ed).
