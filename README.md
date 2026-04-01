@@ -12,6 +12,12 @@ The [robotframework-pokemon](https://github.com/MobyNL/robotframework-pokemon) s
 
 ---
 
+## Installation
+
+```bash
+pip install pytemon
+```
+
 ## Setup
 
 ```bash
