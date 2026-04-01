@@ -68,6 +68,9 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
     trainer_pokemon = battle.wild_pokemon
     player = battle.player_pokemon
     player_name = game_state.game_data.get("player_name", "Trainer")
+    trainer_display_name = trainer["name"]
+    if trainer_display_name == "Rival":
+        trainer_display_name = game_state.game_data.get("rival_name", "Rival")
 
     lines = list(T.TRAINER_BATTLE_HEADER)
 
@@ -75,14 +78,16 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
         lines.append(f"[yellow]{intro_line.replace('{player_name}', player_name)}[/yellow]")
 
     lines.append("")
-    lines.append(f"[bold]{trainer['trainer_class']} {trainer['name']} wants to battle![/bold]")
+    lines.append(
+        f"[bold]{trainer['trainer_class']} {trainer_display_name} wants to battle![/bold]"
+    )
     lines.append("")
 
     num_pokemon = len(battle.trainer_pokemon_team)
     if num_pokemon > 1:
         lines.extend(
             [
-                line.format(trainer_name=trainer["name"], pokemon_name=trainer_pokemon["name"])
+                line.format(trainer_name=trainer_display_name, pokemon_name=trainer_pokemon["name"])
                 for line in T.TRAINER_BATTLE_SENT_OUT
             ]
         )
@@ -90,7 +95,7 @@ def get_trainer_battle_start_lines(game_state: "GameState") -> List[str]:
     else:
         lines.extend(
             [
-                line.format(trainer_name=trainer["name"], pokemon_name=trainer_pokemon["name"])
+                line.format(trainer_name=trainer_display_name, pokemon_name=trainer_pokemon["name"])
                 for line in T.TRAINER_BATTLE_SENT_OUT
             ]
         )

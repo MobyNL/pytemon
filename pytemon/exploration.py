@@ -318,9 +318,10 @@ def prompt_for_building(
     for building in current.buildings:
         write_lines_fmt(output, T.SELECT_BUILDING_ENTRY, building=building)
 
-    if current.blocked_buildings:
+    dynamic_blocked = _resolve_blocked_buildings(game_state, current)
+    if dynamic_blocked:
         write_lines(output, T.BLOCKED_BUILDINGS_HEADER)
-        for building, reason in current.blocked_buildings.items():
+        for building, reason in dynamic_blocked.items():
             write_lines_fmt(output, T.BLOCKED_BUILDING_ENTRY, building=building, reason=reason)
         write_lines(output, T.BLOCKED_BUILDINGS_FOOTER)
     else:
@@ -473,10 +474,11 @@ def show_location_arrival(game_state: "GameState", output: RichLog, is_load: boo
                 )
         write_lines(output, T.ARRIVAL_PATHS_FOOTER)
 
-    # Show blocked buildings if any
-    if location.blocked_buildings:
+    # Show blocked buildings if any (resolved dynamically against runtime flags)
+    dynamic_blocked = _resolve_blocked_buildings(game_state, location)
+    if dynamic_blocked:
         write_lines(output, T.ARRIVAL_BLOCKED_BUILDINGS_HEADER)
-        for building, reason in location.blocked_buildings.items():
+        for building, reason in dynamic_blocked.items():
             write_lines_fmt(output, T.BLOCKED_BUILDING_ENTRY, building=building, reason=reason)
         write_lines(output, T.ARRIVAL_BLOCKED_BUILDINGS_FOOTER)
 
@@ -499,6 +501,116 @@ def show_location_arrival(game_state: "GameState", output: RichLog, is_load: boo
     write_lines(output, T.ARRIVAL_FOOTER)
 
 
+def _resolve_exit_data(
+    game_state: "GameState", current_name: str, exit_name: str, exit_data: dict
+) -> dict:
+    """Apply all runtime gate overrides to a static exit_data entry.
+
+    Mirrors the gate checks in ``move_to_location`` so that ``look_around``
+    reflects the same dynamic availability as actual movement.
+    """
+    badges = game_state.game_data.get("badges", [])
+    story_flags = game_state.game_data.get("story_flags", {})
+    surf_unlocked = game_state.game_data.get("surf_unlocked", [])
+
+    if exit_name == "Route 24" and current_name == "Cerulean City":
+        if "cascade_badge" in badges:
+            exit_data = {**exit_data, "blocked": False}
+
+    if exit_name == "Route 21" and current_name == "Pallet Town":
+        if "Route 21" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+
+    if exit_name == "Route 19" and current_name == "Fuchsia City":
+        if "Route 19" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+
+    if exit_name == "Route 20" and current_name == "Route 19":
+        if "Route 20" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+
+    if exit_name == "Route 21" and current_name == "Cinnabar Island":
+        if "Route 21" in surf_unlocked or game_state.cheat_mode:
+            exit_data = {**exit_data, "blocked": False}
+        else:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": "Route 21 is open water. You need a Pokemon that knows Surf.",
+            }
+
+    if exit_name == "Saffron City":
+        if "marsh_badge" not in badges and not story_flags.get("silph_co_cleared", False):
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": (
+                    "The gates to Saffron City are sealed. "
+                    "The Silph Co. employees won't let anyone through "
+                    "until the situation is resolved."
+                ),
+            }
+
+    if exit_name == "Victory Road":
+        if "earth_badge" not in badges:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": "The gate to Victory Road is locked. You need all 8 Badges to pass.",
+            }
+
+    if exit_name == "Cerulean Cave":
+        if story_flags.get("is_champion"):
+            exit_data = {**exit_data, "blocked": False}
+        else:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": (
+                    "The cave is sealed with heavy barriers. "
+                    'A guard says: "Only the Pokemon Champion may enter."'
+                ),
+            }
+
+    if exit_name == "Champion's Garden":
+        if story_flags.get("is_champion"):
+            exit_data = {**exit_data, "blocked": False}
+        else:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": exit_data.get("reason", "This hidden path is only visible to Champions."),
+            }
+
+    if exit_name in ("Seafoam Islands", "Power Plant"):
+        if exit_name not in surf_unlocked and not game_state.cheat_mode:
+            exit_data = {
+                **exit_data,
+                "blocked": True,
+                "reason": f"You need HM Surf to reach {exit_name}.",
+            }
+
+    return exit_data
+
+
+def _resolve_blocked_buildings(game_state: "GameState", location: "Location") -> dict:
+    """Return only the buildings that are still blocked at runtime.
+
+    Filters the static ``location.blocked_buildings`` dict against current
+    story flags so that buildings unlocked by in-game progress no longer
+    appear as blocked in ``look_around``.
+    """
+    if not location.blocked_buildings:
+        return {}
+    story_flags = game_state.game_data.get("story_flags", {})
+    result: dict = {}
+    for building, reason in location.blocked_buildings.items():
+        if building == "Hall of Fame" and story_flags.get("defeated_champion"):
+            continue
+        result[building] = reason
+    return result
+
+
 def look_around(game_state: "GameState", output: RichLog, auto: bool = False) -> None:
     """Look around the current location."""
     if not game_state.current_location:
@@ -518,9 +630,10 @@ def look_around(game_state: "GameState", output: RichLog, auto: bool = False) ->
                 write_lines_fmt(output, T.LOOK_AROUND_BUILDING_ENTRY, building=building)
             write_lines(output, T.LOOK_AROUND_BUILDINGS_FOOTER)
 
-        if location.blocked_buildings:
+        dynamic_blocked_buildings = _resolve_blocked_buildings(game_state, location)
+        if dynamic_blocked_buildings:
             write_lines(output, T.LOOK_AROUND_BLOCKED_BUILDINGS_HEADER)
-            for building, reason in location.blocked_buildings.items():
+            for building, reason in dynamic_blocked_buildings.items():
                 write_lines_fmt(output, T.BLOCKED_BUILDING_ENTRY, building=building, reason=reason)
             write_lines(output, T.LOOK_AROUND_BLOCKED_BUILDINGS_FOOTER)
 
@@ -569,8 +682,14 @@ def look_around(game_state: "GameState", output: RichLog, auto: bool = False) ->
             write_lines_fmt(output, T.LOOK_AROUND_HINT_LINE, hint=hint)
         write_lines(output, T.LOOK_AROUND_EXPLORE_FOOTER)
 
-    # Show available exits
-    available_exits = location.get_available_exits()
+    # Show available exits — resolved dynamically to reflect runtime gates
+    resolved_exits = {
+        exit_name: _resolve_exit_data(game_state, location.name, exit_name, dict(data))
+        for exit_name, data in location.exits.items()
+    }
+    available_exits = [
+        k for k, v in resolved_exits.items() if not v.get("blocked", False)
+    ]
     if available_exits:
         previous_location = game_state.game_data.get("previous_location")
         write_lines(output, T.LOOK_AROUND_AVAILABLE_PATHS_HEADER)
@@ -593,8 +712,12 @@ def look_around(game_state: "GameState", output: RichLog, auto: bool = False) ->
                 )
         write_lines(output, T.LOOK_AROUND_AVAILABLE_PATHS_FOOTER)
 
-    # Show blocked exits
-    blocked_exits = location.get_blocked_exits()
+    # Show blocked exits — resolved dynamically
+    blocked_exits = {
+        k: v.get("reason", "Blocked")
+        for k, v in resolved_exits.items()
+        if v.get("blocked", False)
+    }
     if blocked_exits:
         write_lines(output, T.LOOK_AROUND_BLOCKED_PATHS_HEADER)
         for exit_name, reason in blocked_exits.items():

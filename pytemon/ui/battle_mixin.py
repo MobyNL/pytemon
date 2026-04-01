@@ -171,6 +171,8 @@ class BattleMixin:
         """Trigger a trainer battle, prompting the player to choose their lead first."""
         trainer_class = trainer.get("trainer_class", "Trainer")
         trainer_name = trainer.get("name", "???")
+        if trainer_name == "Rival":
+            trainer_name = self.game_state.game_data.get("rival_name", "Rival")
         output.write(f"[bold yellow]{trainer_class} {trainer_name} wants to battle![/bold yellow]")
         self._show_lead_selection_prompt(output, battle_type="trainer", trainer=trainer)
 

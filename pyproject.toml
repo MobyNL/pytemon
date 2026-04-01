@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytemon"
-version = "1.0.0"
+version = "1.0.1"
 description = "Unofficial fan project: interactive Pokémon-inspired game library for the terminal, built with Textual TUI"
 authors = ["Mark Moberts <markmoberts@gmail.com>"]
 license = "MIT"

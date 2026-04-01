@@ -732,6 +732,8 @@ def handle_elite_four_victory(
         output.write("")
         output.write("[dim]Visit the Hall of Fame to see your eternal record.[/dim]")
         output.write("")
+        # Autosave immediately so champion status is persisted before location change
+        game_state.autosave_on_location_change()
     else:
         output.write("[bold]You won the battle![/bold]")
         output.write("")
